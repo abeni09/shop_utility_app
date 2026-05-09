@@ -55,4 +55,25 @@ class DashboardRepository {
     final startOfDay = DateTime(date.year, date.month, date.day);
     return isar.dailyLogs.filter().dateEqualTo(startOfDay).watch(fireImmediately: true).map((list) => list.isEmpty ? null : list.first);
   }
+
+  Future<Map<String, double>> getProfitForRange(DateTime start, DateTime end) async {
+    final logs = await isar.dailyLogs.filter()
+        .dateGreaterThan(start.subtract(const Duration(milliseconds: 1)))
+        .and()
+        .dateLessThan(end.add(const Duration(days: 1)))
+        .findAll();
+
+    double totalSales = 0;
+    double totalProfit = 0;
+
+    for (var log in logs) {
+      totalSales += log.totalSales;
+      totalProfit += log.totalProfit;
+    }
+
+    return {
+      'sales': totalSales,
+      'profit': totalProfit,
+    };
+  }
 }

@@ -12,3 +12,17 @@ final dailyLogProvider = StreamProvider<DailyLog?>((ref) {
   final repository = ref.watch(dashboardRepositoryProvider);
   return repository.watchDailyLog(DateTime.now());
 });
+
+final weeklyProfitProvider = FutureProvider<Map<String, double>>((ref) {
+  final repository = ref.watch(dashboardRepositoryProvider);
+  final now = DateTime.now();
+  final start = now.subtract(const Duration(days: 7));
+  return repository.getProfitForRange(start, now);
+});
+
+final monthlyProfitProvider = FutureProvider<Map<String, double>>((ref) {
+  final repository = ref.watch(dashboardRepositoryProvider);
+  final now = DateTime.now();
+  final start = now.subtract(const Duration(days: 30));
+  return repository.getProfitForRange(start, now);
+});

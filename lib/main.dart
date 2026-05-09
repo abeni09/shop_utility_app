@@ -187,9 +187,15 @@ class DashboardScreen extends ConsumerWidget {
               actions: [
                 Container(
                   margin: const EdgeInsets.only(right: 16),
-                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), shape: BoxShape.circle),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    shape: BoxShape.circle,
+                  ),
                   child: IconButton(
-                    icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFF818CF8)),
+                    icon: const Icon(
+                      Icons.notifications_none_rounded,
+                      color: Color(0xFF818CF8),
+                    ),
                     onPressed: () {},
                   ),
                 ),
@@ -209,8 +215,78 @@ class DashboardScreen extends ConsumerWidget {
                       const [Color(0xFF6366F1), Color(0xFF818CF8)],
                       Icons.account_balance_wallet_rounded,
                     ),
-                    loading: () => _buildHeroCard('NET PROFIT TODAY', '...', 'ETB', [Colors.grey.shade800, Colors.grey.shade900], Icons.hourglass_empty),
-                    error: (_, __) => _buildHeroCard('NET PROFIT TODAY', 'ERROR', '', [Colors.red.shade900, Colors.red.shade800], Icons.error_outline),
+                    loading: () => _buildHeroCard(
+                      'NET PROFIT TODAY',
+                      '...',
+                      'ETB',
+                      [Colors.grey.shade800, Colors.grey.shade900],
+                      Icons.hourglass_empty,
+                    ),
+                    error: (_, __) => _buildHeroCard(
+                      'NET PROFIT TODAY',
+                      'ERROR',
+                      '',
+                      [Colors.red.shade900, Colors.red.shade800],
+                      Icons.error_outline,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'FINANCIAL INSIGHTS',
+                    style: TextStyle(
+                      letterSpacing: 2.5,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: [
+                        ref
+                            .watch(weeklyProfitProvider)
+                            .when(
+                              data: (stats) => _buildInsightCard(
+                                'LAST 7 DAYS',
+                                '${stats['profit']?.toStringAsFixed(0)}',
+                                Colors.indigoAccent,
+                              ),
+                              loading: () => _buildInsightCard(
+                                'LAST 7 DAYS',
+                                '...',
+                                Colors.grey,
+                              ),
+                              error: (_, __) => _buildInsightCard(
+                                'LAST 7 DAYS',
+                                'ERR',
+                                Colors.redAccent,
+                              ),
+                            ),
+                        const SizedBox(width: 12),
+                        ref
+                            .watch(monthlyProfitProvider)
+                            .when(
+                              data: (stats) => _buildInsightCard(
+                                'LAST 30 DAYS',
+                                '${stats['profit']?.toStringAsFixed(0)}',
+                                Colors.greenAccent,
+                              ),
+                              loading: () => _buildInsightCard(
+                                'LAST 30 DAYS',
+                                '...',
+                                Colors.grey,
+                              ),
+                              error: (_, __) => _buildInsightCard(
+                                'LAST 30 DAYS',
+                                'ERR',
+                                Colors.redAccent,
+                              ),
+                            ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 24),
                   Row(
@@ -219,24 +295,58 @@ class DashboardScreen extends ConsumerWidget {
                         child: ordersAsync.when(
                           data: (orders) {
                             final total = orders.length;
-                            final out = orders.where((o) => o.status == OrderStatus.sold).length;
-                            return _buildMiniStat('DELIVERY', '$out/$total', 'Fulfilled', const Color(0xFF10B981));
+                            final out = orders
+                                .where((o) => o.status == OrderStatus.sold)
+                                .length;
+                            return _buildMiniStat(
+                              'DELIVERY',
+                              '$out/$total',
+                              'Fulfilled',
+                              const Color(0xFF10B981),
+                            );
                           },
-                          loading: () => _buildMiniStat('DELIVERY', '...', '...', Colors.grey),
-                          error: (_, __) => _buildMiniStat('DELIVERY', '!', 'Err', Colors.red),
+                          loading: () => _buildMiniStat(
+                            'DELIVERY',
+                            '...',
+                            '...',
+                            Colors.grey,
+                          ),
+                          error: (_, __) => _buildMiniStat(
+                            'DELIVERY',
+                            '!',
+                            'Err',
+                            Colors.red,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 16),
-                      Expanded(child: _buildMiniStat('ALERTS', '0', 'No Issues', const Color(0xFFF59E0B))),
+                      Expanded(
+                        child: _buildMiniStat(
+                          'ALERTS',
+                          '0',
+                          'No Issues',
+                          const Color(0xFFF59E0B),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 40),
-                  const Text('QUICK ACTIONS', style: TextStyle(letterSpacing: 2.5, fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF64748B))),
+                  const Text(
+                    'QUICK ACTIONS',
+                    style: TextStyle(
+                      letterSpacing: 2.5,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
                   const SizedBox(height: 20),
                   _buildActionGrid(context, ref),
                   const SizedBox(height: 24),
                   _buildBackupTile(context, ref),
-                  const SizedBox(height: 120), // Bottom padding for FAB and Nav Bar
+                  const SizedBox(
+                    height: 120,
+                  ), // Bottom padding for FAB and Nav Bar
                 ]),
               ),
             ),
@@ -354,7 +464,59 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildMiniStat(String label, String value, String sub, Color color) {
+  Widget _buildInsightCard(String label, String value, Color color) {
+    return Container(
+      width: 160,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.w900,
+              color: Colors.white24,
+              fontSize: 9,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 20,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'ETB',
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 10,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniStat(
+    String label,
+    String value,
+    String subtitle,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -380,7 +542,7 @@ class DashboardScreen extends ConsumerWidget {
             style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
           ),
           Text(
-            sub,
+            subtitle,
             style: const TextStyle(
               fontSize: 12,
               color: Colors.white38,
