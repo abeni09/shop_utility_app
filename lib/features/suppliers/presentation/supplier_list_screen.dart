@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopsync/features/suppliers/data/supplier_model.dart';
 import 'package:shopsync/features/suppliers/data/supplier_repository.dart';
 import 'package:shopsync/main.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 final supplierRepositoryProvider = Provider<SupplierRepository>((ref) {
   final dbService = ref.watch(databaseServiceProvider);
@@ -132,8 +133,8 @@ class SupplierListScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             _buildTextField(
               contactController,
-              'Contact Info',
-              Icons.contact_page_rounded,
+              'Phone Number',
+              Icons.phone_rounded,
             ),
             const SizedBox(height: 32),
             SizedBox(
@@ -226,9 +227,32 @@ class _SupplierCard extends ConsumerWidget {
           supplier.name,
           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
         ),
-        subtitle: Text(
-          supplier.contact ?? 'No contact',
-          style: const TextStyle(color: Colors.white38, fontSize: 12),
+        subtitle: Row(
+          children: [
+            Text(
+              supplier.contact ?? 'No contact',
+              style: const TextStyle(color: Colors.white38, fontSize: 12),
+            ),
+            if (supplier.contact != null && supplier.contact!.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () async {
+                  final url = Uri.parse('tel:${supplier.contact}');
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url);
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF818CF8).withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.call_rounded, size: 14, color: Color(0xFF818CF8)),
+                ),
+              ),
+            ],
+          ],
         ),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
