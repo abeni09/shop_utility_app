@@ -178,96 +178,69 @@ class DashboardScreen extends ConsumerWidget {
       ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          title: const Text('SHOPSYNC'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.notifications_none_rounded),
-              onPressed: () {},
+        body: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            SliverAppBar.large(
+              backgroundColor: Colors.transparent,
+              title: const Text('SHOPSYNC'),
+              actions: [
+                Container(
+                  margin: const EdgeInsets.only(right: 16),
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), shape: BoxShape.circle),
+                  child: IconButton(
+                    icon: const Icon(Icons.notifications_none_rounded, color: Color(0xFF818CF8)),
+                    onPressed: () {},
+                  ),
+                ),
+              ],
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.all(24),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  _buildGreeting(),
+                  const SizedBox(height: 28),
+                  dailyLogAsync.when(
+                    data: (log) => _buildHeroCard(
+                      'NET PROFIT TODAY',
+                      '${log?.totalProfit.toStringAsFixed(2) ?? "0.00"}',
+                      'ETB',
+                      const [Color(0xFF6366F1), Color(0xFF818CF8)],
+                      Icons.account_balance_wallet_rounded,
+                    ),
+                    loading: () => _buildHeroCard('NET PROFIT TODAY', '...', 'ETB', [Colors.grey.shade800, Colors.grey.shade900], Icons.hourglass_empty),
+                    error: (_, __) => _buildHeroCard('NET PROFIT TODAY', 'ERROR', '', [Colors.red.shade900, Colors.red.shade800], Icons.error_outline),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ordersAsync.when(
+                          data: (orders) {
+                            final total = orders.length;
+                            final out = orders.where((o) => o.status == OrderStatus.sold).length;
+                            return _buildMiniStat('DELIVERY', '$out/$total', 'Fulfilled', const Color(0xFF10B981));
+                          },
+                          loading: () => _buildMiniStat('DELIVERY', '...', '...', Colors.grey),
+                          error: (_, __) => _buildMiniStat('DELIVERY', '!', 'Err', Colors.red),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(child: _buildMiniStat('ALERTS', '0', 'No Issues', const Color(0xFFF59E0B))),
+                    ],
+                  ),
+                  const SizedBox(height: 40),
+                  const Text('QUICK ACTIONS', style: TextStyle(letterSpacing: 2.5, fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF64748B))),
+                  const SizedBox(height: 20),
+                  _buildActionGrid(context, ref),
+                  const SizedBox(height: 24),
+                  _buildBackupTile(context, ref),
+                  const SizedBox(height: 120), // Bottom padding for FAB and Nav Bar
+                ]),
+              ),
             ),
           ],
-        ),
-        body: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildGreeting(),
-              const SizedBox(height: 28),
-              dailyLogAsync.when(
-                data: (log) => _buildHeroCard(
-                  'NET PROFIT TODAY',
-                  '${log?.totalProfit.toStringAsFixed(2) ?? "0.00"}',
-                  'ETB',
-                  const [Color(0xFF6366F1), Color(0xFF818CF8)],
-                  Icons.account_balance_wallet_rounded,
-                ),
-                loading: () => _buildHeroCard(
-                  'NET PROFIT TODAY',
-                  '...',
-                  'ETB',
-                  [Colors.grey.shade800, Colors.grey.shade900],
-                  Icons.hourglass_empty,
-                ),
-                error: (_, __) => _buildHeroCard(
-                  'NET PROFIT TODAY',
-                  'ERROR',
-                  '',
-                  [Colors.red.shade900, Colors.red.shade800],
-                  Icons.error_outline,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: ordersAsync.when(
-                      data: (orders) {
-                        final total = orders.length;
-                        final out = orders
-                            .where((o) => o.status == OrderStatus.sold)
-                            .length;
-                        return _buildMiniStat(
-                          'DELIVERY',
-                          '$out/$total',
-                          'Fulfilled',
-                          const Color(0xFF10B981),
-                        );
-                      },
-                      loading: () =>
-                          _buildMiniStat('DELIVERY', '...', '...', Colors.grey),
-                      error: (_, __) =>
-                          _buildMiniStat('DELIVERY', '!', 'Err', Colors.red),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildMiniStat(
-                      'ALERTS',
-                      '0',
-                      'No Issues',
-                      const Color(0xFFF59E0B),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 40),
-              const Text(
-                'QUICK ACTIONS',
-                style: TextStyle(
-                  letterSpacing: 2.5,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF64748B),
-                ),
-              ),
-              const SizedBox(height: 20),
-              _buildActionGrid(context, ref),
-              const SizedBox(height: 24),
-              _buildBackupTile(context, ref),
-            ],
-          ),
         ),
       ),
     );
