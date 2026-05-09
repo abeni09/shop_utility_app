@@ -14,43 +14,100 @@ class OrderScreen extends ConsumerWidget {
     final ordersAsync = ref.watch(ordersProvider);
     final selectedDate = ref.watch(selectedDateProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Orders: ${DateFormat('MMM dd').format(selectedDate)}'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.calendar_today),
-            onPressed: () async {
-              final date = await showDatePicker(
-                context: context,
-                initialDate: selectedDate,
-                firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                lastDate: DateTime.now().add(const Duration(days: 365)),
-              );
-              if (date != null) {
-                ref.read(selectedDateProvider.notifier).state = date;
-              }
-            },
-          ),
-        ],
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0F172A), Color(0xFF020617)],
+        ),
       ),
-      body: ordersAsync.when(
-        data: (orders) => orders.isEmpty
-            ? const Center(child: Text('No orders for this date'))
-            : ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: orders.length,
-                itemBuilder: (context, index) {
-                  final order = orders[index];
-                  return _OrderCard(order: order);
-                },
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            SliverAppBar.large(
+              backgroundColor: Colors.transparent,
+              title: Text(
+                'ORDERS: ${DateFormat('MMM dd').format(selectedDate).toUpperCase()}',
               ),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error: $err')),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showCreateOrderDialog(context, ref),
-        child: const Icon(Icons.add_shopping_cart),
+              actions: [
+                Container(
+                  margin: const EdgeInsets.only(right: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.calendar_month_rounded,
+                      color: Color(0xFF818CF8),
+                    ),
+                    onPressed: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: selectedDate,
+                        firstDate: DateTime.now().subtract(
+                          const Duration(days: 365),
+                        ),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (date != null) {
+                        ref.read(selectedDateProvider.notifier).state = date;
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+            ordersAsync.when(
+              data: (orders) => orders.isEmpty
+                  ? const SliverFillRemaining(
+                      child: Center(
+                        child: Text(
+                          'No orders for this date',
+                          style: TextStyle(color: Colors.white38),
+                        ),
+                      ),
+                    )
+                  : SliverPadding(
+                      padding: const EdgeInsets.all(16),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final order = orders[index];
+                          return _OrderCard(order: order);
+                        }, childCount: orders.length),
+                      ),
+                    ),
+              loading: () => const SliverFillRemaining(
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (err, stack) => SliverFillRemaining(
+                child: Center(
+                  child: Text(
+                    'Error: $err',
+                    style: const TextStyle(color: Colors.redAccent),
+                  ),
+                ),
+              ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+          ],
+        ),
+        floatingActionButton: Padding(
+          padding: const EdgeInsets.only(bottom: 80),
+          child: FloatingActionButton.extended(
+            onPressed: () => _showCreateOrderDialog(context, ref),
+            backgroundColor: const Color(0xFF6366F1),
+            foregroundColor: Colors.white,
+            icon: const Icon(Icons.add_shopping_cart_rounded),
+            label: const Text(
+              'NEW ORDER',
+              style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.2),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -70,96 +127,192 @@ class OrderScreen extends ConsumerWidget {
     PaymentMethod selectedPayment = PaymentMethod.cash;
     DateTime selectedDate = ref.read(selectedDateProvider);
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('New Customer Order'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<int>(
-                  initialValue: selectedProductId,
-                  items: products
-                      .map(
-                        (p) =>
-                            DropdownMenuItem(value: p.id, child: Text(p.name)),
-                      )
-                      .toList(),
-                  onChanged: (val) => setState(() => selectedProductId = val),
-                  decoration: const InputDecoration(labelText: 'Product'),
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1E293B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 24,
+          right: 24,
+          top: 24,
+        ),
+        child: StatefulBuilder(
+          builder: (context, setState) => Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'NEW CUSTOMER ORDER',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2,
+                  fontSize: 14,
+                  color: Colors.indigoAccent,
                 ),
-                TextField(
-                  controller: customerController,
-                  decoration: const InputDecoration(labelText: 'Customer Name'),
+              ),
+              const SizedBox(height: 24),
+              DropdownButtonFormField<int>(
+                value: selectedProductId,
+                dropdownColor: const Color(0xFF1E293B),
+                items: products
+                    .map(
+                      (p) => DropdownMenuItem(value: p.id, child: Text(p.name)),
+                    )
+                    .toList(),
+                onChanged: (val) => setState(() => selectedProductId = val),
+                decoration: _fieldDecoration(
+                  'Product',
+                  Icons.inventory_2_rounded,
                 ),
-                TextField(
-                  controller: amountController,
-                  decoration: const InputDecoration(labelText: 'Amount'),
-                  keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 16),
+              _buildTextField(
+                customerController,
+                'Customer Name',
+                Icons.person_rounded,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      amountController,
+                      'Amount',
+                      Icons.numbers_rounded,
+                      isNumber: true,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: DropdownButtonFormField<PaymentMethod>(
+                      value: selectedPayment,
+                      dropdownColor: const Color(0xFF1E293B),
+                      items: PaymentMethod.values
+                          .map(
+                            (p) => DropdownMenuItem(
+                              value: p,
+                              child: Text(p.name.toUpperCase()),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (val) =>
+                          setState(() => selectedPayment = val!),
+                      decoration: _fieldDecoration(
+                        'Payment',
+                        Icons.payments_rounded,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  'Due: ${DateFormat('yyyy-MM-dd').format(selectedDate)}',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
-                DropdownButtonFormField<PaymentMethod>(
-                  initialValue: selectedPayment,
-                  items: PaymentMethod.values
-                      .map(
-                        (p) => DropdownMenuItem(
-                          value: p,
-                          child: Text(p.name.toUpperCase()),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (val) => setState(() => selectedPayment = val!),
-                  decoration: const InputDecoration(
-                    labelText: 'Payment Method',
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.calendar_month_rounded,
+                    color: Colors.indigoAccent,
                   ),
                 ),
-                ListTile(
-                  title: Text(
-                    'Due: ${DateFormat('yyyy-MM-dd').format(selectedDate)}',
+                trailing: const Icon(
+                  Icons.edit_rounded,
+                  size: 20,
+                  color: Colors.white24,
+                ),
+                onTap: () async {
+                  final date = await showDatePicker(
+                    context: context,
+                    initialDate: selectedDate,
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime.now().add(const Duration(days: 90)),
+                  );
+                  if (date != null) setState(() => selectedDate = date);
+                },
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6366F1),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
-                  trailing: const Icon(Icons.calendar_month),
-                  onTap: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: selectedDate,
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(const Duration(days: 90)),
+                  onPressed: () async {
+                    final product = products.firstWhere(
+                      (p) => p.id == selectedProductId,
                     );
-                    if (date != null) setState(() => selectedDate = date);
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final product = products.firstWhere(
-                  (p) => p.id == selectedProductId,
-                );
-                final order = CustomerOrder()
-                  ..productId = selectedProductId!
-                  ..customerName = customerController.text
-                  ..amount = double.tryParse(amountController.text) ?? 1.0
-                  ..dueDate = selectedDate
-                  ..status = OrderStatus.pending
-                  ..paymentMethod = selectedPayment
-                  ..costPriceAtTime = product.costPrice
-                  ..sellingPriceAtTime = product.sellingPrice;
+                    final order = CustomerOrder()
+                      ..productId = selectedProductId!
+                      ..customerName = customerController.text
+                      ..amount = double.tryParse(amountController.text) ?? 1.0
+                      ..dueDate = selectedDate
+                      ..status = OrderStatus.pending
+                      ..paymentMethod = selectedPayment
+                      ..costPriceAtTime = product.costPrice
+                      ..sellingPriceAtTime = product.sellingPrice;
 
-                await ref.read(orderRepositoryProvider).saveOrder(order);
-                if (context.mounted) Navigator.pop(context);
-              },
-              child: const Text('Create Order'),
-            ),
-          ],
+                    await ref.read(orderRepositoryProvider).saveOrder(order);
+                    if (context.mounted) Navigator.pop(context);
+                  },
+                  child: const Text(
+                    'CREATE ORDER',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  InputDecoration _fieldDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, size: 20),
+      filled: true,
+      fillColor: Colors.white.withValues(alpha: 0.03),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      labelStyle: const TextStyle(fontSize: 14, color: Colors.white38),
+    );
+  }
+
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label,
+    IconData icon, {
+    bool isNumber = false,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      decoration: _fieldDecoration(label, icon),
     );
   }
 }
@@ -178,81 +331,169 @@ class _OrderCard extends ConsumerWidget {
 
     final isSold = order.status == OrderStatus.sold;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: isSold
+            ? Colors.green.withValues(alpha: 0.03)
+            : Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
           color: isSold
-              ? Colors.green.withValues(alpha: 0.5)
-              : Colors.white.withValues(alpha: 0.1),
+              ? Colors.green.withValues(alpha: 0.2)
+              : Colors.white.withValues(alpha: 0.05),
         ),
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        title: Text(
-          order.customerName,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
           children: [
-            const SizedBox(height: 4),
-            Text(
-              '${order.amount} x ${product.name}',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: (isSold ? Colors.green : Colors.indigo).withValues(
+                      alpha: 0.1,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                    isSold
+                        ? Icons.check_circle_rounded
+                        : Icons.pending_actions_rounded,
+                    color: isSold
+                        ? Colors.greenAccent
+                        : const Color(0xFF818CF8),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        order.customerName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                        ),
+                      ),
+                      Text(
+                        '${order.amount} × ${product.name}',
+                        style: const TextStyle(
+                          color: Colors.white38,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'TOTAL',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white24,
+                        fontSize: 9,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    Text(
+                      '${(order.amount * order.sellingPriceAtTime).toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 18,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 20),
             Row(
               children: [
                 _buildBadge(
                   order.paymentMethod.name.toUpperCase(),
-                  Colors.blue,
+                  Colors.blueAccent,
                 ),
                 const SizedBox(width: 8),
                 _buildBadge(
                   order.status.name.toUpperCase(),
-                  isSold ? Colors.green : Colors.orange,
+                  isSold ? Colors.greenAccent : Colors.orangeAccent,
                 ),
+                const Spacer(),
+                if (isSold)
+                  TextButton.icon(
+                    onPressed: () => ref
+                        .read(orderRepositoryProvider)
+                        .updateOrderStatus(order.id, OrderStatus.pending),
+                    icon: const Icon(
+                      Icons.undo_rounded,
+                      size: 16,
+                      color: Colors.white24,
+                    ),
+                    label: const Text(
+                      'UNDO',
+                      style: TextStyle(
+                        color: Colors.white24,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 11,
+                      ),
+                    ),
+                  )
+                else
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 0,
+                      ),
+                    ),
+                    onPressed: () => ref
+                        .read(orderRepositoryProvider)
+                        .updateOrderStatus(order.id, OrderStatus.sold),
+                    child: const Text(
+                      'FULFILL',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ],
         ),
-        trailing: isSold
-            ? IconButton(
-                icon: const Icon(Icons.undo, color: Colors.grey),
-                onPressed: () => ref
-                    .read(orderRepositoryProvider)
-                    .updateOrderStatus(order.id, OrderStatus.pending),
-              )
-            : ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: () => ref
-                    .read(orderRepositoryProvider)
-                    .updateOrderStatus(order.id, OrderStatus.sold),
-                child: const Text('FULFILL'),
-              ),
       ),
     );
   }
 
   Widget _buildBadge(String label, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Text(
         label,
         style: TextStyle(
           color: color,
           fontSize: 10,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.5,
         ),
       ),
     );

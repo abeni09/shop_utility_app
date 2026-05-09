@@ -36,13 +36,26 @@ class ShopSyncApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
+        brightness: Brightness.dark,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.cyan,
+          seedColor: const Color(0xFF6366F1),
           brightness: Brightness.dark,
           surface: const Color(0xFF0F172A),
+          primary: const Color(0xFF818CF8),
+          secondary: const Color(0xFF10B981),
         ),
-        scaffoldBackgroundColor: const Color(0xFF0F172A),
-        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
+        scaffoldBackgroundColor: const Color(0xFF020617),
+        textTheme: GoogleFonts.outfitTextTheme(ThemeData.dark().textTheme),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          titleTextStyle: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 2,
+          ),
+        ),
       ),
       home: const MainNavigationShell(),
     );
@@ -63,37 +76,87 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     const ProductListScreen(),
     const SupplierListScreen(),
   ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       body: IndexedStack(index: _selectedIndex, children: _screens),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) =>
-            setState(() => _selectedIndex = index),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.analytics_outlined),
-            selectedIcon: Icon(Icons.analytics),
-            label: 'Dashboard',
+      bottomNavigationBar: Container(
+        margin: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(32),
+          child: NavigationBarTheme(
+            data: NavigationBarThemeData(
+              indicatorColor: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.2),
+              labelTextStyle: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  );
+                }
+                return const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white38,
+                );
+              }),
+            ),
+            child: NavigationBar(
+              backgroundColor: const Color(0xFF0F172A).withValues(alpha: 0.8),
+              elevation: 0,
+              height: 72,
+              selectedIndex: _selectedIndex,
+              onDestinationSelected: (index) =>
+                  setState(() => _selectedIndex = index),
+              destinations: [
+                _buildNavItem(
+                  Icons.grid_view_rounded,
+                  Icons.grid_view_rounded,
+                  'Home',
+                  0,
+                ),
+                _buildNavItem(
+                  Icons.receipt_long_rounded,
+                  Icons.receipt_long_rounded,
+                  'Orders',
+                  1,
+                ),
+                _buildNavItem(
+                  Icons.inventory_2_rounded,
+                  Icons.inventory_2_rounded,
+                  'Stock',
+                  2,
+                ),
+                _buildNavItem(
+                  Icons.local_shipping_rounded,
+                  Icons.local_shipping_rounded,
+                  'Suppliers',
+                  3,
+                ),
+              ],
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long),
-            label: 'Orders',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.inventory_2_outlined),
-            selectedIcon: Icon(Icons.inventory_2),
-            label: 'Stock',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.local_shipping_outlined),
-            selectedIcon: Icon(Icons.local_shipping),
-            label: 'Suppliers',
-          ),
-        ],
+        ),
       ),
+    );
+  }
+
+  NavigationDestination _buildNavItem(
+    IconData icon,
+    IconData selectedIcon,
+    String label,
+    int index,
+  ) {
+    final isSelected = _selectedIndex == index;
+    return NavigationDestination(
+      icon: Icon(icon, color: Colors.white38),
+      selectedIcon: Icon(selectedIcon, color: const Color(0xFF818CF8)),
+      label: label,
     );
   }
 }
@@ -105,159 +168,288 @@ class DashboardScreen extends ConsumerWidget {
     final dailyLogAsync = ref.watch(dailyLogProvider);
     final ordersAsync = ref.watch(ordersProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('SHOPSYNC'),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0F172A), Color(0xFF020617)],
+        ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ordersAsync.when(
-              data: (orders) {
-                final total = orders.length;
-                final out = orders
-                    .where((o) => o.status == OrderStatus.sold)
-                    .length;
-                return _buildStatCard(
-                  'Today\'s Delivery',
-                  '$out / $total Fulfilled',
-                  Colors.cyan,
-                );
-              },
-              loading: () =>
-                  _buildStatCard('Today\'s Delivery', '...', Colors.cyan),
-              error: (_, _) =>
-                  _buildStatCard('Today\'s Delivery', 'Error', Colors.red),
-            ),
-            const SizedBox(height: 16),
-            dailyLogAsync.when(
-              data: (log) => _buildStatCard(
-                'Net Profit Today',
-                '${log?.totalProfit.toStringAsFixed(2) ?? "0.00"} ETB',
-                Colors.green,
-              ),
-              loading: () =>
-                  _buildStatCard('Net Profit Today', '...', Colors.green),
-              error: (_, _) =>
-                  _buildStatCard('Net Profit Today', 'Error', Colors.red),
-            ),
-            const SizedBox(height: 32),
-            const Text(
-              'CONTROL PANEL',
-              style: TextStyle(
-                letterSpacing: 2,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildActionTile(
-                    context,
-                    'Quick Sale',
-                    Icons.bolt,
-                    Colors.cyan,
-                    () {
-                      showDialog(
-                        context: context,
-                        builder: (_) => const QuickSaleDialog(),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildActionTile(
-                    context,
-                    'Requisition',
-                    Icons.shopping_basket,
-                    Colors.amber,
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const RequisitionScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildActionTile(
-              context,
-              'Cloud Backup',
-              Icons.cloud_upload,
-              Colors.blue,
-              () async {
-                final backupService = ref.read(backupServiceProvider);
-                final success = await backupService.signIn();
-                if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Uploading backup to Google Drive...'),
-                    ),
-                  );
-                  await backupService.uploadBackup();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Backup successful!')),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Sign-in failed. Please try again.'),
-                    ),
-                  );
-                }
-              },
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text('SHOPSYNC'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.notifications_none_rounded),
+              onPressed: () {},
             ),
           ],
+        ),
+        body: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildGreeting(),
+              const SizedBox(height: 28),
+              dailyLogAsync.when(
+                data: (log) => _buildHeroCard(
+                  'NET PROFIT TODAY',
+                  '${log?.totalProfit.toStringAsFixed(2) ?? "0.00"}',
+                  'ETB',
+                  const [Color(0xFF6366F1), Color(0xFF818CF8)],
+                  Icons.account_balance_wallet_rounded,
+                ),
+                loading: () => _buildHeroCard(
+                  'NET PROFIT TODAY',
+                  '...',
+                  'ETB',
+                  [Colors.grey.shade800, Colors.grey.shade900],
+                  Icons.hourglass_empty,
+                ),
+                error: (_, __) => _buildHeroCard(
+                  'NET PROFIT TODAY',
+                  'ERROR',
+                  '',
+                  [Colors.red.shade900, Colors.red.shade800],
+                  Icons.error_outline,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: ordersAsync.when(
+                      data: (orders) {
+                        final total = orders.length;
+                        final out = orders
+                            .where((o) => o.status == OrderStatus.sold)
+                            .length;
+                        return _buildMiniStat(
+                          'DELIVERY',
+                          '$out/$total',
+                          'Fulfilled',
+                          const Color(0xFF10B981),
+                        );
+                      },
+                      loading: () =>
+                          _buildMiniStat('DELIVERY', '...', '...', Colors.grey),
+                      error: (_, __) =>
+                          _buildMiniStat('DELIVERY', '!', 'Err', Colors.red),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildMiniStat(
+                      'ALERTS',
+                      '0',
+                      'No Issues',
+                      const Color(0xFFF59E0B),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 40),
+              const Text(
+                'QUICK ACTIONS',
+                style: TextStyle(
+                  letterSpacing: 2.5,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildActionGrid(context, ref),
+              const SizedBox(height: 24),
+              _buildBackupTile(context, ref),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildStatCard(String title, String value, Color color) {
+  Widget _buildGreeting() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Command Center',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.indigo.shade300,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Welcome back, Admin',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeroCard(
+    String label,
+    String value,
+    String unit,
+    List<Color> colors,
+    IconData icon,
+  ) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: color.withValues(alpha: 0.2), width: 1.5),
+        gradient: LinearGradient(
+          colors: colors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: colors.first.withValues(alpha: 0.3),
+            blurRadius: 30,
+            offset: const Offset(0, 15),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Text(
-            title.toUpperCase(),
-            style: TextStyle(
-              color: color,
-              letterSpacing: 1.2,
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
+          Positioned(
+            right: -20,
+            top: -20,
+            child: Icon(
+              icon,
+              color: Colors.white.withValues(alpha: 0.1),
+              size: 120,
             ),
           ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.5,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 42,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      unit,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white60,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildActionTile(
-    BuildContext context,
+  Widget _buildMiniStat(String label, String value, String sub, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
+              fontSize: 10,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+          ),
+          Text(
+            sub,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.white38,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionGrid(BuildContext context, WidgetRef ref) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildGlassAction(
+            'Quick Sale',
+            Icons.bolt_rounded,
+            const Color(0xFF818CF8),
+            () => showDialog(
+              context: context,
+              builder: (_) => const QuickSaleDialog(),
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _buildGlassAction(
+            'Requisition',
+            Icons.shopping_cart_rounded,
+            const Color(0xFFF472B6),
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const RequisitionScreen()),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGlassAction(
     String label,
     IconData icon,
     Color color,
@@ -265,21 +457,68 @@ class DashboardScreen extends ConsumerWidget {
   ) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(24),
       child: Container(
+        height: 100,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.03),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 28),
+            Icon(icon, color: color, size: 32),
             const SizedBox(height: 8),
             Text(
               label,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBackupTile(BuildContext context, WidgetRef ref) {
+    return InkWell(
+      onTap: () async {
+        final backupService = ref.read(backupServiceProvider);
+        final success = await backupService.signIn();
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Syncing with Cloud...')),
+          );
+          await backupService.uploadBackup();
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Backup Secured')));
+        }
+      },
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.03),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.cloud_done_rounded, color: Color(0xFF38BDF8)),
+            SizedBox(width: 16),
+            Text(
+              'Cloud Sync Status',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            Spacer(),
+            Text(
+              'SAFE',
+              style: TextStyle(
+                color: Color(0xFF10B981),
+                fontWeight: FontWeight.w900,
+                fontSize: 12,
+              ),
             ),
           ],
         ),
