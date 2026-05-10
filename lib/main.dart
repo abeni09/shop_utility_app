@@ -80,10 +80,6 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
   @override
   void initState() {
     super.initState();
-    // Auto-backup on startup
-    Future.microtask(() {
-      ref.read(backupServiceProvider).autoBackupIfPossible();
-    });
   }
 
   @override
@@ -645,32 +641,20 @@ class DashboardScreen extends ConsumerWidget {
                     content: Text('Connecting to Google Drive...'),
                   ),
                 );
-                final success = await backupService.signIn();
-
-                if (success) {
+                
+                // This will show the popup ONLY because we pass forceSignIn: true
+                await backupService.uploadBackup(forceSignIn: true);
+                
+                if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Syncing with Cloud...')),
+                    const SnackBar(
+                      backgroundColor: Color(0xFF10B981),
+                      content: Text(
+                        'Backup Secured Successfully!',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
                   );
-                  await backupService.uploadBackup();
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        backgroundColor: Color(0xFF10B981),
-                        content: Text(
-                          'Backup Secured Successfully!',
-                          style: TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                    );
-                  }
-                } else {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Sign-in cancelled or interrupted.'),
-                      ),
-                    );
-                  }
                 }
               } catch (e) {
                 print(e);

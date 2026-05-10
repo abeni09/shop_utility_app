@@ -39,15 +39,6 @@ class BackupService {
     }, onError: (e) {
       print('Backup authentication stream error: $e');
     });
-
-    // Attempt to restore sign-in silently without crashing the build
-    Future.microtask(() async {
-      try {
-        await _googleSignIn.attemptLightweightAuthentication();
-      } catch (e) {
-        print('Initial backup auth attempt failed: $e');
-      }
-    });
   }
 
   Future<bool> signIn() async {
@@ -67,14 +58,21 @@ class BackupService {
     await _googleSignIn.signOut();
   }
 
-  Future<void> uploadBackup() async {
+  Future<void> uploadBackup({bool forceSignIn = false}) async {
     try {
-      final account = await _googleSignIn.attemptLightweightAuthentication() ??
-          await _googleSignIn.authenticate(
+      final account = await _googleSignIn.attemptLightweightAuthentication();
+      
+      // Only show the popup if forceSignIn is true (user tapped the button)
+      final activeAccount = account ?? (forceSignIn ? await _googleSignIn.authenticate(
             scopeHint: [drive.DriveApi.driveFileScope],
-          );
+          ) : null);
 
-      final authz = await account.authorizationClient.authorizeScopes([
+      if (activeAccount == null) {
+        if (forceSignIn) throw Exception("Please sign in to backup data.");
+        return; // Fail silently for auto-backup
+      }
+
+      final authz = await activeAccount.authorizationClient.authorizeScopes([
         drive.DriveApi.driveFileScope,
       ]);
 
@@ -93,7 +91,6 @@ class BackupService {
 
       final driveFile = drive.File();
       driveFile.name = "ShopSync_Backup_${DateTime.now().toIso8601String().replaceAll(':', '-')}.isar";
-      // We'll put it in appDataFolder or just drive for now
       
       final media = drive.Media(backupFile.openRead(), await backupFile.length());
       await driveApi.files.create(driveFile, uploadMedia: media);
@@ -101,8 +98,8 @@ class BackupService {
       // Clean up local temp file
       await backupFile.delete();
     } catch (e) {
+      if (forceSignIn) rethrow;
       print('Backup upload error: $e');
-      rethrow;
     }
   }
 

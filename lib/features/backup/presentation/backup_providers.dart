@@ -8,6 +8,8 @@ final backupServiceProvider = Provider<BackupService>((ref) {
 });
 
 final backupUserProvider = StreamProvider((ref) {
-  // Re-emit whenever sign in status changes
-  return ref.watch(backupServiceProvider).onCurrentUserChanged;
+  final service = ref.watch(backupServiceProvider);
+  // Emit the current known user immediately, then follow the stream
+  return Stream.fromFuture(Future.value(service.currentUser))
+      .asyncExpand((user) => service.onCurrentUserChanged);
 });
