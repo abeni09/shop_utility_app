@@ -24,6 +24,12 @@ class BackupService {
       });
 
   BackupService(this.isar) {
+    // Explicitly initialize with the Web Client ID from google-services.json
+    // to bypass the plugin's auto-detection issues on Android.
+    _googleSignIn.initialize(
+      serverClientId: '461920714778-tr1c97t16546jc2dd2isfosv9t88nh33.apps.googleusercontent.com',
+    );
+
     _googleSignIn.authenticationEvents.listen((event) {
       if (event is auth.GoogleSignInAuthenticationEventSignIn) {
         _currentUser = event.user;
