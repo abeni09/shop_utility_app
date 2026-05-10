@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopsync/features/backup/presentation/backup_providers.dart';
+import 'package:shopsync/features/products/presentation/daily_stock_providers.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
 import 'package:shopsync/features/orders/data/customer_order_model.dart';
 import 'package:shopsync/features/orders/presentation/order_providers.dart';
@@ -22,7 +23,9 @@ class QuickSaleDialog extends ConsumerStatefulWidget {
 class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
   final Map<int, double> _quantities = {};
   final Map<int, bool> _addBag = {};
-  final TextEditingController _customerController = TextEditingController(text: 'Walk-in');
+  final TextEditingController _customerController = TextEditingController(
+    text: 'Walk-in',
+  );
   int? _selectedBagId;
 
   @override
@@ -33,11 +36,17 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
 
   @override
   Widget build(BuildContext context) {
-    var products = ref.watch(productsProvider).value ?? [];
-    products = products.where((p) => !p.isVoid).toList();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final products = ref.watch(productsProvider).value ?? [];
+    final availabilityAsync = ref.watch(walkInAvailabilityProvider(today));
+    final availability = availabilityAsync.asData?.value ?? {};
+
+    // Filter products
+    final activeProducts = products.where((p) => !p.isVoid).toList();
 
     // Find all "Bag" products
-    final bagProducts = products.where((p) {
+    final bagProducts = activeProducts.where((p) {
       final name = p.name.toLowerCase();
       return name.contains('bag') || name.contains('festal');
     }).toList();
@@ -47,7 +56,9 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
       _selectedBagId = bagProducts.first.id;
     }
 
-    final currentBag = bagProducts.where((p) => p.id == _selectedBagId).firstOrNull;
+    final currentBag = bagProducts
+        .where((p) => p.id == _selectedBagId)
+        .firstOrNull;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -99,7 +110,10 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                 ),
                 if (bagProducts.length > 1)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(12),
@@ -108,13 +122,25 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                       child: DropdownButton<int>(
                         value: _selectedBagId,
                         dropdownColor: const Color(0xFF1E293B),
-                        icon: const Icon(Icons.arrow_drop_down_rounded, color: Colors.white38),
-                        style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
-                        onChanged: (val) => setState(() => _selectedBagId = val),
-                        items: bagProducts.map((p) => DropdownMenuItem(
-                          value: p.id,
-                          child: Text(p.name.toUpperCase()),
-                        )).toList(),
+                        icon: const Icon(
+                          Icons.arrow_drop_down_rounded,
+                          color: Colors.white38,
+                        ),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        onChanged: (val) =>
+                            setState(() => _selectedBagId = val),
+                        items: bagProducts
+                            .map(
+                              (p) => DropdownMenuItem(
+                                value: p.id,
+                                child: Text(p.name.toUpperCase()),
+                              ),
+                            )
+                            .toList(),
                       ),
                     ),
                   ),
@@ -122,9 +148,9 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
             ),
             const SizedBox(height: 16),
             Text(
-              bagProducts.isNotEmpty 
-                ? 'Bundle with ${currentBag?.name ?? "Bag"} to fulfill instantly.'
-                : 'Select a product and quantity for instant fulfillment.',
+              bagProducts.isNotEmpty
+                  ? 'Bundle with ${currentBag?.name ?? "Bag"} to fulfill instantly.'
+                  : 'Select a product and quantity for instant fulfillment.',
               style: const TextStyle(color: Colors.white38, fontSize: 13),
             ),
             const SizedBox(height: 24),
@@ -132,7 +158,7 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
               constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(context).size.height * 0.45,
               ),
-              child: products.isEmpty
+              child: activeProducts.isEmpty
                   ? const Padding(
                       padding: EdgeInsets.symmetric(vertical: 40),
                       child: Center(
@@ -144,11 +170,17 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                     )
                   : ListView.separated(
                       shrinkWrap: true,
-                      itemCount: products.length,
+                      itemCount: activeProducts.length,
                       separatorBuilder: (_, _) => const SizedBox(height: 8),
                       itemBuilder: (context, index) {
-                        final product = products[index];
-                        return _buildQuickSaleTile(product, currentBag, bagProducts);
+                        final product = activeProducts[index];
+                        final remaining = availability[product.id] ?? 0.0;
+                        return _buildQuickSaleTile(
+                          product,
+                          currentBag,
+                          bagProducts,
+                          remaining,
+                        );
                       },
                     ),
             ),
@@ -159,7 +191,12 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
     );
   }
 
-  Widget _buildQuickSaleTile(dynamic product, dynamic bagProduct, List<dynamic> allBagProducts) {
+  Widget _buildQuickSaleTile(
+    dynamic product,
+    dynamic bagProduct,
+    List<dynamic> allBagProducts,
+    double remaining,
+  ) {
     final quantity = _quantities[product.id] ?? 1.0;
     final hasBag = _addBag[product.id] ?? false;
     final isAnyBag = allBagProducts.any((p) => p.id == product.id);
@@ -179,9 +216,41 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    product.name,
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                  Row(
+                    children: [
+                      Text(
+                        product.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color:
+                              (remaining > 0
+                                      ? Colors.greenAccent
+                                      : Colors.redAccent)
+                                  .withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '${remaining.toStringAsFixed(0)} LEFT',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                            color: remaining > 0
+                                ? Colors.greenAccent
+                                : Colors.redAccent,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   Text(
                     '${product.sellingPrice} ETB/unit',
@@ -221,7 +290,10 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                 alignment: Alignment.center,
                 child: Text(
                   quantity.toStringAsFixed(0),
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14,
+                  ),
                 ),
               ),
               _IconButton(
@@ -232,12 +304,19 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
               ),
               const SizedBox(width: 8),
               ElevatedButton(
-                onPressed: () => _processSale(product, quantity, hasBag ? bagProduct : null),
+                onPressed: () => _processSale(
+                  product,
+                  quantity,
+                  hasBag ? bagProduct : null,
+                  remaining,
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF818CF8),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 child: const Text(
                   'SELL',
@@ -251,7 +330,53 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
     );
   }
 
-  Future<void> _processSale(dynamic product, double quantity, dynamic bagProduct) async {
+  Future<void> _processSale(
+    dynamic product,
+    double quantity,
+    dynamic bagProduct,
+    double remaining,
+  ) async {
+    if (quantity > remaining) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: const Color(0xFF1E293B),
+          title: const Text(
+            'Low Stock Warning',
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              color: Colors.amberAccent,
+            ),
+          ),
+          content: Text(
+            'You are attempting to sell $quantity ${product.name}, but only $remaining are recorded as available. Proceed anyway?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text(
+                'CANCEL',
+                style: TextStyle(color: Colors.white38),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amberAccent,
+                foregroundColor: Colors.black,
+              ),
+              child: const Text(
+                'PROCEED',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      if (proceed != true) return;
+    }
+
     final now = DateTime.now();
 
     // 1. Process the main product sale

@@ -22,7 +22,8 @@ final selectedDateProvider = StateProvider<DateTime>((ref) {
 final ordersProvider = StreamProvider<List<CustomerOrder>>((ref) {
   final date = ref.watch(selectedDateProvider);
   final showVoided = ref.watch(showVoidedOrdersProvider);
-  return ref.watch(ordersForDateProvider((date: date, includeVoided: showVoided)).stream);
+  final repository = ref.watch(orderRepositoryProvider);
+  return repository.watchOrdersForDate(date, includeVoided: showVoided);
 });
 
 final ordersForDateProvider = StreamProvider.family<List<CustomerOrder>, ({DateTime date, bool includeVoided})>((ref, arg) {

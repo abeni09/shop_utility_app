@@ -5,6 +5,7 @@ import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/orders/data/customer_order_model.dart';
 import 'package:shopsync/features/orders/presentation/order_providers.dart';
 import 'package:shopsync/features/products/data/product_model.dart';
+import 'package:shopsync/features/products/presentation/daily_stock_providers.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
 
 import 'package:url_launcher/url_launcher.dart';
@@ -298,9 +299,7 @@ void _showOrderDialog(
   final advanceController = TextEditingController(
     text: existing?.advancePayment.toStringAsFixed(0) ?? '0',
   );
-  final phoneController = TextEditingController(
-    text: existing?.phoneNumber,
-  );
+  final phoneController = TextEditingController(text: existing?.phoneNumber);
   PaymentMethod selectedPayment = existing?.paymentMethod ?? PaymentMethod.cash;
   DateTime selectedDate = existing?.dueDate ?? ref.read(selectedDateProvider);
 
@@ -491,10 +490,11 @@ void _showOrderDialog(
                     final order = existing ?? CustomerOrder();
                     order.productId = selectedProductId!;
                     order.customerName = customerController.text.trim();
-                    order.phoneNumber = phoneController.text.trim().isEmpty 
-                        ? null 
+                    order.phoneNumber = phoneController.text.trim().isEmpty
+                        ? null
                         : phoneController.text.trim();
-                    order.amount = double.tryParse(amountController.text) ?? 1.0;
+                    order.amount =
+                        double.tryParse(amountController.text) ?? 1.0;
                     order.advancePayment = advance;
                     order.paymentMethod = selectedPayment;
                     order.dueDate = selectedDate;
@@ -580,6 +580,12 @@ class _OrderCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final availabilityAsync = ref.watch(
+      walkInAvailabilityProvider(order.dueDate),
+    );
+    final availability = availabilityAsync.asData?.value ?? {};
+    final remaining = availability[order.productId] ?? 0.0;
+
     final products = ref.watch(productsProvider).value ?? [];
     final product = products.firstWhere(
       (p) => p.id == order.productId,
@@ -670,7 +676,8 @@ class _OrderCard extends ConsumerWidget {
                               letterSpacing: -0.5,
                             ),
                           ),
-                          if (order.phoneNumber != null && order.phoneNumber!.isNotEmpty) ...[
+                          if (order.phoneNumber != null &&
+                              order.phoneNumber!.isNotEmpty) ...[
                             const SizedBox(height: 6),
                             GestureDetector(
                               onTap: () async {
@@ -684,7 +691,11 @@ class _OrderCard extends ConsumerWidget {
                               },
                               child: Row(
                                 children: [
-                                  const Icon(Icons.phone_rounded, size: 12, color: Color(0xFF818CF8)),
+                                  const Icon(
+                                    Icons.phone_rounded,
+                                    size: 12,
+                                    color: Color(0xFF818CF8),
+                                  ),
                                   const SizedBox(width: 6),
                                   Text(
                                     order.phoneNumber!,
@@ -890,9 +901,55 @@ class _OrderCard extends ConsumerWidget {
                           label: 'FULFILL',
                           icon: Icons.check_rounded,
                           color: Colors.greenAccent,
-                          onTap: () => ref
-                              .read(orderRepositoryProvider)
-                              .updateOrderStatus(order.id, OrderStatus.sold),
+                          onTap: () async {
+                            if (remaining < 0) {
+                              final proceed = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  backgroundColor: const Color(0xFF1E293B),
+                                  title: const Text(
+                                    'Stock Shortfall',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.redAccent,
+                                    ),
+                                  ),
+                                  content: Text(
+                                    'Fulfilling this order will exacerbate a stock shortfall of ${remaining.abs().toStringAsFixed(1)} units for this product. Proceed anyway?',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, false),
+                                      child: const Text(
+                                        'CANCEL',
+                                        style: TextStyle(color: Colors.white38),
+                                      ),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, true),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.redAccent,
+                                        foregroundColor: Colors.white,
+                                      ),
+                                      child: const Text(
+                                        'PROCEED',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (proceed != true) return;
+                            }
+
+                            ref
+                                .read(orderRepositoryProvider)
+                                .updateOrderStatus(order.id, OrderStatus.sold);
+                          },
                         ),
                       const Spacer(),
                       _IconButton(
