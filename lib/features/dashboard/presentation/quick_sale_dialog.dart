@@ -108,10 +108,6 @@ class QuickSaleDialog extends ConsumerWidget {
 
         await ref.read(orderRepositoryProvider).saveOrder(order);
 
-        final backupService = ref.read(backupServiceProvider);
-        await backupService.markLocalChanged();
-        backupService.autoBackupIfPossible();
-
         if (context.mounted) Navigator.pop(context);
 
         ScaffoldMessenger.of(context).showSnackBar(

@@ -5,7 +5,8 @@ import 'package:shopsync/main.dart';
 
 final productRepositoryProvider = Provider<ProductRepository>((ref) {
   final dbService = ref.watch(databaseServiceProvider);
-  return ProductRepository(dbService.isar);
+  final backupService = ref.watch(backupServiceProvider);
+  return ProductRepository(dbService.isar, backupService);
 });
 
 final productsProvider = StreamProvider<List<Product>>((ref) {

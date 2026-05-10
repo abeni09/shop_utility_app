@@ -1,13 +1,14 @@
 import 'package:isar/isar.dart';
 import 'customer_order_model.dart';
 import 'package:shopsync/features/dashboard/data/dashboard_repository.dart';
-
+import 'package:shopsync/features/backup/data/backup_service.dart';
 
 class OrderRepository {
   final Isar isar;
   final DashboardRepository dashboardRepo;
+  final BackupService backupService;
 
-  OrderRepository(this.isar, this.dashboardRepo);
+  OrderRepository(this.isar, this.dashboardRepo, this.backupService);
 
   Future<List<CustomerOrder>> getOrdersForDate(DateTime date) async {
     final startOfDay = DateTime(date.year, date.month, date.day);
@@ -27,6 +28,10 @@ class OrderRepository {
     await isar.writeTxn(() async {
       await isar.customerOrders.put(order);
     });
+    
+    // Auto-Sync trigger
+    await backupService.markLocalChanged();
+    backupService.autoBackupIfPossible();
   }
 
   Future<void> updateOrderStatus(Id id, OrderStatus status) async {
@@ -38,10 +43,15 @@ class OrderRepository {
         await isar.customerOrders.put(order);
       }
     });
+
     // Trigger dashboard recalculation
     final order = await isar.customerOrders.get(id);
     if (order != null) {
       await dashboardRepo.recalculateDailyStats(order.dueDate);
+      
+      // Auto-Sync trigger
+      await backupService.markLocalChanged();
+      backupService.autoBackupIfPossible();
     }
   }
 

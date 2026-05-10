@@ -8,7 +8,8 @@ import 'package:shopsync/features/dashboard/presentation/dashboard_providers.dar
 final orderRepositoryProvider = Provider<OrderRepository>((ref) {
   final dbService = ref.watch(databaseServiceProvider);
   final dashboardRepo = ref.watch(dashboardRepositoryProvider);
-  return OrderRepository(dbService.isar, dashboardRepo);
+  final backupService = ref.watch(backupServiceProvider);
+  return OrderRepository(dbService.isar, dashboardRepo, backupService);
 });
 
 final selectedDateProvider = StateProvider<DateTime>((ref) => DateTime.now());

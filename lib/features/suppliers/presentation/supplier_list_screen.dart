@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/suppliers/data/supplier_model.dart';
 import 'package:shopsync/features/suppliers/data/supplier_repository.dart';
 import 'package:shopsync/main.dart';
@@ -7,7 +8,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 final supplierRepositoryProvider = Provider<SupplierRepository>((ref) {
   final dbService = ref.watch(databaseServiceProvider);
-  return SupplierRepository(dbService.isar);
+  final backupService = ref.watch(backupServiceProvider);
+  return SupplierRepository(dbService.isar, backupService);
 });
 
 final suppliersProvider = StreamProvider<List<Supplier>>((ref) {
@@ -155,6 +157,7 @@ class SupplierListScreen extends ConsumerWidget {
                   await ref
                       .read(supplierRepositoryProvider)
                       .saveSupplier(supplier);
+                  
                   if (context.mounted) Navigator.pop(context);
                 },
                 child: const Text(
@@ -248,7 +251,11 @@ class _SupplierCard extends ConsumerWidget {
                     color: const Color(0xFF818CF8).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.call_rounded, size: 14, color: Color(0xFF818CF8)),
+                  child: const Icon(
+                    Icons.call_rounded,
+                    size: 14,
+                    color: Color(0xFF818CF8),
+                  ),
                 ),
               ),
             ],

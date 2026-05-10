@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/products/data/product_model.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
 
@@ -91,23 +92,54 @@ class ProductListScreen extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: const Color(0xFF1E293B),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 24,
+            right: 24,
+            top: 24,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('NEW PRODUCT', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 14, color: Colors.indigoAccent)),
+              const Text(
+                'NEW PRODUCT',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2,
+                  fontSize: 14,
+                  color: Colors.indigoAccent,
+                ),
+              ),
               const SizedBox(height: 24),
-              _buildTextField(nameController, 'Product Name', Icons.inventory_2_rounded),
+              _buildTextField(
+                nameController,
+                'Product Name',
+                Icons.inventory_2_rounded,
+              ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 initialValue: selectedUnit,
                 dropdownColor: const Color(0xFF1E293B),
                 items: ['piece', 'pack', 'kg', 'litre', 'dozen', 'box', 'other']
-                    .map((u) => DropdownMenuItem(value: u, child: Text(u.toUpperCase(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white))))
+                    .map(
+                      (u) => DropdownMenuItem(
+                        value: u,
+                        child: Text(
+                          u.toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    )
                     .toList(),
                 onChanged: (val) => setState(() => selectedUnit = val!),
                 decoration: InputDecoration(
@@ -115,16 +147,36 @@ class ProductListScreen extends ConsumerWidget {
                   prefixIcon: const Icon(Icons.straighten_rounded, size: 20),
                   filled: true,
                   fillColor: Colors.white.withValues(alpha: 0.03),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                  labelStyle: const TextStyle(fontSize: 14, color: Colors.white38),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                  labelStyle: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.white38,
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  Expanded(child: _buildTextField(costController, 'Cost Price', Icons.south_rounded, isNumber: true)),
+                  Expanded(
+                    child: _buildTextField(
+                      costController,
+                      'Cost Price',
+                      Icons.south_rounded,
+                      isNumber: true,
+                    ),
+                  ),
                   const SizedBox(width: 16),
-                  Expanded(child: _buildTextField(saleController, 'Sale Price', Icons.north_rounded, isNumber: true)),
+                  Expanded(
+                    child: _buildTextField(
+                      saleController,
+                      'Sale Price',
+                      Icons.north_rounded,
+                      isNumber: true,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 32),
@@ -135,7 +187,9 @@ class ProductListScreen extends ConsumerWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF6366F1),
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     elevation: 0,
                   ),
                   onPressed: () async {
@@ -143,13 +197,23 @@ class ProductListScreen extends ConsumerWidget {
                       ..name = nameController.text
                       ..unit = selectedUnit
                       ..costPrice = double.tryParse(costController.text) ?? 0.0
-                      ..sellingPrice = double.tryParse(saleController.text) ?? 0.0
+                      ..sellingPrice =
+                          double.tryParse(saleController.text) ?? 0.0
                       ..lastUpdated = DateTime.now();
-                    
-                    await ref.read(productRepositoryProvider).saveProduct(product);
+
+                    await ref
+                        .read(productRepositoryProvider)
+                        .saveProduct(product);
+
                     if (context.mounted) Navigator.pop(context);
                   },
-                  child: const Text('SAVE PRODUCT', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+                  child: const Text(
+                    'SAVE PRODUCT',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 40),

@@ -14,4 +14,6 @@ class Supplier {
   // The balance represents what the shop owes the supplier.
   // Positive = we owe them. Negative = we pre-paid.
   double balance = 0.0;
+
+  bool isActive = true;
 }
