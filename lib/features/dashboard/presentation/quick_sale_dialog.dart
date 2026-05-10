@@ -158,26 +158,47 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
               constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(context).size.height * 0.45,
               ),
-              child: activeProducts.isEmpty
-                  ? const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 40),
-                      child: Center(
-                        child: Text(
-                          'No products in stock.',
-                          style: TextStyle(color: Colors.white24),
+              child: availabilityAsync.when(
+                loading: () => const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF818CF8)),
+                ),
+                error: (err, stack) => Center(
+                  child: Text(
+                    'Error: $err',
+                    style: const TextStyle(color: Colors.redAccent),
+                  ),
+                ),
+                data: (availability) => activeProducts.isEmpty
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 40),
+                        child: Center(
+                          child: Text(
+                            'No products in stock.',
+                            style: TextStyle(color: Colors.white24),
+                          ),
                         ),
+                      )
+                    : ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: activeProducts.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final product = activeProducts[index];
+                          final status = availability[product.id] ??
+                              (
+                                walkInAvailable: 0.0,
+                                physicalRemaining: 0.0,
+                                reserved: 0.0,
+                              );
+                          return _buildQuickSaleTile(
+                            product,
+                            currentBag,
+                            bagProducts,
+                            status,
+                          );
+                        },
                       ),
-                    )
-                  : ListView.separated(
-                      shrinkWrap: true,
-                      itemCount: activeProducts.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 8),
-                      itemBuilder: (context, index) {
-                        final product = activeProducts[index];
-                        final status = availability[product.id] ?? (walkInAvailable: 0.0, physicalRemaining: 0.0, reserved: 0.0);
-                        return _buildQuickSaleTile(product, currentBag, bagProducts, status);
-                      },
-                    ),
+              ),
             ),
             const SizedBox(height: 32),
           ],
@@ -196,134 +217,249 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
     final hasBag = _addBag[product.id] ?? false;
     final isAnyBag = allBagProducts.any((p) => p.id == product.id);
     final walkInAvailable = status.walkInAvailable;
+    final isOutOfStock = walkInAvailable <= 0;
 
-    return Container(
-      padding: const EdgeInsets.all(8),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withValues(alpha: 0.05),
+            Colors.white.withValues(alpha: 0.02),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isOutOfStock
+              ? Colors.redAccent.withValues(alpha: 0.2)
+              : Colors.white.withValues(alpha: 0.08),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        product.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                        ),
+          Row(
+            children: [
+              // Product Avatar
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    product.name.substring(0, 1).toUpperCase(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 20,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.name.toUpperCase(),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                        letterSpacing: 0.5,
+                        color: Colors.white,
                       ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: (walkInAvailable > 0 ? Colors.greenAccent : Colors.redAccent).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '${walkInAvailable.toStringAsFixed(0)} LEFT',
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w900,
-                            color: walkInAvailable > 0
-                                ? Colors.greenAccent
-                                : Colors.redAccent,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text(
+                          '${product.sellingPrice} ETB',
+                          style: const TextStyle(
+                            color: Color(0xFF818CF8),
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Text(
-                        '${product.sellingPrice} ETB/unit',
-                        style: const TextStyle(color: Colors.white38, fontSize: 12),
-                      ),
-                      if (status.reserved > 0) ...[
                         const SizedBox(width: 8),
-                        Text(
-                          '• ${status.reserved.toStringAsFixed(0)} Reserved',
-                          style: const TextStyle(color: Colors.amberAccent, fontSize: 10, fontWeight: FontWeight.bold),
-                        ),
+                        if (status.reserved > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.amberAccent.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              '${status.reserved.toStringAsFixed(0)} RSV',
+                              style: const TextStyle(
+                                color: Colors.amberAccent,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 9,
+                              ),
+                            ),
+                          ),
                       ],
-                    ],
+                    ),
+                  ],
+                ),
+              ),
+              // Stock Status
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '${walkInAvailable.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: isOutOfStock ? Colors.redAccent : Colors.white70,
+                    ),
+                  ),
+                  Text(
+                    'AVAILABLE',
+                    style: TextStyle(
+                      fontSize: 8,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1,
+                      color: isOutOfStock ? Colors.redAccent : Colors.white38,
+                    ),
                   ),
                 ],
               ),
-            ),
+            ],
           ),
+          const SizedBox(height: 16),
           Row(
             children: [
+              // Custom Stepper
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                ),
+                child: Row(
+                  children: [
+                    _IconButton(
+                      icon: Icons.remove_rounded,
+                      onTap: () {
+                        if (quantity > 1) {
+                          setState(() => _quantities[product.id] = quantity - 1);
+                        }
+                      },
+                    ),
+                    Container(
+                      width: 40,
+                      alignment: Alignment.center,
+                      child: Text(
+                        quantity.toStringAsFixed(0),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    _IconButton(
+                      icon: Icons.add_rounded,
+                      onTap: () {
+                        setState(() => _quantities[product.id] = quantity + 1);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Bag Toggle
               if (!isAnyBag && bagProduct != null)
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: IconButton(
-                    icon: Icon(
+                GestureDetector(
+                  onTap: () => setState(() => _addBag[product.id] = !hasBag),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: hasBag 
+                        ? const Color(0xFFFACC15).withValues(alpha: 0.1)
+                        : Colors.white.withValues(alpha: 0.03),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: hasBag ? const Color(0xFFFACC15).withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.05),
+                      ),
+                    ),
+                    child: Icon(
                       Icons.shopping_bag_rounded,
-                      color: hasBag ? const Color(0xFFFACC15) : Colors.white10,
+                      color: hasBag ? const Color(0xFFFACC15) : Colors.white24,
                       size: 20,
                     ),
-                    onPressed: () {
-                      setState(() => _addBag[product.id] = !hasBag);
-                    },
-                    tooltip: 'Add Bag',
                   ),
                 ),
-              _IconButton(
-                icon: Icons.remove_rounded,
-                onTap: () {
-                  if (quantity > 1) {
-                    setState(() => _quantities[product.id] = quantity - 1);
-                  }
-                },
-              ),
-              Container(
-                width: 32,
-                alignment: Alignment.center,
-                child: Text(
-                  quantity.toStringAsFixed(0),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 14,
+              const Spacer(),
+              // Sell Button
+              Flexible(
+                flex: 2,
+                child: Container(
+                  height: 48,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      if (!isOutOfStock)
+                        BoxShadow(
+                          color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                    ],
                   ),
-                ),
-              ),
-              _IconButton(
-                icon: Icons.add_rounded,
-                onTap: () {
-                  setState(() => _quantities[product.id] = quantity + 1);
-                },
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: () => _processSale(
-                  product,
-                  quantity,
-                  hasBag ? bagProduct : null,
-                  status,
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF818CF8),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                  child: ElevatedButton(
+                    onPressed: isOutOfStock ? null : () => _processSale(
+                      product,
+                      quantity,
+                      hasBag ? bagProduct : null,
+                      status,
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isOutOfStock ? Colors.white10 : const Color(0xFF10B981),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        isOutOfStock ? 'OUT' : 'SELL NOW',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                child: const Text(
-                  'SELL',
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11),
                 ),
               ),
             ],
@@ -340,11 +476,13 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
     StockStatus status,
   ) async {
     if (quantity > status.walkInAvailable) {
-      String message = 'You are attempting to sell $quantity ${product.name}, but only ${status.walkInAvailable} are currently available for walk-in.';
+      String message =
+          'You are attempting to sell $quantity ${product.name}, but only ${status.walkInAvailable} are currently available for walk-in.';
       if (quantity <= status.physicalRemaining) {
         message += '\n\nNote: This will dip into reserved stock.';
       } else {
-        message += '\n\nWarning: This exceeds total physical stock (${status.physicalRemaining}).';
+        message +=
+            '\n\nWarning: This exceeds total physical stock (${status.physicalRemaining}).';
       }
 
       final proceed = await showDialog<bool>(

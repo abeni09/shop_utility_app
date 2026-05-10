@@ -45,86 +45,83 @@ typedef StockStatus = ({
 
 final walkInAvailabilityProvider =
     Provider.family<AsyncValue<Map<int, StockStatus>>, DateTime>((ref, date) {
-      final productsAsync = ref.watch(productsProvider);
-      final allStocksAsync = ref.watch(allDailyStockProvider);
-      final allOrdersAsync = ref.watch(allOrdersProvider);
+  final productsAsync = ref.watch(productsProvider);
+  final allStocksAsync = ref.watch(allDailyStockProvider);
+  final allOrdersAsync = ref.watch(allOrdersProvider);
 
-      // Normalize the selected date to the end of that day for calculation
-      final calculationDate = DateTime(
-        date.year,
-        date.month,
-        date.day,
-        23,
-        59,
-        59,
-      );
+  // Normalize the selected date to local midnight
+  final localDate = DateTime(date.year, date.month, date.day);
+  final calculationDate =
+      localDate.add(const Duration(hours: 23, minutes: 59, seconds: 59));
 
-      return productsAsync.when(
-        data: (products) => allStocksAsync.when(
-          data: (allStocks) => allOrdersAsync.when(
-            data: (allOrders) {
-              final Map<int, StockStatus> availability = {};
+  return productsAsync.when(
+    data: (products) => allStocksAsync.when(
+      data: (allStocks) => allOrdersAsync.when(
+        data: (allOrders) {
+          final Map<int, StockStatus> availability = {};
 
-              for (var p in products) {
-                if (p.isVoid) continue;
+          for (var p in products) {
+            if (p.isVoid) continue;
 
-                // 1. Total received up to the selected date
-                final receivedUntilDate = allStocks
-                    .where(
-                      (s) =>
-                          s.productId == p.id &&
-                          s.date.isBefore(
-                            calculationDate.add(const Duration(seconds: 1)),
-                          ),
-                    )
-                    .fold(0.0, (sum, s) => sum + s.receivedQuantity);
+            // 1. Total received up to the selected date
+            final receivedUntilDate = allStocks
+                .where(
+                  (s) =>
+                      s.productId == p.id &&
+                      s.date.isBefore(
+                        calculationDate.add(const Duration(seconds: 1)),
+                      ),
+                )
+                .fold(0.0, (sum, s) => sum + s.receivedQuantity);
 
-                // 2. Total sold up to the selected date
-                final soldUntilDate = allOrders
-                    .where(
-                      (o) =>
-                          o.productId == p.id &&
-                          o.status == OrderStatus.sold &&
-                          o.dueDate.isBefore(
-                            calculationDate.add(const Duration(seconds: 1)),
-                          ),
-                    )
-                    .fold(0.0, (sum, o) => sum + o.amount);
+            // 2. Total sold up to the selected date
+            final soldUntilDate = allOrders
+                .where(
+                  (o) =>
+                      o.productId == p.id &&
+                      o.status == OrderStatus.sold &&
+                      o.dueDate.isBefore(
+                        calculationDate.add(const Duration(seconds: 1)),
+                      ),
+                )
+                .fold(0.0, (sum, o) => sum + o.amount);
 
-                // 3. All pending orders (Global Reservation)
-                // We count all pending orders to ensure we don't oversell walk-ins
-                final totalPending = allOrders
-                    .where(
-                      (o) =>
-                          o.productId == p.id &&
-                          o.status == OrderStatus.pending,
-                    )
-                    .fold(0.0, (sum, o) => sum + o.amount);
+            // 3. Pending orders up to Today (Reservations)
+            final totalPending = allOrders
+                .where(
+                  (o) =>
+                      o.productId == p.id &&
+                      o.status == OrderStatus.pending &&
+                      o.dueDate.isBefore(
+                        calculationDate.add(const Duration(seconds: 1)),
+                      ),
+                )
+                .fold(0.0, (sum, o) => sum + o.amount);
 
-                final physicalRemaining = receivedUntilDate - soldUntilDate;
+            final physicalRemaining = receivedUntilDate - soldUntilDate;
 
-                availability[p.id] = (
-                  walkInAvailable: (physicalRemaining - totalPending).clamp(
-                    0,
-                    double.infinity,
-                  ),
-                  physicalRemaining: physicalRemaining.clamp(
-                    0,
-                    double.infinity,
-                  ),
-                  reserved: totalPending,
-                );
-              }
+            availability[p.id] = (
+              walkInAvailable: (physicalRemaining - totalPending).clamp(
+                0,
+                double.infinity,
+              ),
+              physicalRemaining: physicalRemaining.clamp(
+                0,
+                double.infinity,
+              ),
+              reserved: totalPending,
+            );
+          }
 
-              return AsyncValue.data(availability);
-            },
-            loading: () => const AsyncValue.loading(),
-            error: (err, stack) => AsyncValue.error(err, stack),
-          ),
-          loading: () => const AsyncValue.loading(),
-          error: (err, stack) => AsyncValue.error(err, stack),
-        ),
+          return AsyncValue.data(availability);
+        },
         loading: () => const AsyncValue.loading(),
         error: (err, stack) => AsyncValue.error(err, stack),
-      );
-    });
+      ),
+      loading: () => const AsyncValue.loading(),
+      error: (err, stack) => AsyncValue.error(err, stack),
+    ),
+    loading: () => const AsyncValue.loading(),
+    error: (err, stack) => AsyncValue.error(err, stack),
+  );
+});

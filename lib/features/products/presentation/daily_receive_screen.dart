@@ -16,7 +16,11 @@ class DailyReceiveScreen extends ConsumerStatefulWidget {
 
 class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
   final Map<int, TextEditingController> _controllers = {};
-  DateTime _selectedDate = DateTime.now();
+  DateTime _selectedDate = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+    DateTime.now().day,
+  );
 
   @override
   void dispose() {
@@ -42,11 +46,13 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
               final date = await showDatePicker(
                 context: context,
                 initialDate: _selectedDate,
-                firstDate: DateTime.now().subtract(const Duration(days: 7)),
-                lastDate: DateTime.now(),
+                firstDate: DateTime.now().subtract(const Duration(days: 30)),
+                lastDate: DateTime.now().add(const Duration(days: 1)),
               );
               if (date != null) {
-                setState(() => _selectedDate = date);
+                setState(() {
+                  _selectedDate = DateTime(date.year, date.month, date.day);
+                });
               }
             },
           ),
