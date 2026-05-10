@@ -10,7 +10,7 @@ class DailyStockRepository {
 
   Stream<List<DailyStock>> watchDailyStock(DateTime date) {
     final start = DateTime(date.year, date.month, date.day);
-    final end = start.add(const Duration(days: 1));
+    final end = DateTime(date.year, date.month, date.day, 23, 59, 59);
 
     return isar.dailyStocks
         .filter()
@@ -28,7 +28,7 @@ class DailyStockRepository {
 
   Future<DailyStock?> getStockForProduct(int productId, DateTime date) async {
     final start = DateTime(date.year, date.month, date.day);
-    final end = start.add(const Duration(days: 1));
+    final end = DateTime(date.year, date.month, date.day, 23, 59, 59);
 
     return await isar.dailyStocks
         .filter()
