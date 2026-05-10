@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:isar/isar.dart';
 import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/products/data/daily_stock_model.dart';
 import 'package:shopsync/features/products/data/daily_stock_repository.dart';
@@ -21,62 +22,109 @@ final dailyStockProvider = StreamProvider.family<List<DailyStock>, DateTime>((
   return repository.watchDailyStock(date);
 });
 
+final allDailyStockProvider = StreamProvider<List<DailyStock>>((ref) {
+  final repository = ref.watch(dailyStockRepositoryProvider);
+  // Watch everything to handle carryover
+  return repository.isar.dailyStocks.where().watch(fireImmediately: true);
+});
+
+final allOrdersProvider = StreamProvider<List<CustomerOrder>>((ref) {
+  final repository = ref.watch(orderRepositoryProvider);
+  // Watch all non-voided orders for global reservation awareness
+  return repository.isar.customerOrders
+      .filter()
+      .isVoidEqualTo(false)
+      .watch(fireImmediately: true);
+});
+
 typedef StockStatus = ({
   double walkInAvailable,
   double physicalRemaining,
-  double reserved
+  double reserved,
 });
 
 final walkInAvailabilityProvider =
     Provider.family<AsyncValue<Map<int, StockStatus>>, DateTime>((ref, date) {
-  final productsAsync = ref.watch(productsProvider);
-  final stocksAsync = ref.watch(dailyStockProvider(date));
-  final ordersAsync =
-      ref.watch(ordersForDateProvider((date: date, includeVoided: false)));
+      final productsAsync = ref.watch(productsProvider);
+      final allStocksAsync = ref.watch(allDailyStockProvider);
+      final allOrdersAsync = ref.watch(allOrdersProvider);
 
-  return productsAsync.when(
-    data: (products) => stocksAsync.when(
-      data: (stocks) => ordersAsync.when(
-        data: (orders) {
-          final Map<int, StockStatus> availability = {};
+      // Normalize the selected date to the end of that day for calculation
+      final calculationDate = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        23,
+        59,
+        59,
+      );
 
-          for (var p in products) {
-            if (p.isVoid) continue;
+      return productsAsync.when(
+        data: (products) => allStocksAsync.when(
+          data: (allStocks) => allOrdersAsync.when(
+            data: (allOrders) {
+              final Map<int, StockStatus> availability = {};
 
-            final received = stocks
-                .where((s) => s.productId == p.id)
-                .fold(0.0, (sum, s) => sum + s.receivedQuantity);
+              for (var p in products) {
+                if (p.isVoid) continue;
 
-            final sold = orders
-                .where((o) =>
-                    o.productId == p.id &&
-                    !o.isVoid &&
-                    o.status == OrderStatus.sold)
-                .fold(0.0, (sum, o) => sum + o.amount);
+                // 1. Total received up to the selected date
+                final receivedUntilDate = allStocks
+                    .where(
+                      (s) =>
+                          s.productId == p.id &&
+                          s.date.isBefore(
+                            calculationDate.add(const Duration(seconds: 1)),
+                          ),
+                    )
+                    .fold(0.0, (sum, s) => sum + s.receivedQuantity);
 
-            final pending = orders
-                .where((o) =>
-                    o.productId == p.id &&
-                    !o.isVoid &&
-                    o.status == OrderStatus.pending)
-                .fold(0.0, (sum, o) => sum + o.amount);
+                // 2. Total sold up to the selected date
+                final soldUntilDate = allOrders
+                    .where(
+                      (o) =>
+                          o.productId == p.id &&
+                          o.status == OrderStatus.sold &&
+                          o.dueDate.isBefore(
+                            calculationDate.add(const Duration(seconds: 1)),
+                          ),
+                    )
+                    .fold(0.0, (sum, o) => sum + o.amount);
 
-            availability[p.id] = (
-              walkInAvailable: received - (sold + pending),
-              physicalRemaining: received - sold,
-              reserved: pending,
-            );
-          }
+                // 3. All pending orders (Global Reservation)
+                // We count all pending orders to ensure we don't oversell walk-ins
+                final totalPending = allOrders
+                    .where(
+                      (o) =>
+                          o.productId == p.id &&
+                          o.status == OrderStatus.pending,
+                    )
+                    .fold(0.0, (sum, o) => sum + o.amount);
 
-          return AsyncValue.data(availability);
-        },
+                final physicalRemaining = receivedUntilDate - soldUntilDate;
+
+                availability[p.id] = (
+                  walkInAvailable: (physicalRemaining - totalPending).clamp(
+                    0,
+                    double.infinity,
+                  ),
+                  physicalRemaining: physicalRemaining.clamp(
+                    0,
+                    double.infinity,
+                  ),
+                  reserved: totalPending,
+                );
+              }
+
+              return AsyncValue.data(availability);
+            },
+            loading: () => const AsyncValue.loading(),
+            error: (err, stack) => AsyncValue.error(err, stack),
+          ),
+          loading: () => const AsyncValue.loading(),
+          error: (err, stack) => AsyncValue.error(err, stack),
+        ),
         loading: () => const AsyncValue.loading(),
         error: (err, stack) => AsyncValue.error(err, stack),
-      ),
-      loading: () => const AsyncValue.loading(),
-      error: (err, stack) => AsyncValue.error(err, stack),
-    ),
-    loading: () => const AsyncValue.loading(),
-    error: (err, stack) => AsyncValue.error(err, stack),
-  );
-});
+      );
+    });
