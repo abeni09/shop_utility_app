@@ -358,10 +358,11 @@ class _ProductCard extends ConsumerWidget {
             ),
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: Row(
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 8,
                 children: [
                   _buildPriceTag('COST', product.costPrice, Colors.redAccent),
-                  const SizedBox(width: 12),
                   _buildPriceTag(
                     'SALE',
                     product.sellingPrice,
