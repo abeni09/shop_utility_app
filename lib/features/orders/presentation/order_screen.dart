@@ -7,6 +7,7 @@ import 'package:shopsync/features/orders/presentation/order_providers.dart';
 import 'package:shopsync/features/products/data/product_model.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
 
+import 'package:url_launcher/url_launcher.dart';
 import 'package:shopsync/features/dashboard/presentation/ui_providers.dart';
 
 class OrderScreen extends ConsumerWidget {
@@ -670,20 +671,33 @@ class _OrderCard extends ConsumerWidget {
                             ),
                           ),
                           if (order.phoneNumber != null && order.phoneNumber!.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                const Icon(Icons.phone_rounded, size: 12, color: Colors.white38),
-                                const SizedBox(width: 4),
-                                Text(
-                                  order.phoneNumber!,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.white38,
-                                    fontWeight: FontWeight.w600,
+                            const SizedBox(height: 6),
+                            GestureDetector(
+                              onTap: () async {
+                                final Uri launchUri = Uri(
+                                  scheme: 'tel',
+                                  path: order.phoneNumber,
+                                );
+                                if (await canLaunchUrl(launchUri)) {
+                                  await launchUrl(launchUri);
+                                }
+                              },
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.phone_rounded, size: 12, color: Color(0xFF818CF8)),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    order.phoneNumber!,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF818CF8),
+                                      fontWeight: FontWeight.w700,
+                                      decoration: TextDecoration.underline,
+                                      decorationColor: Color(0xFF818CF8),
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ],
                         ],
