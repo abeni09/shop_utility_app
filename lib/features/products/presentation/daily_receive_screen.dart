@@ -61,18 +61,19 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                 (s) => s.productId == p.id,
                 orElse: () => DailyStock(),
               );
-              
+
               final val = stock.receivedQuantity > 0
                   ? stock.receivedQuantity.toStringAsFixed(0)
                   : '';
-                  
+
               if (!_controllers.containsKey(p.id)) {
                 _controllers[p.id] = TextEditingController(text: val);
               } else {
                 // If the user changed the date, update the controller text
                 // only if the user isn't currently typing (or just always update if we want sync)
-                if (_controllers[p.id]!.text != val && !FocusScope.of(context).hasFocus) {
-                   _controllers[p.id]!.text = val;
+                if (_controllers[p.id]!.text != val &&
+                    !FocusScope.of(context).hasFocus) {
+                  _controllers[p.id]!.text = val;
                 }
               }
             }
@@ -109,7 +110,9 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                     separatorBuilder: (_, __) => const SizedBox(height: 16),
                     itemBuilder: (context, index) {
                       final product = products[index];
-                      final stock = stocks.where((s) => s.productId == product.id).firstOrNull;
+                      final stock = stocks
+                          .where((s) => s.productId == product.id)
+                          .firstOrNull;
                       return _StockInputCard(
                         productName: product.name,
                         controller: _controllers[product.id]!,
@@ -133,8 +136,12 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                       ),
                       onPressed: () async {
                         final repo = ref.read(dailyStockRepositoryProvider);
-                        final supplierRepo = ref.read(supplierRepositoryProvider);
-                        final dashboardRepo = ref.read(dashboardRepositoryProvider);
+                        final supplierRepo = ref.read(
+                          supplierRepositoryProvider,
+                        );
+                        final dashboardRepo = ref.read(
+                          dashboardRepositoryProvider,
+                        );
 
                         for (var p in products) {
                           final text = _controllers[p.id]!.text.trim();
@@ -175,12 +182,16 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                         }
 
                         // Update daily log stats
-                        await dashboardRepo.recalculateSupplierOrders(_selectedDate);
+                        await dashboardRepo.recalculateSupplierOrders(
+                          _selectedDate,
+                        );
 
                         if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Stock levels and supplier balances updated!'),
+                            content: Text(
+                              'Stock levels and supplier balances updated!',
+                            ),
                             backgroundColor: Color(0xFF10B981),
                           ),
                         );
@@ -237,7 +248,10 @@ class _StockInputCard extends StatelessWidget {
               children: [
                 Text(
                   productName,
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
                 ),
                 if (requestedAmount > 0)
                   Text(
