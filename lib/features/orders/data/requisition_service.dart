@@ -31,7 +31,7 @@ class RequisitionService {
     final Map<int, double> productTotals = {};
 
     for (var order in orders) {
-      if (order.status != OrderStatus.cancelled && !order.isVoid) {
+      if (order.status == OrderStatus.pending && !order.isVoid) {
         productTotals[order.productId] = (productTotals[order.productId] ?? 0.0) + order.amount;
       }
     }

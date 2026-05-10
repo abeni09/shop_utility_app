@@ -22,26 +22,31 @@ final dailyStockProvider = StreamProvider.family<List<DailyStock>, DateTime>((
 
 final walkInAvailabilityProvider =
     Provider.family<AsyncValue<Map<int, double>>, DateTime>((ref, date) {
-      final stocksAsync = ref.watch(dailyStockProvider(date));
-      final ordersAsync = ref.watch(ordersProvider);
+  final stocksAsync = ref.watch(dailyStockProvider(date));
+  final ordersAsync =
+      ref.watch(ordersForDateProvider((date: date, includeVoided: false)));
 
-      return stocksAsync.whenData((stocks) {
-        return ordersAsync.maybeWhen(
-          data: (orders) {
-            final Map<int, double> availability = {};
+  return stocksAsync.when(
+    data: (stocks) {
+      return ordersAsync.when(
+        data: (orders) {
+          final Map<int, double> availability = {};
 
-            for (var stock in stocks) {
-              final orderedQty = orders
-                  .where((o) => o.productId == stock.productId && !o.isVoid)
-                  .fold(0.0, (sum, o) => sum + o.amount);
+          for (var stock in stocks) {
+            final orderedQty = orders
+                .where((o) => o.productId == stock.productId && !o.isVoid)
+                .fold(0.0, (sum, o) => sum + o.amount);
 
-              availability[stock.productId] =
-                  stock.receivedQuantity - orderedQty;
-            }
+            availability[stock.productId] = stock.receivedQuantity - orderedQty;
+          }
 
-            return availability;
-          },
-          orElse: () => <int, double>{},
-        );
-      });
-    });
+          return AsyncValue.data(availability);
+        },
+        loading: () => const AsyncValue.loading(),
+        error: (err, stack) => AsyncValue.error(err, stack),
+      );
+    },
+    loading: () => const AsyncValue.loading(),
+    error: (err, stack) => AsyncValue.error(err, stack),
+  );
+});

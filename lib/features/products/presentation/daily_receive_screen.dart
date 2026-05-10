@@ -53,18 +53,25 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
       body: productsAsync.when(
         data: (products) => stockAsync.when(
           data: (stocks) {
-            // Initialize controllers
+            // Initialize or Update controllers to match current date/stocks
             for (var p in products) {
+              final stock = stocks.firstWhere(
+                (s) => s.productId == p.id,
+                orElse: () => DailyStock(),
+              );
+              
+              final val = stock.receivedQuantity > 0
+                  ? stock.receivedQuantity.toStringAsFixed(0)
+                  : '';
+                  
               if (!_controllers.containsKey(p.id)) {
-                final stock = stocks.firstWhere(
-                  (s) => s.productId == p.id,
-                  orElse: () => DailyStock(),
-                );
-                _controllers[p.id] = TextEditingController(
-                  text: stock.receivedQuantity > 0
-                      ? stock.receivedQuantity.toStringAsFixed(0)
-                      : '',
-                );
+                _controllers[p.id] = TextEditingController(text: val);
+              } else {
+                // If the user changed the date, update the controller text
+                // only if the user isn't currently typing (or just always update if we want sync)
+                if (_controllers[p.id]!.text != val && !FocusScope.of(context).hasFocus) {
+                   _controllers[p.id]!.text = val;
+                }
               }
             }
 

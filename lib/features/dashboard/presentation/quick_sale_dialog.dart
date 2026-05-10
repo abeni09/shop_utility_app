@@ -256,6 +256,7 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
 
     // 1. Process the main product sale
     final customerName = _customerController.text.trim();
+    final totalPrice = quantity * product.sellingPrice;
     final order = CustomerOrder()
       ..productId = product.id
       ..customerName = customerName.isEmpty ? "Walk-in Customer" : customerName
@@ -265,6 +266,7 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
       ..paymentMethod = PaymentMethod.cash
       ..costPriceAtTime = product.costPrice
       ..sellingPriceAtTime = product.sellingPrice
+      ..advancePayment = totalPrice
       ..fulfilledAt = now;
 
     print('DEBUG: QuickSale processing. Name: ${order.customerName}');
@@ -281,8 +283,9 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
         ..paymentMethod = PaymentMethod.cash
         ..costPriceAtTime = bagProduct.costPrice
         ..sellingPriceAtTime = bagProduct.sellingPrice
+        ..advancePayment = bagProduct.sellingPrice
         ..fulfilledAt = now;
-      
+
       await ref.read(orderRepositoryProvider).saveOrder(bagOrder);
     }
 
