@@ -13,56 +13,36 @@ final requisitionServiceProvider = Provider<RequisitionService>((ref) {
   );
 });
 
-final tomorrowRequisitionProvider = Provider<AsyncValue<List<RequisitionItem>>>(
-  (ref) {
-    final now = DateTime.now();
-    final tomorrow = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).add(const Duration(days: 1));
+final tomorrowRequisitionProvider = FutureProvider<List<RequisitionItem>>((ref) async {
+  final now = DateTime.now();
+  final tomorrow = DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+  
+  // Watch the orders stream for tomorrow
+  final ordersAsync = ref.watch(ordersForDateProvider((date: tomorrow, includeVoided: false)));
+  final productsAsync = ref.watch(productsProvider);
 
-    // Watch the orders stream for tomorrow
-    final ordersAsync = ref.watch(
-      ordersForDateProvider((date: tomorrow, includeVoided: false)),
+  // We safely extract the data or fetch it directly if still loading
+  final products = productsAsync.asData?.value ?? 
+                   await ref.read(productRepositoryProvider).getAllProducts();
+
+  final orders = ordersAsync.asData?.value ?? 
+                 await ref.read(orderRepositoryProvider).getOrdersForDate(tomorrow);
+
+  final Map<int, double> productTotals = {};
+  for (var order in orders) {
+    if (order.status == OrderStatus.pending && !order.isVoid) {
+      productTotals[order.productId] = (productTotals[order.productId] ?? 0.0) + order.amount;
+    }
+  }
+
+  return products.map((p) {
+    return RequisitionItem(
+      product: p,
+      orderAmount: productTotals[p.id] ?? 0.0,
+      bufferAmount: (productTotals[p.id] ?? 0.0) * 0.1,
     );
-    final productsAsync = ref.watch(productsProvider);
-
-    return productsAsync.when(
-      data: (products) {
-        return ordersAsync.when(
-          data: (orders) {
-            final Map<int, double> productTotals = {};
-
-            for (var order in orders) {
-              if (order.status == OrderStatus.pending && !order.isVoid) {
-                productTotals[order.productId] =
-                    (productTotals[order.productId] ?? 0.0) + order.amount;
-              }
-            }
-
-            final items = products
-                .map((p) {
-                  return RequisitionItem(
-                    product: p,
-                    orderAmount: productTotals[p.id] ?? 0.0,
-                    bufferAmount: (productTotals[p.id] ?? 0.0) * 0.1,
-                  );
-                })
-                .where((item) => item.totalNeeded > 0)
-                .toList();
-
-            return AsyncValue.data(items);
-          },
-          loading: () => const AsyncValue.loading(),
-          error: (e, s) => AsyncValue.error(e, s),
-        );
-      },
-      loading: () => const AsyncValue.loading(),
-      error: (e, s) => AsyncValue.error(e, s),
-    );
-  },
-);
+  }).where((item) => item.totalNeeded > 0).toList();
+});
 
 class RequisitionScreen extends ConsumerWidget {
   const RequisitionScreen({super.key});
