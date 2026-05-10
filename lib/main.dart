@@ -183,8 +183,10 @@ class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
     final dailyLogAsync = ref.watch(dailyLogProvider);
-    final ordersAsync = ref.watch(ordersProvider);
+    final ordersAsync = ref.watch(ordersForDateProvider((date: today, includeVoided: false)));
 
     return Container(
       decoration: const BoxDecoration(
@@ -583,7 +585,9 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   Widget _buildRecentOrders(BuildContext context, WidgetRef ref) {
-    final ordersAsync = ref.watch(ordersProvider);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final ordersAsync = ref.watch(ordersForDateProvider((date: today, includeVoided: false)));
     final productsAsync = ref.watch(productsProvider);
 
     return ordersAsync.when(
