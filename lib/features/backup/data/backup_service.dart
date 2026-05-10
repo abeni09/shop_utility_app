@@ -9,10 +9,30 @@ class BackupService {
   final Isar isar;
   final auth.GoogleSignIn _googleSignIn = auth.GoogleSignIn.instance;
 
-  BackupService(this.isar);
+  auth.GoogleSignInAccount? _currentUser;
+  auth.GoogleSignInAccount? get currentUser => _currentUser;
 
-  auth.GoogleSignInAccount? get currentUser => _googleSignIn.currentUser;
-  Stream<auth.GoogleSignInAccount?> get onCurrentUserChanged => _googleSignIn.onCurrentUserChanged;
+  Stream<auth.GoogleSignInAccount?> get onCurrentUserChanged =>
+      _googleSignIn.authenticationEvents.map((event) {
+        if (event is auth.GoogleSignInAuthenticationEventSignIn) {
+          _currentUser = event.user;
+          return event.user;
+        } else {
+          _currentUser = null;
+          return null;
+        }
+      });
+
+  BackupService(this.isar) {
+    _googleSignIn.authenticationEvents.listen((event) {
+      if (event is auth.GoogleSignInAuthenticationEventSignIn) {
+        _currentUser = event.user;
+      } else if (event is auth.GoogleSignInAuthenticationEventSignOut) {
+        _currentUser = null;
+      }
+    });
+    _googleSignIn.attemptLightweightAuthentication();
+  }
 
   Future<bool> signIn() async {
     try {
