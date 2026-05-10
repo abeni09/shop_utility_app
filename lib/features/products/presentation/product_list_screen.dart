@@ -19,64 +19,78 @@ class ProductListScreen extends ConsumerWidget {
           colors: [Color(0xFF0F172A), Color(0xFF020617)],
         ),
       ),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            SliverAppBar.large(
-              backgroundColor: Colors.transparent,
-              title: const Text('INVENTORY'),
-              actions: [
-                Container(
-                  margin: const EdgeInsets.only(right: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.add_rounded,
-                      color: Color(0xFF818CF8),
-                    ),
-                    onPressed: () => _showAddProductDialog(context, ref),
-                  ),
-                ),
-              ],
+      child: RefreshIndicator(
+        onRefresh: () async {
+          await ref.read(backupServiceProvider).forceSyncCheck();
+          ref.invalidate(cloudSyncStatusProvider);
+          ref.invalidate(localAheadProvider);
+        },
+        backgroundColor: const Color(0xFF1E293B),
+        color: const Color(0xFF818CF8),
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
             ),
-            productsAsync.when(
-              data: (products) => products.isEmpty
-                  ? const SliverFillRemaining(
-                      child: Center(
-                        child: Text(
-                          'No products found',
-                          style: TextStyle(color: Colors.white38),
+            slivers: [
+              SliverAppBar.large(
+                backgroundColor: Colors.transparent,
+                title: const Text('INVENTORY'),
+                actions: [
+                  Container(
+                    margin: const EdgeInsets.only(right: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.add_rounded,
+                        color: Color(0xFF818CF8),
+                      ),
+                      onPressed: () => _showAddProductDialog(context, ref),
+                    ),
+                  ),
+                ],
+              ),
+              productsAsync.when(
+                data: (products) => products.isEmpty
+                    ? const SliverFillRemaining(
+                        child: Center(
+                          child: Text(
+                            'No products found',
+                            style: TextStyle(color: Colors.white38),
+                          ),
+                        ),
+                      )
+                    : SliverPadding(
+                        padding: const EdgeInsets.all(16),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final product = products[index];
+                            return _ProductCard(product: product);
+                          }, childCount: products.length),
                         ),
                       ),
-                    )
-                  : SliverPadding(
-                      padding: const EdgeInsets.all(16),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate((context, index) {
-                          final product = products[index];
-                          return _ProductCard(product: product);
-                        }, childCount: products.length),
-                      ),
+                loading: () => const SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (err, stack) => SliverFillRemaining(
+                  child: Center(
+                    child: Text(
+                      'Error: $err',
+                      style: const TextStyle(color: Colors.redAccent),
                     ),
-              loading: () => const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (err, stack) => SliverFillRemaining(
-                child: Center(
-                  child: Text(
-                    'Error: $err',
-                    style: const TextStyle(color: Colors.redAccent),
                   ),
                 ),
               ),
-            ),
-            const SliverToBoxAdapter(child: SizedBox(height: 100)),
-          ],
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            ],
+          ),
         ),
       ),
     );

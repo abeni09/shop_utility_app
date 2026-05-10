@@ -100,6 +100,22 @@ class BackupService {
     }
   }
 
+  /// Manually triggers a check for cloud updates and local pending changes.
+  /// Typically called from "Pull to Refresh" UI.
+  Future<void> forceSyncCheck() async {
+    try {
+      // Re-sign in silently to ensure valid token
+      await _googleSignIn.signInSilently();
+      
+      // These getters will naturally refresh because the underlying
+      // SharedPreferences and Google session are used.
+      await isCloudNewer();
+      await isLocalAhead();
+    } catch (e) {
+      print('Manual sync check failed: $e');
+    }
+  }
+
   Future<void> _saveSession(String? email) async {
     _cachedEmail = email;
     final prefs = await SharedPreferences.getInstance();

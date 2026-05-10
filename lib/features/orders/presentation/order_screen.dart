@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/orders/data/customer_order_model.dart';
 import 'package:shopsync/features/orders/presentation/order_providers.dart';
 import 'package:shopsync/features/products/data/product_model.dart';
@@ -22,89 +23,109 @@ class OrderScreen extends ConsumerWidget {
           colors: [Color(0xFF0F172A), Color(0xFF020617)],
         ),
       ),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            SliverAppBar.large(
-              backgroundColor: Colors.transparent,
-              title: Text(
-                'ORDERS: ${DateFormat('MMM dd').format(selectedDate).toUpperCase()}',
-              ),
-              actions: [
-                Container(
-                  margin: const EdgeInsets.only(right: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.calendar_month_rounded,
-                      color: Color(0xFF818CF8),
-                    ),
-                    onPressed: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: selectedDate,
-                        firstDate: DateTime.now().subtract(
-                          const Duration(days: 365),
-                        ),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                      );
-                      if (date != null) {
-                        ref.read(selectedDateProvider.notifier).state = date;
-                      }
-                    },
-                  ),
-                ),
-              ],
+      child: RefreshIndicator(
+        onRefresh: () async {
+          await ref.read(backupServiceProvider).forceSyncCheck();
+          ref.invalidate(cloudSyncStatusProvider);
+          ref.invalidate(localAheadProvider);
+          ref.invalidate(ordersProvider);
+        },
+        backgroundColor: const Color(0xFF1E293B),
+        color: const Color(0xFF818CF8),
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
             ),
-            ordersAsync.when(
-              data: (orders) => orders.isEmpty
-                  ? const SliverFillRemaining(
-                      child: Center(
-                        child: Text(
-                          'No orders for this date',
-                          style: TextStyle(color: Colors.white38),
+            slivers: [
+              SliverAppBar.large(
+                backgroundColor: Colors.transparent,
+                title: Text(
+                  'ORDERS: ${DateFormat('MMM dd').format(selectedDate).toUpperCase()}',
+                ),
+                actions: [
+                  Container(
+                    margin: const EdgeInsets.only(right: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.calendar_month_rounded,
+                        color: Color(0xFF818CF8),
+                      ),
+                      onPressed: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: selectedDate,
+                          firstDate: DateTime.now().subtract(
+                            const Duration(days: 365),
+                          ),
+                          lastDate: DateTime.now().add(
+                            const Duration(days: 365),
+                          ),
+                        );
+                        if (date != null) {
+                          ref.read(selectedDateProvider.notifier).state = date;
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              ordersAsync.when(
+                data: (orders) => orders.isEmpty
+                    ? const SliverFillRemaining(
+                        child: Center(
+                          child: Text(
+                            'No orders for this date',
+                            style: TextStyle(color: Colors.white38),
+                          ),
+                        ),
+                      )
+                    : SliverPadding(
+                        padding: const EdgeInsets.all(16),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final order = orders[index];
+                            return _OrderCard(order: order);
+                          }, childCount: orders.length),
                         ),
                       ),
-                    )
-                  : SliverPadding(
-                      padding: const EdgeInsets.all(16),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate((context, index) {
-                          final order = orders[index];
-                          return _OrderCard(order: order);
-                        }, childCount: orders.length),
-                      ),
+                loading: () => const SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (err, stack) => SliverFillRemaining(
+                  child: Center(
+                    child: Text(
+                      'Error: $err',
+                      style: const TextStyle(color: Colors.redAccent),
                     ),
-              loading: () => const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (err, stack) => SliverFillRemaining(
-                child: Center(
-                  child: Text(
-                    'Error: $err',
-                    style: const TextStyle(color: Colors.redAccent),
                   ),
                 ),
               ),
-            ),
-            const SliverToBoxAdapter(child: SizedBox(height: 100)),
-          ],
-        ),
-        floatingActionButton: Padding(
-          padding: const EdgeInsets.only(bottom: 80),
-          child: FloatingActionButton.extended(
-            onPressed: () => _showCreateOrderDialog(context, ref),
-            backgroundColor: const Color(0xFF6366F1),
-            foregroundColor: Colors.white,
-            icon: const Icon(Icons.add_shopping_cart_rounded),
-            label: const Text(
-              'NEW ORDER',
-              style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.2),
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            ],
+          ),
+          floatingActionButton: Padding(
+            padding: const EdgeInsets.only(bottom: 80),
+            child: FloatingActionButton.extended(
+              onPressed: () => _showCreateOrderDialog(context, ref),
+              backgroundColor: const Color(0xFF6366F1),
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.add_shopping_cart_rounded),
+              label: const Text(
+                'NEW ORDER',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
+                ),
+              ),
             ),
           ),
         ),
@@ -403,7 +424,9 @@ class _OrderCard extends ConsumerWidget {
                       ),
                     ),
                     Text(
-                      (order.amount * order.sellingPriceAtTime).toStringAsFixed(0),
+                      (order.amount * order.sellingPriceAtTime).toStringAsFixed(
+                        0,
+                      ),
                       style: const TextStyle(
                         fontWeight: FontWeight.w900,
                         fontSize: 18,
@@ -489,7 +512,9 @@ class _OrderCard extends ConsumerWidget {
                             child: const Text('CANCEL'),
                           ),
                           TextButton(
-                            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.redAccent,
+                            ),
                             onPressed: () => Navigator.pop(context, true),
                             child: const Text('VOID'),
                           ),
