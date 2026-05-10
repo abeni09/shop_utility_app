@@ -30,6 +30,8 @@ class DashboardRepository {
         .and()
         .dueDateLessThan(endOfDay)
         .statusEqualTo(OrderStatus.sold)
+        .and()
+        .isVoidEqualTo(false)
         .findAll();
 
     double totalSales = 0;

@@ -22,28 +22,33 @@ const ProductSchema = CollectionSchema(
       name: r'costPrice',
       type: IsarType.double,
     ),
-    r'lastUpdated': PropertySchema(
+    r'isVoid': PropertySchema(
       id: 1,
+      name: r'isVoid',
+      type: IsarType.bool,
+    ),
+    r'lastUpdated': PropertySchema(
+      id: 2,
       name: r'lastUpdated',
       type: IsarType.dateTime,
     ),
     r'name': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'name',
       type: IsarType.string,
     ),
     r'sellingPrice': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'sellingPrice',
       type: IsarType.double,
     ),
     r'supplierId': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'supplierId',
       type: IsarType.long,
     ),
     r'unit': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'unit',
       type: IsarType.string,
     )
@@ -94,11 +99,12 @@ void _productSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeDouble(offsets[0], object.costPrice);
-  writer.writeDateTime(offsets[1], object.lastUpdated);
-  writer.writeString(offsets[2], object.name);
-  writer.writeDouble(offsets[3], object.sellingPrice);
-  writer.writeLong(offsets[4], object.supplierId);
-  writer.writeString(offsets[5], object.unit);
+  writer.writeBool(offsets[1], object.isVoid);
+  writer.writeDateTime(offsets[2], object.lastUpdated);
+  writer.writeString(offsets[3], object.name);
+  writer.writeDouble(offsets[4], object.sellingPrice);
+  writer.writeLong(offsets[5], object.supplierId);
+  writer.writeString(offsets[6], object.unit);
 }
 
 Product _productDeserialize(
@@ -110,11 +116,12 @@ Product _productDeserialize(
   final object = Product();
   object.costPrice = reader.readDouble(offsets[0]);
   object.id = id;
-  object.lastUpdated = reader.readDateTimeOrNull(offsets[1]);
-  object.name = reader.readString(offsets[2]);
-  object.sellingPrice = reader.readDouble(offsets[3]);
-  object.supplierId = reader.readLongOrNull(offsets[4]);
-  object.unit = reader.readString(offsets[5]);
+  object.isVoid = reader.readBool(offsets[1]);
+  object.lastUpdated = reader.readDateTimeOrNull(offsets[2]);
+  object.name = reader.readString(offsets[3]);
+  object.sellingPrice = reader.readDouble(offsets[4]);
+  object.supplierId = reader.readLongOrNull(offsets[5]);
+  object.unit = reader.readString(offsets[6]);
   return object;
 }
 
@@ -128,14 +135,16 @@ P _productDeserializeProp<P>(
     case 0:
       return (reader.readDouble(offset)) as P;
     case 1:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 2:
-      return (reader.readString(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 3:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 4:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 5:
+      return (reader.readLongOrNull(offset)) as P;
+    case 6:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -439,6 +448,16 @@ extension ProductQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> isVoidEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isVoid',
+        value: value,
       ));
     });
   }
@@ -923,6 +942,18 @@ extension ProductQuerySortBy on QueryBuilder<Product, Product, QSortBy> {
     });
   }
 
+  QueryBuilder<Product, Product, QAfterSortBy> sortByIsVoid() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isVoid', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> sortByIsVoidDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isVoid', Sort.desc);
+    });
+  }
+
   QueryBuilder<Product, Product, QAfterSortBy> sortByLastUpdated() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lastUpdated', Sort.asc);
@@ -1010,6 +1041,18 @@ extension ProductQuerySortThenBy
     });
   }
 
+  QueryBuilder<Product, Product, QAfterSortBy> thenByIsVoid() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isVoid', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> thenByIsVoidDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isVoid', Sort.desc);
+    });
+  }
+
   QueryBuilder<Product, Product, QAfterSortBy> thenByLastUpdated() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lastUpdated', Sort.asc);
@@ -1079,6 +1122,12 @@ extension ProductQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Product, Product, QDistinct> distinctByIsVoid() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isVoid');
+    });
+  }
+
   QueryBuilder<Product, Product, QDistinct> distinctByLastUpdated() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'lastUpdated');
@@ -1123,6 +1172,12 @@ extension ProductQueryProperty
   QueryBuilder<Product, double, QQueryOperations> costPriceProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'costPrice');
+    });
+  }
+
+  QueryBuilder<Product, bool, QQueryOperations> isVoidProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isVoid');
     });
   }
 

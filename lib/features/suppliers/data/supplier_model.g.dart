@@ -27,8 +27,13 @@ const SupplierSchema = CollectionSchema(
       name: r'contact',
       type: IsarType.string,
     ),
-    r'name': PropertySchema(
+    r'isActive': PropertySchema(
       id: 2,
+      name: r'isActive',
+      type: IsarType.bool,
+    ),
+    r'name': PropertySchema(
+      id: 3,
       name: r'name',
       type: IsarType.string,
     )
@@ -85,7 +90,8 @@ void _supplierSerialize(
 ) {
   writer.writeDouble(offsets[0], object.balance);
   writer.writeString(offsets[1], object.contact);
-  writer.writeString(offsets[2], object.name);
+  writer.writeBool(offsets[2], object.isActive);
+  writer.writeString(offsets[3], object.name);
 }
 
 Supplier _supplierDeserialize(
@@ -98,7 +104,8 @@ Supplier _supplierDeserialize(
   object.balance = reader.readDouble(offsets[0]);
   object.contact = reader.readStringOrNull(offsets[1]);
   object.id = id;
-  object.name = reader.readString(offsets[2]);
+  object.isActive = reader.readBool(offsets[2]);
+  object.name = reader.readString(offsets[3]);
   return object;
 }
 
@@ -114,6 +121,8 @@ P _supplierDeserializeProp<P>(
     case 1:
       return (reader.readStringOrNull(offset)) as P;
     case 2:
+      return (reader.readBool(offset)) as P;
+    case 3:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -567,6 +576,16 @@ extension SupplierQueryFilter
     });
   }
 
+  QueryBuilder<Supplier, Supplier, QAfterFilterCondition> isActiveEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isActive',
+        value: value,
+      ));
+    });
+  }
+
   QueryBuilder<Supplier, Supplier, QAfterFilterCondition> nameEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -729,6 +748,18 @@ extension SupplierQuerySortBy on QueryBuilder<Supplier, Supplier, QSortBy> {
     });
   }
 
+  QueryBuilder<Supplier, Supplier, QAfterSortBy> sortByIsActive() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isActive', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterSortBy> sortByIsActiveDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isActive', Sort.desc);
+    });
+  }
+
   QueryBuilder<Supplier, Supplier, QAfterSortBy> sortByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -780,6 +811,18 @@ extension SupplierQuerySortThenBy
     });
   }
 
+  QueryBuilder<Supplier, Supplier, QAfterSortBy> thenByIsActive() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isActive', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterSortBy> thenByIsActiveDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isActive', Sort.desc);
+    });
+  }
+
   QueryBuilder<Supplier, Supplier, QAfterSortBy> thenByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -808,6 +851,12 @@ extension SupplierQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Supplier, Supplier, QDistinct> distinctByIsActive() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isActive');
+    });
+  }
+
   QueryBuilder<Supplier, Supplier, QDistinct> distinctByName(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -833,6 +882,12 @@ extension SupplierQueryProperty
   QueryBuilder<Supplier, String?, QQueryOperations> contactProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'contact');
+    });
+  }
+
+  QueryBuilder<Supplier, bool, QQueryOperations> isActiveProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isActive');
     });
   }
 

@@ -471,6 +471,43 @@ class _OrderCard extends ConsumerWidget {
                       ),
                     ),
                   ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () async {
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        backgroundColor: const Color(0xFF1E293B),
+                        title: const Text('Void Order?'),
+                        content: const Text(
+                          'This will invalidate the order and remove it from calculations. This action cannot be easily undone.',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('CANCEL'),
+                          ),
+                          TextButton(
+                            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('VOID'),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirmed == true) {
+                      ref.read(orderRepositoryProvider).voidOrder(order.id);
+                    }
+                  },
+                  icon: const Icon(
+                    Icons.delete_sweep_rounded,
+                    color: Colors.white24,
+                    size: 20,
+                  ),
+                  tooltip: 'Void Order',
+                ),
               ],
             ),
           ],

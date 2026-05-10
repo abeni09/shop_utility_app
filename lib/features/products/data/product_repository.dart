@@ -21,9 +21,13 @@ class ProductRepository {
     backupService.autoBackupIfPossible();
   }
 
-  Future<void> deleteProduct(Id id) async {
+  Future<void> voidProduct(Id id) async {
     await isar.writeTxn(() async {
-      await isar.products.delete(id);
+      final product = await isar.products.get(id);
+      if (product != null) {
+        product.isVoid = true;
+        await isar.products.put(product);
+      }
     });
     
     await backupService.markLocalChanged();
@@ -31,6 +35,6 @@ class ProductRepository {
   }
 
   Stream<List<Product>> watchProducts() {
-    return isar.products.where().watch(fireImmediately: true);
+    return isar.products.filter().isVoidEqualTo(false).watch(fireImmediately: true);
   }
 }

@@ -17,4 +17,6 @@ class Product {
   int? supplierId;
 
   DateTime? lastUpdated;
+
+  bool isVoid = false;
 }

@@ -55,6 +55,23 @@ class OrderRepository {
     }
   }
 
+  Future<void> voidOrder(Id id) async {
+    await isar.writeTxn(() async {
+      final order = await isar.customerOrders.get(id);
+      if (order != null) {
+        order.isVoid = true;
+        await isar.customerOrders.put(order);
+      }
+    });
+
+    final order = await isar.customerOrders.get(id);
+    if (order != null) {
+      await dashboardRepo.recalculateDailyStats(order.dueDate);
+      await backupService.markLocalChanged();
+      backupService.autoBackupIfPossible();
+    }
+  }
+
   Stream<List<CustomerOrder>> watchOrdersForDate(DateTime date) {
     final startOfDay = DateTime(date.year, date.month, date.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
@@ -66,6 +83,8 @@ class OrderRepository {
         )
         .and()
         .dueDateLessThan(endOfDay)
+        .and()
+        .isVoidEqualTo(false)
         .watch(fireImmediately: true);
   }
 }

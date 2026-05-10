@@ -42,24 +42,29 @@ const CustomerOrderSchema = CollectionSchema(
       name: r'fulfilledAt',
       type: IsarType.dateTime,
     ),
-    r'paymentMethod': PropertySchema(
+    r'isVoid': PropertySchema(
       id: 5,
+      name: r'isVoid',
+      type: IsarType.bool,
+    ),
+    r'paymentMethod': PropertySchema(
+      id: 6,
       name: r'paymentMethod',
       type: IsarType.byte,
       enumMap: _CustomerOrderpaymentMethodEnumValueMap,
     ),
     r'productId': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'productId',
       type: IsarType.long,
     ),
     r'sellingPriceAtTime': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'sellingPriceAtTime',
       type: IsarType.double,
     ),
     r'status': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'status',
       type: IsarType.byte,
       enumMap: _CustomerOrderstatusEnumValueMap,
@@ -114,10 +119,11 @@ void _customerOrderSerialize(
   writer.writeString(offsets[2], object.customerName);
   writer.writeDateTime(offsets[3], object.dueDate);
   writer.writeDateTime(offsets[4], object.fulfilledAt);
-  writer.writeByte(offsets[5], object.paymentMethod.index);
-  writer.writeLong(offsets[6], object.productId);
-  writer.writeDouble(offsets[7], object.sellingPriceAtTime);
-  writer.writeByte(offsets[8], object.status.index);
+  writer.writeBool(offsets[5], object.isVoid);
+  writer.writeByte(offsets[6], object.paymentMethod.index);
+  writer.writeLong(offsets[7], object.productId);
+  writer.writeDouble(offsets[8], object.sellingPriceAtTime);
+  writer.writeByte(offsets[9], object.status.index);
 }
 
 CustomerOrder _customerOrderDeserialize(
@@ -133,13 +139,14 @@ CustomerOrder _customerOrderDeserialize(
   object.dueDate = reader.readDateTime(offsets[3]);
   object.fulfilledAt = reader.readDateTimeOrNull(offsets[4]);
   object.id = id;
+  object.isVoid = reader.readBool(offsets[5]);
   object.paymentMethod = _CustomerOrderpaymentMethodValueEnumMap[
-          reader.readByteOrNull(offsets[5])] ??
+          reader.readByteOrNull(offsets[6])] ??
       PaymentMethod.cash;
-  object.productId = reader.readLong(offsets[6]);
-  object.sellingPriceAtTime = reader.readDouble(offsets[7]);
+  object.productId = reader.readLong(offsets[7]);
+  object.sellingPriceAtTime = reader.readDouble(offsets[8]);
   object.status =
-      _CustomerOrderstatusValueEnumMap[reader.readByteOrNull(offsets[8])] ??
+      _CustomerOrderstatusValueEnumMap[reader.readByteOrNull(offsets[9])] ??
           OrderStatus.pending;
   return object;
 }
@@ -162,14 +169,16 @@ P _customerOrderDeserializeProp<P>(
     case 4:
       return (reader.readDateTimeOrNull(offset)) as P;
     case 5:
+      return (reader.readBool(offset)) as P;
+    case 6:
       return (_CustomerOrderpaymentMethodValueEnumMap[
               reader.readByteOrNull(offset)] ??
           PaymentMethod.cash) as P;
-    case 6:
-      return (reader.readLong(offset)) as P;
     case 7:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 8:
+      return (reader.readDouble(offset)) as P;
+    case 9:
       return (_CustomerOrderstatusValueEnumMap[reader.readByteOrNull(offset)] ??
           OrderStatus.pending) as P;
     default:
@@ -846,6 +855,16 @@ extension CustomerOrderQueryFilter
   }
 
   QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      isVoidEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isVoid',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
       paymentMethodEqualTo(PaymentMethod value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -1153,6 +1172,18 @@ extension CustomerOrderQuerySortBy
     });
   }
 
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy> sortByIsVoid() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isVoid', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy> sortByIsVoidDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isVoid', Sort.desc);
+    });
+  }
+
   QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy>
       sortByPaymentMethod() {
     return QueryBuilder.apply(this, (query) {
@@ -1286,6 +1317,18 @@ extension CustomerOrderQuerySortThenBy
     });
   }
 
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy> thenByIsVoid() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isVoid', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy> thenByIsVoidDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isVoid', Sort.desc);
+    });
+  }
+
   QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy>
       thenByPaymentMethod() {
     return QueryBuilder.apply(this, (query) {
@@ -1375,6 +1418,12 @@ extension CustomerOrderQueryWhereDistinct
     });
   }
 
+  QueryBuilder<CustomerOrder, CustomerOrder, QDistinct> distinctByIsVoid() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isVoid');
+    });
+  }
+
   QueryBuilder<CustomerOrder, CustomerOrder, QDistinct>
       distinctByPaymentMethod() {
     return QueryBuilder.apply(this, (query) {
@@ -1439,6 +1488,12 @@ extension CustomerOrderQueryProperty
       fulfilledAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'fulfilledAt');
+    });
+  }
+
+  QueryBuilder<CustomerOrder, bool, QQueryOperations> isVoidProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isVoid');
     });
   }
 

@@ -34,7 +34,20 @@ class SupplierRepository {
     backupService.autoBackupIfPossible();
   }
 
+  Future<void> toggleActiveStatus(Id id) async {
+    await isar.writeTxn(() async {
+      final supplier = await isar.suppliers.get(id);
+      if (supplier != null) {
+        supplier.isActive = !supplier.isActive;
+        await isar.suppliers.put(supplier);
+      }
+    });
+    
+    await backupService.markLocalChanged();
+    backupService.autoBackupIfPossible();
+  }
+
   Stream<List<Supplier>> watchSuppliers() {
-    return isar.suppliers.where().watch(fireImmediately: true);
+    return isar.suppliers.filter().isActiveEqualTo(true).watch(fireImmediately: true);
   }
 }

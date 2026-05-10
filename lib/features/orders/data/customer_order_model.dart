@@ -26,4 +26,6 @@ class CustomerOrder {
   late double sellingPriceAtTime;
 
   DateTime? fulfilledAt;
+  
+  bool isVoid = false;
 }
