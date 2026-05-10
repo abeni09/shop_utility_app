@@ -645,6 +645,12 @@ class DashboardScreen extends ConsumerWidget {
                       ),
                     );
                   }
+                } else {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Sign-in cancelled or interrupted.')),
+                    );
+                  }
                 }
               } catch (e) {
                 if (context.mounted) {

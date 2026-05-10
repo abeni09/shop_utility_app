@@ -35,14 +35,15 @@ class BackupService {
   }
 
   Future<bool> signIn() async {
+    // Re-initialize/verify if needed (optional but good for safety)
     try {
-      await _googleSignIn.authenticate(
+      final account = await _googleSignIn.authenticate(
         scopeHint: [drive.DriveApi.driveFileScope],
       );
-      return true;
+      return account != null;
     } catch (e) {
-      print('Backup sign-in error: $e');
-      return false;
+      // Re-throw to let the UI catch and display the error
+      rethrow;
     }
   }
 
