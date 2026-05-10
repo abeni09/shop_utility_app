@@ -104,7 +104,7 @@ class ProductListScreen extends ConsumerWidget {
               _buildTextField(nameController, 'Product Name', Icons.inventory_2_rounded),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: selectedUnit,
+                initialValue: selectedUnit,
                 dropdownColor: const Color(0xFF1E293B),
                 items: ['piece', 'pack', 'kg', 'litre', 'dozen', 'box', 'other']
                     .map((u) => DropdownMenuItem(value: u, child: Text(u.toUpperCase(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white))))
@@ -270,7 +270,7 @@ class _ProductCard extends StatelessWidget {
             ),
           ),
           Text(
-            '${price.toStringAsFixed(0)}',
+            price.toStringAsFixed(0),
             style: TextStyle(
               color: color,
               fontSize: 12,

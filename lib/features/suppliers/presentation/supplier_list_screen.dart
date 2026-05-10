@@ -268,7 +268,7 @@ class _SupplierCard extends ConsumerWidget {
               ),
             ),
             Text(
-              '${supplier.balance.toStringAsFixed(0)}',
+              supplier.balance.toStringAsFixed(0),
               style: TextStyle(
                 fontWeight: FontWeight.w900,
                 fontSize: 18,

@@ -210,7 +210,7 @@ class DashboardScreen extends ConsumerWidget {
                   dailyLogAsync.when(
                     data: (log) => _buildHeroCard(
                       'NET PROFIT TODAY',
-                      '${log?.totalProfit.toStringAsFixed(2) ?? "0.00"}',
+                      log?.totalProfit.toStringAsFixed(2) ?? "0.00",
                       'ETB',
                       const [Color(0xFF6366F1), Color(0xFF818CF8)],
                       Icons.account_balance_wallet_rounded,
@@ -222,7 +222,7 @@ class DashboardScreen extends ConsumerWidget {
                       [Colors.grey.shade800, Colors.grey.shade900],
                       Icons.hourglass_empty,
                     ),
-                    error: (_, __) => _buildHeroCard(
+                    error: (_, _) => _buildHeroCard(
                       'NET PROFIT TODAY',
                       'ERROR',
                       '',
@@ -259,7 +259,7 @@ class DashboardScreen extends ConsumerWidget {
                                 '...',
                                 Colors.grey,
                               ),
-                              error: (_, __) => _buildInsightCard(
+                              error: (_, _) => _buildInsightCard(
                                 'LAST 7 DAYS',
                                 'ERR',
                                 Colors.redAccent,
@@ -279,7 +279,7 @@ class DashboardScreen extends ConsumerWidget {
                                 '...',
                                 Colors.grey,
                               ),
-                              error: (_, __) => _buildInsightCard(
+                              error: (_, _) => _buildInsightCard(
                                 'LAST 30 DAYS',
                                 'ERR',
                                 Colors.redAccent,
@@ -311,7 +311,7 @@ class DashboardScreen extends ConsumerWidget {
                             '...',
                             Colors.grey,
                           ),
-                          error: (_, __) => _buildMiniStat(
+                          error: (_, _) => _buildMiniStat(
                             'DELIVERY',
                             '!',
                             'Err',
@@ -619,15 +619,35 @@ class DashboardScreen extends ConsumerWidget {
     return InkWell(
       onTap: () async {
         final backupService = ref.read(backupServiceProvider);
-        final success = await backupService.signIn();
-        if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Syncing with Cloud...')),
-          );
-          await backupService.uploadBackup();
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Backup Secured')));
+        try {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Connecting to Google Drive...')));
+          final success = await backupService.signIn();
+          
+          if (success) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Syncing with Cloud...')));
+            await backupService.uploadBackup();
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  backgroundColor: Color(0xFF10B981),
+                  content: Text('Backup Secured Successfully!', style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              );
+            }
+          } else {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sign-in cancelled or failed.')));
+            }
+          }
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                backgroundColor: Colors.redAccent,
+                content: Text('Cloud Sync Failed: ${e.toString().split(':').last}'),
+              ),
+            );
+          }
         }
       },
       borderRadius: BorderRadius.circular(24),

@@ -157,7 +157,7 @@ class OrderScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
               DropdownButtonFormField<int>(
-                value: selectedProductId,
+                initialValue: selectedProductId,
                 dropdownColor: const Color(0xFF1E293B),
                 items: products
                     .map(
@@ -190,7 +190,7 @@ class OrderScreen extends ConsumerWidget {
                   const SizedBox(width: 16),
                   Expanded(
                     child: DropdownButtonFormField<PaymentMethod>(
-                      value: selectedPayment,
+                      initialValue: selectedPayment,
                       dropdownColor: const Color(0xFF1E293B),
                       items: PaymentMethod.values
                           .map(
@@ -403,7 +403,7 @@ class _OrderCard extends ConsumerWidget {
                       ),
                     ),
                     Text(
-                      '${(order.amount * order.sellingPriceAtTime).toStringAsFixed(0)}',
+                      (order.amount * order.sellingPriceAtTime).toStringAsFixed(0),
                       style: const TextStyle(
                         fontWeight: FontWeight.w900,
                         fontSize: 18,

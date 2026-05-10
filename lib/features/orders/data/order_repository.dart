@@ -1,9 +1,7 @@
 import 'package:isar/isar.dart';
-import 'package:isar/isar.dart';
 import 'customer_order_model.dart';
 import 'package:shopsync/features/dashboard/data/dashboard_repository.dart';
 
-import 'package:shopsync/features/orders/data/customer_order_model.dart';
 
 class OrderRepository {
   final Isar isar;
