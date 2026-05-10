@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shopsync/core/utils/database_service.dart';
+import 'package:shopsync/features/products/data/product_model.dart';
 import 'package:shopsync/features/products/presentation/product_list_screen.dart';
 import 'package:shopsync/features/orders/presentation/order_screen.dart';
+import 'package:shopsync/features/products/presentation/product_providers.dart';
 import 'package:shopsync/features/suppliers/presentation/supplier_list_screen.dart';
 import 'package:shopsync/features/orders/presentation/requisition_screen.dart';
 import 'package:shopsync/features/dashboard/presentation/dashboard_providers.dart';
@@ -398,6 +400,18 @@ class DashboardScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 20),
                     _buildActionGrid(context, ref),
+                    const SizedBox(height: 40),
+                    const Text(
+                      'RECENT TRANSACTIONS',
+                      style: TextStyle(
+                        letterSpacing: 2.5,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    _buildRecentOrders(context, ref),
                     const SizedBox(height: 24),
                     _buildBackupTile(context, ref),
                     const SizedBox(
@@ -565,6 +579,114 @@ class DashboardScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildRecentOrders(BuildContext context, WidgetRef ref) {
+    final ordersAsync = ref.watch(ordersProvider);
+    final productsAsync = ref.watch(productsProvider);
+
+    return ordersAsync.when(
+      data: (orders) {
+        if (orders.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.02),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: const Center(
+              child: Text(
+                'No transactions yet.',
+                style: TextStyle(color: Colors.white24, fontSize: 13),
+              ),
+            ),
+          );
+        }
+
+        // Get last 5 non-void orders
+        final recent = orders
+            .where((o) => !o.isVoid)
+            .toList()
+            .reversed
+            .take(5)
+            .toList();
+
+        return productsAsync.when(
+          data: (products) => Column(
+            children: recent.map((order) {
+              final product = products.firstWhere(
+                (p) => p.id == order.productId,
+                orElse: () => Product()..name = 'Unknown',
+              );
+              final isSold = order.status == OrderStatus.sold;
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.05),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color:
+                            (isSold ? Colors.greenAccent : Colors.amberAccent)
+                                .withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        isSold ? Icons.check_rounded : Icons.timer_rounded,
+                        color: isSold ? Colors.greenAccent : Colors.amberAccent,
+                        size: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            order.customerName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                            ),
+                          ),
+                          Text(
+                            '${order.amount.toStringAsFixed(0)} × ${product.name}',
+                            style: const TextStyle(
+                              color: Colors.white38,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      '${(order.amount * order.sellingPriceAtTime).toStringAsFixed(0)} ETB',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+          loading: () => const SizedBox.shrink(),
+          error: (_, __) => const SizedBox.shrink(),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 

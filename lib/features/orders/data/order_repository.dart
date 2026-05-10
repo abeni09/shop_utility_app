@@ -25,8 +25,10 @@ class OrderRepository {
   }
 
   Future<void> saveOrder(CustomerOrder order) async {
+    print('DEBUG: Saving order for ${order.customerName}, amount: ${order.amount}, status: ${order.status}');
     await isar.writeTxn(() async {
-      await isar.customerOrders.put(order);
+      final id = await isar.customerOrders.put(order);
+      print('DEBUG: Order saved with ID: $id');
     });
     
     // Auto-Sync trigger

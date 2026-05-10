@@ -22,7 +22,14 @@ class QuickSaleDialog extends ConsumerStatefulWidget {
 class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
   final Map<int, double> _quantities = {};
   final Map<int, bool> _addBag = {};
+  final TextEditingController _customerController = TextEditingController(text: 'Walk-in');
   int? _selectedBagId;
+
+  @override
+  void dispose() {
+    _customerController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +70,21 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                 ),
               ),
             ),
+            TextField(
+              controller: _customerController,
+              decoration: InputDecoration(
+                hintText: 'Customer Name (Optional)',
+                prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.03),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              style: const TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -108,7 +130,7 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
             const SizedBox(height: 24),
             ConstrainedBox(
               constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.6,
+                maxHeight: MediaQuery.of(context).size.height * 0.45,
               ),
               child: products.isEmpty
                   ? const Padding(
@@ -233,9 +255,10 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
     final now = DateTime.now();
 
     // 1. Process the main product sale
+    final customerName = _customerController.text.trim();
     final order = CustomerOrder()
       ..productId = product.id
-      ..customerName = "Walk-in Customer"
+      ..customerName = customerName.isEmpty ? "Walk-in Customer" : customerName
       ..amount = quantity
       ..dueDate = now
       ..status = OrderStatus.sold
@@ -244,6 +267,7 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
       ..sellingPriceAtTime = product.sellingPrice
       ..fulfilledAt = now;
 
+    print('DEBUG: QuickSale processing. Name: ${order.customerName}');
     await ref.read(orderRepositoryProvider).saveOrder(order);
 
     // 2. Process the bag sale if selected
