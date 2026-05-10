@@ -65,7 +65,8 @@ class ShopSyncApp extends StatelessWidget {
 class MainNavigationShell extends ConsumerStatefulWidget {
   const MainNavigationShell({super.key});
   @override
-  ConsumerState<MainNavigationShell> createState() => _MainNavigationShellState();
+  ConsumerState<MainNavigationShell> createState() =>
+      _MainNavigationShellState();
 }
 
 class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
@@ -624,21 +625,29 @@ class DashboardScreen extends ConsumerWidget {
     final backupService = ref.watch(backupServiceProvider);
     final userAsync = ref.watch(backupUserProvider);
     final cloudNewerAsync = ref.watch(cloudSyncStatusProvider);
-    
+    final localAheadAsync = ref.watch(localAheadProvider);
+
     final user = userAsync.value;
     final isConnected = user != null || backupService.cachedEmail != null;
     final isCloudNewer = cloudNewerAsync.value ?? false;
+    final isLocalAhead = localAheadAsync.value ?? false;
 
     return Container(
       decoration: BoxDecoration(
-        color: isCloudNewer 
-          ? const Color(0xFFF59E0B).withValues(alpha: 0.1) // Amber for warning
-          : Colors.white.withValues(alpha: 0.03),
+        color: isCloudNewer
+            ? const Color(0xFFF59E0B).withValues(
+                alpha: 0.1,
+              ) // Amber for warning
+            : isLocalAhead
+            ? const Color(0xFF38BDF8).withValues(alpha: 0.1) // Blue for pending
+            : Colors.white.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isCloudNewer 
-            ? const Color(0xFFF59E0B).withValues(alpha: 0.2)
-            : Colors.white.withValues(alpha: 0.05)
+          color: isCloudNewer
+              ? const Color(0xFFF59E0B).withValues(alpha: 0.2)
+              : isLocalAhead
+              ? const Color(0xFF38BDF8).withValues(alpha: 0.2)
+              : Colors.white.withValues(alpha: 0.05),
         ),
       ),
       child: Column(
@@ -653,7 +662,11 @@ class DashboardScreen extends ConsumerWidget {
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.sync_problem_rounded, color: Colors.white, size: 16),
+                  Icon(
+                    Icons.sync_problem_rounded,
+                    color: Colors.white,
+                    size: 16,
+                  ),
                   SizedBox(width: 8),
                   Text(
                     'UPDATE AVAILABLE FROM OTHER DEVICE',
@@ -668,6 +681,74 @@ class DashboardScreen extends ConsumerWidget {
               ),
             ),
           ListTile(
+            leading: isConnected
+                ? Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isCloudNewer
+                          ? const Color(0xFFF59E0B).withValues(alpha: 0.1)
+                          : isLocalAhead
+                          ? const Color(0xFF38BDF8).withValues(alpha: 0.1)
+                          : const Color(0xFF10B981).withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isCloudNewer
+                          ? Icons.cloud_download_rounded
+                          : isLocalAhead
+                          ? Icons.cloud_upload_rounded
+                          : Icons.cloud_done_rounded,
+                      color: isCloudNewer
+                          ? const Color(0xFFF59E0B)
+                          : isLocalAhead
+                          ? const Color(0xFF38BDF8)
+                          : const Color(0xFF10B981),
+                      size: 20,
+                    ),
+                  )
+                : null,
+            title: Text(
+              isConnected
+                  ? (user?.email ?? backupService.cachedEmail ?? 'Connected')
+                  : 'Cloud Backup',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
+            ),
+            subtitle: Text(
+              isConnected
+                  ? (isCloudNewer
+                        ? 'Sync required to get latest data'
+                        : isLocalAhead
+                        ? 'Changes pending backup'
+                        : 'All data is safe in cloud')
+                  : 'Connect your Google account',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.5),
+                fontSize: 12,
+              ),
+            ),
+            trailing: isConnected
+                ? TextButton(
+                    onPressed: () async {
+                      await backupService.signOut();
+                      ref.invalidate(backupUserProvider);
+                      ref.invalidate(cloudSyncStatusProvider);
+                      ref.invalidate(localAheadProvider);
+                    },
+                    child: const Text(
+                      'SIGN OUT',
+                      style: TextStyle(
+                        color: Color(0xFFEF4444),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  )
+                : null,
             onTap: () async {
               try {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -675,12 +756,13 @@ class DashboardScreen extends ConsumerWidget {
                     content: Text('Connecting to Google Drive...'),
                   ),
                 );
-                
+
                 await backupService.uploadBackup(forceSignIn: true);
-                
-                // Refresh status after backup
+
+                // Refresh all statuses
                 ref.invalidate(cloudSyncStatusProvider);
-                
+                ref.invalidate(localAheadProvider);
+
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -709,49 +791,6 @@ class DashboardScreen extends ConsumerWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(24),
             ),
-            leading: const Icon(
-              Icons.cloud_done_rounded,
-              color: Color(0xFF38BDF8),
-            ),
-            title: const Text(
-              'CLOUD SYNC & BACKUP',
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 13,
-                letterSpacing: 0.5,
-              ),
-            ),
-            subtitle: Text(
-              isConnected
-                  ? 'Connected: ${user?.email ?? backupService.cachedEmail}'
-                  : 'Secure your data to Google Drive',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.4),
-                fontSize: 11,
-              ),
-            ),
-            trailing: isConnected
-                ? IconButton(
-                    icon: const Icon(
-                      Icons.logout_rounded,
-                      color: Colors.redAccent,
-                      size: 20,
-                    ),
-                    onPressed: () async {
-                      await backupService.signOut();
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Disconnected from Google Account'),
-                          ),
-                        );
-                      }
-                    },
-                  )
-                : const Icon(
-                    Icons.chevron_right_rounded,
-                    color: Colors.white24,
-                  ),
           ),
           if (isConnected) ...[
             const Divider(height: 1, color: Colors.white10),
@@ -796,10 +835,11 @@ class DashboardScreen extends ConsumerWidget {
                               ),
                             );
                             await backupService.restoreLatestBackup();
-                            
-                            // Clear sync warning
+
+                            // Clear sync warnings
                             ref.invalidate(cloudSyncStatusProvider);
-                            
+                            ref.invalidate(localAheadProvider);
+
                             if (context.mounted) {
                               showDialog(
                                 context: context,

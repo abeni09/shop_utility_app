@@ -108,8 +108,9 @@ class QuickSaleDialog extends ConsumerWidget {
 
         await ref.read(orderRepositoryProvider).saveOrder(order);
 
-        // Trigger background backup after work is done
-        ref.read(backupServiceProvider).autoBackupIfPossible();
+        final backupService = ref.read(backupServiceProvider);
+        await backupService.markLocalChanged();
+        backupService.autoBackupIfPossible();
 
         if (context.mounted) Navigator.pop(context);
 

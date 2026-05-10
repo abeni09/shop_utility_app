@@ -58,6 +58,20 @@ class BackupService {
   Future<void> _setLastSyncedId(String id) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('last_synced_id', id);
+    // When we sync with the cloud, local is no longer ahead
+    await prefs.setInt('last_backed_up_time', DateTime.now().millisecondsSinceEpoch);
+  }
+
+  Future<void> markLocalChanged() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('last_local_change_time', DateTime.now().millisecondsSinceEpoch);
+  }
+
+  Future<bool> isLocalAhead() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lastChange = prefs.getInt('last_local_change_time') ?? 0;
+    final lastBackup = prefs.getInt('last_backed_up_time') ?? 0;
+    return lastChange > lastBackup;
   }
 
   /// Checks if the cloud has a newer/different backup than the local one.
