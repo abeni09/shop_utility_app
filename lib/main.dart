@@ -631,59 +631,98 @@ class DashboardScreen extends ConsumerWidget {
             onTap: () async {
               final backupService = ref.read(backupServiceProvider);
               try {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Connecting to Google Drive...')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Connecting to Google Drive...'),
+                  ),
+                );
                 final success = await backupService.signIn();
 
                 if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Syncing with Cloud...')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Syncing with Cloud...')),
+                  );
                   await backupService.uploadBackup();
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         backgroundColor: Color(0xFF10B981),
-                        content: Text('Backup Secured Successfully!', style: TextStyle(fontWeight: FontWeight.w700)),
+                        content: Text(
+                          'Backup Secured Successfully!',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
                       ),
                     );
                   }
                 } else {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Sign-in cancelled or interrupted.')),
+                      const SnackBar(
+                        content: Text('Sign-in cancelled or interrupted.'),
+                      ),
                     );
                   }
                 }
               } catch (e) {
+                print(e);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       backgroundColor: Colors.redAccent,
-                      content: Text('Cloud Sync Failed: ${e.toString().split(':').last}'),
+                      content: Text(
+                        'Cloud Sync Failed: ${e.toString().split(':').last}',
+                      ),
                     ),
                   );
                 }
               }
             },
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-            leading: const Icon(Icons.cloud_done_rounded, color: Color(0xFF38BDF8)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            leading: const Icon(
+              Icons.cloud_done_rounded,
+              color: Color(0xFF38BDF8),
+            ),
             title: const Text(
               'CLOUD SYNC & BACKUP',
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 13,
+                letterSpacing: 0.5,
+              ),
             ),
             subtitle: Text(
-              user != null ? 'Connected: ${user.email}' : 'Secure your data to Google Drive',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 11),
+              user != null
+                  ? 'Connected: ${user.email}'
+                  : 'Secure your data to Google Drive',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.4),
+                fontSize: 11,
+              ),
             ),
             trailing: user != null
                 ? IconButton(
-                    icon: const Icon(Icons.logout_rounded, color: Colors.redAccent, size: 20),
+                    icon: const Icon(
+                      Icons.logout_rounded,
+                      color: Colors.redAccent,
+                      size: 20,
+                    ),
                     onPressed: () async {
                       await ref.read(backupServiceProvider).signOut();
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Disconnected from Google Account')));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Disconnected from Google Account'),
+                          ),
+                        );
                       }
                     },
                   )
-                : const Icon(Icons.chevron_right_rounded, color: Colors.white24),
+                : const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.white24,
+                  ),
           ),
         ],
       ),
