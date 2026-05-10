@@ -126,7 +126,7 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                       separatorBuilder: (_, _) => const SizedBox(height: 8),
                       itemBuilder: (context, index) {
                         final product = products[index];
-                        return _buildQuickSaleTile(product, currentBag);
+                        return _buildQuickSaleTile(product, currentBag, bagProducts);
                       },
                     ),
             ),
@@ -137,10 +137,10 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
     );
   }
 
-  Widget _buildQuickSaleTile(dynamic product, dynamic bagProduct) {
+  Widget _buildQuickSaleTile(dynamic product, dynamic bagProduct, List<dynamic> allBagProducts) {
     final quantity = _quantities[product.id] ?? 1.0;
     final hasBag = _addBag[product.id] ?? false;
-    final isBag = product.id == bagProduct?.id;
+    final isAnyBag = allBagProducts.any((p) => p.id == product.id);
 
     return Container(
       padding: const EdgeInsets.all(8),
@@ -171,7 +171,7 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
           ),
           Row(
             children: [
-              if (!isBag && bagProduct != null)
+              if (!isAnyBag && bagProduct != null)
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: IconButton(
