@@ -17,54 +17,59 @@ const CustomerOrderSchema = CollectionSchema(
   name: r'CustomerOrder',
   id: 7813251628506524948,
   properties: {
-    r'amount': PropertySchema(
+    r'advancePayment': PropertySchema(
       id: 0,
+      name: r'advancePayment',
+      type: IsarType.double,
+    ),
+    r'amount': PropertySchema(
+      id: 1,
       name: r'amount',
       type: IsarType.double,
     ),
     r'costPriceAtTime': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'costPriceAtTime',
       type: IsarType.double,
     ),
     r'customerName': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'customerName',
       type: IsarType.string,
     ),
     r'dueDate': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'dueDate',
       type: IsarType.dateTime,
     ),
     r'fulfilledAt': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'fulfilledAt',
       type: IsarType.dateTime,
     ),
     r'isVoid': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'isVoid',
       type: IsarType.bool,
     ),
     r'paymentMethod': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'paymentMethod',
       type: IsarType.byte,
       enumMap: _CustomerOrderpaymentMethodEnumValueMap,
     ),
     r'productId': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'productId',
       type: IsarType.long,
     ),
     r'sellingPriceAtTime': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'sellingPriceAtTime',
       type: IsarType.double,
     ),
     r'status': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'status',
       type: IsarType.byte,
       enumMap: _CustomerOrderstatusEnumValueMap,
@@ -114,16 +119,17 @@ void _customerOrderSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeDouble(offsets[0], object.amount);
-  writer.writeDouble(offsets[1], object.costPriceAtTime);
-  writer.writeString(offsets[2], object.customerName);
-  writer.writeDateTime(offsets[3], object.dueDate);
-  writer.writeDateTime(offsets[4], object.fulfilledAt);
-  writer.writeBool(offsets[5], object.isVoid);
-  writer.writeByte(offsets[6], object.paymentMethod.index);
-  writer.writeLong(offsets[7], object.productId);
-  writer.writeDouble(offsets[8], object.sellingPriceAtTime);
-  writer.writeByte(offsets[9], object.status.index);
+  writer.writeDouble(offsets[0], object.advancePayment);
+  writer.writeDouble(offsets[1], object.amount);
+  writer.writeDouble(offsets[2], object.costPriceAtTime);
+  writer.writeString(offsets[3], object.customerName);
+  writer.writeDateTime(offsets[4], object.dueDate);
+  writer.writeDateTime(offsets[5], object.fulfilledAt);
+  writer.writeBool(offsets[6], object.isVoid);
+  writer.writeByte(offsets[7], object.paymentMethod.index);
+  writer.writeLong(offsets[8], object.productId);
+  writer.writeDouble(offsets[9], object.sellingPriceAtTime);
+  writer.writeByte(offsets[10], object.status.index);
 }
 
 CustomerOrder _customerOrderDeserialize(
@@ -133,20 +139,21 @@ CustomerOrder _customerOrderDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = CustomerOrder();
-  object.amount = reader.readDouble(offsets[0]);
-  object.costPriceAtTime = reader.readDouble(offsets[1]);
-  object.customerName = reader.readString(offsets[2]);
-  object.dueDate = reader.readDateTime(offsets[3]);
-  object.fulfilledAt = reader.readDateTimeOrNull(offsets[4]);
+  object.advancePayment = reader.readDouble(offsets[0]);
+  object.amount = reader.readDouble(offsets[1]);
+  object.costPriceAtTime = reader.readDouble(offsets[2]);
+  object.customerName = reader.readString(offsets[3]);
+  object.dueDate = reader.readDateTime(offsets[4]);
+  object.fulfilledAt = reader.readDateTimeOrNull(offsets[5]);
   object.id = id;
-  object.isVoid = reader.readBool(offsets[5]);
+  object.isVoid = reader.readBool(offsets[6]);
   object.paymentMethod = _CustomerOrderpaymentMethodValueEnumMap[
-          reader.readByteOrNull(offsets[6])] ??
+          reader.readByteOrNull(offsets[7])] ??
       PaymentMethod.cash;
-  object.productId = reader.readLong(offsets[7]);
-  object.sellingPriceAtTime = reader.readDouble(offsets[8]);
+  object.productId = reader.readLong(offsets[8]);
+  object.sellingPriceAtTime = reader.readDouble(offsets[9]);
   object.status =
-      _CustomerOrderstatusValueEnumMap[reader.readByteOrNull(offsets[9])] ??
+      _CustomerOrderstatusValueEnumMap[reader.readByteOrNull(offsets[10])] ??
           OrderStatus.pending;
   return object;
 }
@@ -163,22 +170,24 @@ P _customerOrderDeserializeProp<P>(
     case 1:
       return (reader.readDouble(offset)) as P;
     case 2:
-      return (reader.readString(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 3:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 4:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 5:
-      return (reader.readBool(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 6:
+      return (reader.readBool(offset)) as P;
+    case 7:
       return (_CustomerOrderpaymentMethodValueEnumMap[
               reader.readByteOrNull(offset)] ??
           PaymentMethod.cash) as P;
-    case 7:
-      return (reader.readLong(offset)) as P;
     case 8:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 9:
+      return (reader.readDouble(offset)) as P;
+    case 10:
       return (_CustomerOrderstatusValueEnumMap[reader.readByteOrNull(offset)] ??
           OrderStatus.pending) as P;
     default:
@@ -402,6 +411,72 @@ extension CustomerOrderQueryWhere
 
 extension CustomerOrderQueryFilter
     on QueryBuilder<CustomerOrder, CustomerOrder, QFilterCondition> {
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      advancePaymentEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'advancePayment',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      advancePaymentGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'advancePayment',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      advancePaymentLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'advancePayment',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      advancePaymentBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'advancePayment',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
   QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
       amountEqualTo(
     double value, {
@@ -1107,6 +1182,20 @@ extension CustomerOrderQueryLinks
 
 extension CustomerOrderQuerySortBy
     on QueryBuilder<CustomerOrder, CustomerOrder, QSortBy> {
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy>
+      sortByAdvancePayment() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'advancePayment', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy>
+      sortByAdvancePaymentDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'advancePayment', Sort.desc);
+    });
+  }
+
   QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy> sortByAmount() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'amount', Sort.asc);
@@ -1240,6 +1329,20 @@ extension CustomerOrderQuerySortBy
 
 extension CustomerOrderQuerySortThenBy
     on QueryBuilder<CustomerOrder, CustomerOrder, QSortThenBy> {
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy>
+      thenByAdvancePayment() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'advancePayment', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy>
+      thenByAdvancePaymentDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'advancePayment', Sort.desc);
+    });
+  }
+
   QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy> thenByAmount() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'amount', Sort.asc);
@@ -1385,6 +1488,13 @@ extension CustomerOrderQuerySortThenBy
 
 extension CustomerOrderQueryWhereDistinct
     on QueryBuilder<CustomerOrder, CustomerOrder, QDistinct> {
+  QueryBuilder<CustomerOrder, CustomerOrder, QDistinct>
+      distinctByAdvancePayment() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'advancePayment');
+    });
+  }
+
   QueryBuilder<CustomerOrder, CustomerOrder, QDistinct> distinctByAmount() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'amount');
@@ -1456,6 +1566,13 @@ extension CustomerOrderQueryProperty
   QueryBuilder<CustomerOrder, int, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<CustomerOrder, double, QQueryOperations>
+      advancePaymentProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'advancePayment');
     });
   }
 

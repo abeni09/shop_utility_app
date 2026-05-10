@@ -59,9 +59,9 @@ class ProductListScreen extends ConsumerWidget {
                             ? const Color(0xFF818CF8)
                             : Colors.white24,
                       ),
-                      onPressed: () => ref
-                          .read(showVoidedProductsProvider.notifier)
-                          .state = !showVoided,
+                      onPressed: () =>
+                          ref.read(showVoidedProductsProvider.notifier).state =
+                              !showVoided,
                       tooltip: 'Show Voided Products',
                     ),
                   ),
@@ -134,10 +134,12 @@ void _showProductDialog(
   Product? existing,
 ]) {
   final nameController = TextEditingController(text: existing?.name);
-  final costController =
-      TextEditingController(text: existing?.costPrice.toStringAsFixed(0));
-  final saleController =
-      TextEditingController(text: existing?.sellingPrice.toStringAsFixed(0));
+  final costController = TextEditingController(
+    text: existing?.costPrice.toStringAsFixed(0),
+  );
+  final saleController = TextEditingController(
+    text: existing?.sellingPrice.toStringAsFixed(0),
+  );
   int? selectedSupplierId = existing?.supplierId;
   final suppliers = ref.read(suppliersProvider).value ?? [];
 
@@ -156,135 +158,146 @@ void _showProductDialog(
           right: 24,
           top: 24,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              existing == null ? 'NEW PRODUCT' : 'EDIT PRODUCT',
-              style: const TextStyle(
-                fontWeight: FontWeight.w900,
-                letterSpacing: 2,
-                fontSize: 14,
-                color: Colors.indigoAccent,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                existing == null ? 'NEW PRODUCT' : 'EDIT PRODUCT',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2,
+                  fontSize: 14,
+                  color: Colors.indigoAccent,
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
-            _buildTextField(
-              nameController,
-              'Product Name',
-              Icons.inventory_2_rounded,
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTextField(
-                    costController,
-                    'Cost Price',
-                    Icons.south_rounded,
-                    isNumber: true,
+              const SizedBox(height: 24),
+              _buildTextField(
+                nameController,
+                'Product Name',
+                Icons.inventory_2_rounded,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      costController,
+                      'Cost Price',
+                      Icons.south_rounded,
+                      isNumber: true,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildTextField(
-                    saleController,
-                    'Selling Price',
-                    Icons.sell_rounded,
-                    isNumber: true,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildTextField(
+                      saleController,
+                      'Selling Price',
+                      Icons.sell_rounded,
+                      isNumber: true,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'SUPPLIER (OPTIONAL)',
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.5,
-                fontSize: 10,
-                color: Colors.white24,
+                ],
               ),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<int?>(
-              value: selectedSupplierId,
-              dropdownColor: const Color(0xFF1E293B),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.03),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
+              const SizedBox(height: 16),
+              const Text(
+                'SUPPLIER (OPTIONAL)',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.5,
+                  fontSize: 10,
+                  color: Colors.white24,
                 ),
               ),
-              items: [
-                const DropdownMenuItem(value: null, child: Text('No Supplier')),
-                ...suppliers.map(
-                  (s) => DropdownMenuItem(value: s.id, child: Text(s.name)),
-                ),
-              ],
-              onChanged: (val) => setState(() => selectedSupplierId = val),
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6366F1),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
+              const SizedBox(height: 8),
+              DropdownButtonFormField<int?>(
+                value: selectedSupplierId,
+                dropdownColor: const Color(0xFF1E293B),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white.withValues(alpha: 0.03),
+                  border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
                   ),
                 ),
-                onPressed: () async {
-                  if (nameController.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please enter product name')),
-                    );
-                    return;
-                  }
-                  final cost = double.tryParse(costController.text);
-                  final sale = double.tryParse(saleController.text);
-                  
-                  if (cost == null || cost < 0) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please enter valid cost price')),
-                    );
-                    return;
-                  }
-                  if (sale == null || sale < 0) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please enter valid sale price')),
-                    );
-                    return;
-                  }
+                items: [
+                  const DropdownMenuItem(
+                    value: null,
+                    child: Text('No Supplier'),
+                  ),
+                  ...suppliers.map(
+                    (s) => DropdownMenuItem(value: s.id, child: Text(s.name)),
+                  ),
+                ],
+                onChanged: (val) => setState(() => selectedSupplierId = val),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6366F1),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  onPressed: () async {
+                    if (nameController.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please enter product name'),
+                        ),
+                      );
+                      return;
+                    }
+                    final cost = double.tryParse(costController.text);
+                    final sale = double.tryParse(saleController.text);
 
-                  final product = existing ?? Product();
-                  product.name = nameController.text.trim();
-                  product.costPrice = cost;
-                  product.sellingPrice = sale;
-                  product.supplierId = selectedSupplierId;
+                    if (cost == null || cost < 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please enter valid cost price'),
+                        ),
+                      );
+                      return;
+                    }
+                    if (sale == null || sale < 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please enter valid sale price'),
+                        ),
+                      );
+                      return;
+                    }
 
-                  await ref
-                      .read(productRepositoryProvider)
-                      .saveProduct(product);
+                    final product = existing ?? Product();
+                    product.name = nameController.text.trim();
+                    product.costPrice = cost;
+                    product.sellingPrice = sale;
+                    product.supplierId = selectedSupplierId;
 
-                  if (context.mounted) Navigator.pop(context);
-                },
-                child: Text(
-                  existing == null ? 'SAVE PRODUCT' : 'UPDATE PRODUCT',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2,
+                    await ref
+                        .read(productRepositoryProvider)
+                        .saveProduct(product);
+
+                    if (context.mounted) Navigator.pop(context);
+                  },
+                  child: Text(
+                    existing == null ? 'SAVE PRODUCT' : 'UPDATE PRODUCT',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.2,
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 40),
-          ],
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     ),
@@ -401,7 +414,11 @@ class _ProductCard extends ConsumerWidget {
     );
   }
 
-  void _showRestoreProductDialog(BuildContext context, WidgetRef ref, Product p) {
+  void _showRestoreProductDialog(
+    BuildContext context,
+    WidgetRef ref,
+    Product p,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

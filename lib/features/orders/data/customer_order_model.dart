@@ -24,6 +24,8 @@ class CustomerOrder {
 
   late double costPriceAtTime;
   late double sellingPriceAtTime;
+  
+  double advancePayment = 0.0;
 
   DateTime? fulfilledAt;
   

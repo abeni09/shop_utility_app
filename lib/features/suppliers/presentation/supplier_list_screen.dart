@@ -71,9 +71,11 @@ class SupplierListScreen extends ConsumerWidget {
                             ? const Color(0xFF818CF8)
                             : Colors.white24,
                       ),
-                      onPressed: () => ref
-                          .read(showArchivedSuppliersProvider.notifier)
-                          .state = !showArchived,
+                      onPressed: () =>
+                          ref
+                                  .read(showArchivedSuppliersProvider.notifier)
+                                  .state =
+                              !showArchived,
                       tooltip: 'Show Voided Suppliers',
                     ),
                   ),
@@ -158,78 +160,84 @@ void _showSupplierDialog(
         right: 24,
         top: 24,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            existing == null ? 'NEW SUPPLIER' : 'EDIT SUPPLIER',
-            style: const TextStyle(
-              fontWeight: FontWeight.w900,
-              letterSpacing: 2,
-              fontSize: 14,
-              color: Colors.indigoAccent,
-            ),
-          ),
-          const SizedBox(height: 24),
-          _buildTextField(
-            nameController,
-            'Supplier Name',
-            Icons.person_rounded,
-          ),
-          const SizedBox(height: 16),
-          _buildTextField(
-            contactController,
-            'Phone Number',
-            Icons.phone_rounded,
-          ),
-          const SizedBox(height: 32),
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6366F1),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              onPressed: () async {
-                if (nameController.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please enter supplier name')),
-                  );
-                  return;
-                }
-                if (contactController.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please enter phone number')),
-                  );
-                  return;
-                }
-
-                final supplier = existing ?? Supplier();
-                supplier.name = nameController.text.trim();
-                supplier.contact = contactController.text.trim();
-
-                await ref
-                    .read(supplierRepositoryProvider)
-                    .saveSupplier(supplier);
-
-                if (context.mounted) Navigator.pop(context);
-              },
-              child: Text(
-                existing == null ? 'SAVE SUPPLIER' : 'UPDATE SUPPLIER',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.2,
-                ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              existing == null ? 'NEW SUPPLIER' : 'EDIT SUPPLIER',
+              style: const TextStyle(
+                fontWeight: FontWeight.w900,
+                letterSpacing: 2,
+                fontSize: 14,
+                color: Colors.indigoAccent,
               ),
             ),
-          ),
-          const SizedBox(height: 40),
-        ],
+            const SizedBox(height: 24),
+            _buildTextField(
+              nameController,
+              'Supplier Name',
+              Icons.person_rounded,
+            ),
+            const SizedBox(height: 16),
+            _buildTextField(
+              contactController,
+              'Phone Number',
+              Icons.phone_rounded,
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6366F1),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                onPressed: () async {
+                  if (nameController.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please enter supplier name'),
+                      ),
+                    );
+                    return;
+                  }
+                  if (contactController.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please enter phone number'),
+                      ),
+                    );
+                    return;
+                  }
+
+                  final supplier = existing ?? Supplier();
+                  supplier.name = nameController.text.trim();
+                  supplier.contact = contactController.text.trim();
+
+                  await ref
+                      .read(supplierRepositoryProvider)
+                      .saveSupplier(supplier);
+
+                  if (context.mounted) Navigator.pop(context);
+                },
+                child: Text(
+                  existing == null ? 'SAVE SUPPLIER' : 'UPDATE SUPPLIER',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 40),
+          ],
+        ),
       ),
     ),
   );
@@ -299,8 +307,10 @@ class _SupplierCard extends ConsumerWidget {
               ),
               title: Text(
                 supplier.name,
-                style:
-                    const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                ),
               ),
               subtitle: Row(
                 children: [
@@ -387,7 +397,8 @@ class _SupplierCard extends ConsumerWidget {
                       size: 20,
                       color: Colors.white12,
                     ),
-                    onPressed: () => _showSupplierDialog(context, ref, supplier),
+                    onPressed: () =>
+                        _showSupplierDialog(context, ref, supplier),
                   ),
                   IconButton(
                     icon: Icon(
@@ -395,7 +406,9 @@ class _SupplierCard extends ConsumerWidget {
                           ? Icons.restore_rounded
                           : Icons.delete_outline_rounded,
                       size: 20,
-                      color: supplier.isVoid ? Colors.greenAccent : Colors.white12,
+                      color: supplier.isVoid
+                          ? Colors.greenAccent
+                          : Colors.white12,
                     ),
                     onPressed: () => supplier.isVoid
                         ? _showRestoreDialog(context, ref, supplier)
@@ -547,7 +560,9 @@ class _SupplierCard extends ConsumerWidget {
                   final amount = double.tryParse(amountController.text);
                   if (amount == null || amount <= 0) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please enter valid amount')),
+                      const SnackBar(
+                        content: Text('Please enter valid amount'),
+                      ),
                     );
                     return;
                   }

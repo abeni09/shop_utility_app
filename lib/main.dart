@@ -13,6 +13,7 @@ import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/dashboard/presentation/quick_sale_dialog.dart';
 import 'package:shopsync/features/products/presentation/daily_receive_screen.dart';
 import 'package:shopsync/features/products/presentation/daily_stock_providers.dart';
+import 'package:shopsync/features/sales/presentation/sales_screen.dart';
 
 final databaseServiceProvider = Provider<DatabaseService>((ref) {
   throw UnimplementedError('DatabaseService not initialized');
@@ -76,6 +77,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
   final _screens = [
     const DashboardScreen(),
     const OrderScreen(),
+    const SalesScreen(),
     const ProductListScreen(),
     const SupplierListScreen(),
   ];
@@ -135,16 +137,22 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
                   1,
                 ),
                 _buildNavItem(
+                  Icons.history_rounded,
+                  Icons.history_rounded,
+                  'Sales',
+                  2,
+                ),
+                _buildNavItem(
                   Icons.inventory_2_rounded,
                   Icons.inventory_2_rounded,
                   'Stock',
-                  2,
+                  3,
                 ),
                 _buildNavItem(
                   Icons.local_shipping_rounded,
                   Icons.local_shipping_rounded,
                   'Suppliers',
-                  3,
+                  4,
                 ),
               ],
             ),
