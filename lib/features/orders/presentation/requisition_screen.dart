@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:shopsync/features/orders/data/customer_order_model.dart';
 import 'package:shopsync/features/orders/presentation/order_providers.dart';
 import 'package:shopsync/features/products/data/daily_stock_model.dart';
@@ -30,6 +31,18 @@ class RequisitionScreen extends ConsumerStatefulWidget {
 
 class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
   final Map<int, TextEditingController> _controllers = {};
+  late DateTime _selectedDate;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _selectedDate = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).add(const Duration(days: 1));
+  }
 
   @override
   void dispose() {
@@ -41,10 +54,10 @@ class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final tomorrow = DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
     final productsAsync = ref.watch(productsProvider);
-    final ordersAsync = ref.watch(ordersForDateProvider((date: tomorrow, includeVoided: false)));
+    final ordersAsync = ref.watch(
+      ordersForDateProvider((date: _selectedDate, includeVoided: false)),
+    );
     final suppliersAsync = ref.watch(suppliersProvider);
 
     return Scaffold(
@@ -56,7 +69,8 @@ class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
             final Map<int, double> preOrderTotals = {};
             for (var order in orders) {
               if (order.status == OrderStatus.pending && !order.isVoid) {
-                preOrderTotals[order.productId] = (preOrderTotals[order.productId] ?? 0.0) + order.amount;
+                preOrderTotals[order.productId] =
+                    (preOrderTotals[order.productId] ?? 0.0) + order.amount;
               }
             }
 
@@ -64,13 +78,13 @@ class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
             final items = activeProducts.map((p) {
               final preOrder = preOrderTotals[p.id] ?? 0.0;
               final suggested = preOrder + (preOrder * 0.1);
-              
+
               if (!_controllers.containsKey(p.id)) {
                 _controllers[p.id] = TextEditingController(
                   text: suggested > 0 ? suggested.toStringAsFixed(1) : '',
                 );
               }
-              
+
               return RequisitionItem(
                 product: p,
                 orderAmount: preOrder,
@@ -78,11 +92,16 @@ class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
               );
             }).toList();
 
-            return CustomScrollView(
-              slivers: [
-                _buildAppBar(),
-                _buildHeader(),
-                _buildSupplierGroups(items, suppliersAsync.value ?? []),
+            return Stack(
+              children: [
+                CustomScrollView(
+                  slivers: [
+                    _buildAppBar(),
+                    _buildHeader(),
+                    _buildSupplierGroups(items, suppliersAsync.value ?? []),
+                    const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                  ],
+                ),
                 _buildPlaceOrderButton(activeProducts),
               ],
             );
@@ -130,22 +149,105 @@ class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
   }
 
   Widget _buildHeader() {
+    final isToday = _selectedDate.day == DateTime.now().day;
+    final isTomorrow = _selectedDate.day == DateTime.now().day + 1;
+
     return SliverToBoxAdapter(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-        child: Text(
-          'Review and adjust quantities to order from suppliers for tomorrow.',
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.4),
-            fontSize: 13,
-          ),
-          textAlign: TextAlign.center,
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'ORDER QUANTITIES',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF818CF8),
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Review needs for ${isToday ? "today" : isTomorrow ? "tomorrow" : DateFormat('MMM dd').format(_selectedDate)}',
+                      style: const TextStyle(color: Colors.white38, fontSize: 13),
+                    ),
+                  ],
+                ),
+                // Date Selector
+                GestureDetector(
+                  onTap: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: _selectedDate,
+                      firstDate: DateTime.now().subtract(const Duration(days: 1)),
+                      lastDate: DateTime.now().add(const Duration(days: 14)),
+                    );
+                    if (date != null) {
+                      setState(() {
+                        _selectedDate =
+                            DateTime(date.year, date.month, date.day);
+                        _controllers.clear();
+                      });
+                    }
+                  },
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E293B),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isTomorrow
+                            ? const Color(0xFF818CF8).withValues(alpha: 0.3)
+                            : Colors.white.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_month_rounded,
+                          size: 16,
+                          color: isTomorrow
+                              ? const Color(0xFF818CF8)
+                              : Colors.amberAccent,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          isToday
+                              ? 'TODAY'
+                              : isTomorrow
+                                  ? 'TOMORROW'
+                                  : DateFormat('MMM dd').format(_selectedDate),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 12,
+                            color: isTomorrow
+                                ? const Color(0xFF818CF8)
+                                : Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildSupplierGroups(List<RequisitionItem> items, List<dynamic> suppliers) {
+  Widget _buildSupplierGroups(
+    List<RequisitionItem> items,
+    List<dynamic> suppliers,
+  ) {
     final Map<int?, List<RequisitionItem>> grouped = {};
     for (var item in items) {
       final sid = item.product.supplierId;
@@ -159,7 +261,9 @@ class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
         delegate: SliverChildBuilderDelegate((context, index) {
           final supplierId = grouped.keys.elementAt(index);
           final supplierItems = grouped[supplierId]!;
-          final supplierName = suppliers.where((s) => s.id == supplierId).firstOrNull?.name ?? 'Unassigned Supplier';
+          final supplierName =
+              suppliers.where((s) => s.id == supplierId).firstOrNull?.name ??
+              'Unassigned Supplier';
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -251,11 +355,16 @@ class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
                 fillColor: const Color(0xFF38BDF8).withValues(alpha: 0.1),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: Color(0xFF38BDF8), width: 1),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF38BDF8),
+                    width: 1,
+                  ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: const Color(0xFF38BDF8).withValues(alpha: 0.3)),
+                  borderSide: BorderSide(
+                    color: const Color(0xFF38BDF8).withValues(alpha: 0.3),
+                  ),
                 ),
               ),
             ),
@@ -266,30 +375,38 @@ class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
   }
 
   Widget _buildPlaceOrderButton(List<dynamic> activeProducts) {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 48),
-        child: SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF38BDF8),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              elevation: 8,
-              shadowColor: const Color(0xFF38BDF8).withValues(alpha: 0.4),
+    return Positioned(
+      bottom: 24,
+      left: 24,
+      right: 24,
+      child: Container(
+        height: 64,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF38BDF8).withValues(alpha: 0.2),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
             ),
-            onPressed: () => _placeOrder(activeProducts),
-            child: const Text(
-              'PLACE ORDER TO SUPPLIERS',
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.5,
-                fontSize: 13,
-              ),
+          ],
+        ),
+        child: ElevatedButton(
+          onPressed: () => _placeOrder(activeProducts),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF38BDF8),
+            foregroundColor: Colors.white,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+          ),
+          child: const Text(
+            'PLACE ORDER TO SUPPLIERS',
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 14,
+              letterSpacing: 1,
             ),
           ),
         ),
@@ -297,48 +414,44 @@ class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
     );
   }
 
-  Future<void> _placeOrder(List<dynamic> activeProducts) async {
-    final now = DateTime.now();
-    final tomorrow = DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+  Future<void> _placeOrder(List<dynamic> products) async {
     final repo = ref.read(dailyStockRepositoryProvider);
 
     try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
-
-      for (var p in activeProducts) {
-        final text = _controllers[p.id]?.text.trim() ?? '';
-        final amount = double.tryParse(text) ?? 0.0;
-        
+      for (var p in products) {
+        final amount = double.tryParse(_controllers[p.id]?.text ?? '0') ?? 0.0;
         if (amount > 0) {
-          var stock = await repo.getStockForProduct(p.id, tomorrow);
+          DailyStock? stock = await repo.getStockForProduct(
+            p.id,
+            _selectedDate,
+          );
+
           stock ??= DailyStock()
             ..productId = p.id
-            ..date = tomorrow;
-          
+            ..date = _selectedDate;
+
           stock.requestedQuantity = amount;
+          stock.supplierId = p.supplierId;
           await repo.saveDailyStock(stock);
         }
       }
 
-      if (!mounted) return;
-      Navigator.pop(context); // Close loading
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Order placed successfully for tomorrow!'),
-          backgroundColor: Color(0xFF10B981),
-        ),
-      );
-      Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Order placed successfully for ${DateFormat('MMM dd').format(_selectedDate)}!',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
-      if (!mounted) return;
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error placing order: $e'), backgroundColor: Colors.redAccent),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 }
