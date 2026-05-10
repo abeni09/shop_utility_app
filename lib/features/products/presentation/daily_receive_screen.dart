@@ -158,15 +158,14 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                           await repo.saveDailyStock(stock);
                         }
 
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Stock levels updated!'),
-                              backgroundColor: Color(0xFF10B981),
-                            ),
-                          );
-                          Navigator.pop(context);
-                        }
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Stock levels updated!'),
+                            backgroundColor: Color(0xFF10B981),
+                          ),
+                        );
+                        Navigator.pop(context);
                       },
                       child: const Text(
                         'SAVE DAILY STOCK',
