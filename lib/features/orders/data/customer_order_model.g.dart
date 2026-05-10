@@ -58,18 +58,23 @@ const CustomerOrderSchema = CollectionSchema(
       type: IsarType.byte,
       enumMap: _CustomerOrderpaymentMethodEnumValueMap,
     ),
-    r'productId': PropertySchema(
+    r'phoneNumber': PropertySchema(
       id: 8,
+      name: r'phoneNumber',
+      type: IsarType.string,
+    ),
+    r'productId': PropertySchema(
+      id: 9,
       name: r'productId',
       type: IsarType.long,
     ),
     r'sellingPriceAtTime': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'sellingPriceAtTime',
       type: IsarType.double,
     ),
     r'status': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'status',
       type: IsarType.byte,
       enumMap: _CustomerOrderstatusEnumValueMap,
@@ -110,6 +115,12 @@ int _customerOrderEstimateSize(
 ) {
   var bytesCount = offsets.last;
   bytesCount += 3 + object.customerName.length * 3;
+  {
+    final value = object.phoneNumber;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -127,9 +138,10 @@ void _customerOrderSerialize(
   writer.writeDateTime(offsets[5], object.fulfilledAt);
   writer.writeBool(offsets[6], object.isVoid);
   writer.writeByte(offsets[7], object.paymentMethod.index);
-  writer.writeLong(offsets[8], object.productId);
-  writer.writeDouble(offsets[9], object.sellingPriceAtTime);
-  writer.writeByte(offsets[10], object.status.index);
+  writer.writeString(offsets[8], object.phoneNumber);
+  writer.writeLong(offsets[9], object.productId);
+  writer.writeDouble(offsets[10], object.sellingPriceAtTime);
+  writer.writeByte(offsets[11], object.status.index);
 }
 
 CustomerOrder _customerOrderDeserialize(
@@ -150,10 +162,11 @@ CustomerOrder _customerOrderDeserialize(
   object.paymentMethod = _CustomerOrderpaymentMethodValueEnumMap[
           reader.readByteOrNull(offsets[7])] ??
       PaymentMethod.cash;
-  object.productId = reader.readLong(offsets[8]);
-  object.sellingPriceAtTime = reader.readDouble(offsets[9]);
+  object.phoneNumber = reader.readStringOrNull(offsets[8]);
+  object.productId = reader.readLong(offsets[9]);
+  object.sellingPriceAtTime = reader.readDouble(offsets[10]);
   object.status =
-      _CustomerOrderstatusValueEnumMap[reader.readByteOrNull(offsets[10])] ??
+      _CustomerOrderstatusValueEnumMap[reader.readByteOrNull(offsets[11])] ??
           OrderStatus.pending;
   return object;
 }
@@ -184,10 +197,12 @@ P _customerOrderDeserializeProp<P>(
               reader.readByteOrNull(offset)] ??
           PaymentMethod.cash) as P;
     case 8:
-      return (reader.readLong(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 10:
+      return (reader.readDouble(offset)) as P;
+    case 11:
       return (_CustomerOrderstatusValueEnumMap[reader.readByteOrNull(offset)] ??
           OrderStatus.pending) as P;
     default:
@@ -996,6 +1011,160 @@ extension CustomerOrderQueryFilter
   }
 
   QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      phoneNumberIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'phoneNumber',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      phoneNumberIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'phoneNumber',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      phoneNumberEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'phoneNumber',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      phoneNumberGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'phoneNumber',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      phoneNumberLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'phoneNumber',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      phoneNumberBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'phoneNumber',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      phoneNumberStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'phoneNumber',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      phoneNumberEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'phoneNumber',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      phoneNumberContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'phoneNumber',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      phoneNumberMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'phoneNumber',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      phoneNumberIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'phoneNumber',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      phoneNumberIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'phoneNumber',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
       productIdEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -1287,6 +1456,19 @@ extension CustomerOrderQuerySortBy
     });
   }
 
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy> sortByPhoneNumber() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'phoneNumber', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy>
+      sortByPhoneNumberDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'phoneNumber', Sort.desc);
+    });
+  }
+
   QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy> sortByProductId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'productId', Sort.asc);
@@ -1446,6 +1628,19 @@ extension CustomerOrderQuerySortThenBy
     });
   }
 
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy> thenByPhoneNumber() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'phoneNumber', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy>
+      thenByPhoneNumberDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'phoneNumber', Sort.desc);
+    });
+  }
+
   QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy> thenByProductId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'productId', Sort.asc);
@@ -1541,6 +1736,13 @@ extension CustomerOrderQueryWhereDistinct
     });
   }
 
+  QueryBuilder<CustomerOrder, CustomerOrder, QDistinct> distinctByPhoneNumber(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'phoneNumber', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<CustomerOrder, CustomerOrder, QDistinct> distinctByProductId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'productId');
@@ -1618,6 +1820,12 @@ extension CustomerOrderQueryProperty
       paymentMethodProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'paymentMethod');
+    });
+  }
+
+  QueryBuilder<CustomerOrder, String?, QQueryOperations> phoneNumberProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'phoneNumber');
     });
   }
 

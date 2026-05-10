@@ -199,6 +199,9 @@ void _showOrderDialog(
   final advanceController = TextEditingController(
     text: existing?.advancePayment.toStringAsFixed(0) ?? '0',
   );
+  final phoneController = TextEditingController(
+    text: existing?.phoneNumber,
+  );
   PaymentMethod selectedPayment = existing?.paymentMethod ?? PaymentMethod.cash;
   DateTime selectedDate = existing?.dueDate ?? ref.read(selectedDateProvider);
 
@@ -251,6 +254,13 @@ void _showOrderDialog(
                 customerController,
                 'Customer Name',
                 Icons.person_rounded,
+              ),
+              const SizedBox(height: 16),
+              _buildTextField(
+                phoneController,
+                'Phone Number',
+                Icons.phone_rounded,
+                isNumber: true,
               ),
               const SizedBox(height: 16),
               Row(
@@ -383,6 +393,7 @@ void _showOrderDialog(
                     final order = existing ?? CustomerOrder();
                     order.productId = selectedProductId!;
                     order.customerName = customerController.text.trim();
+                    order.phoneNumber = phoneController.text.trim().isEmpty ? null : phoneController.text.trim();
                     order.amount = amount;
                     order.advancePayment = advance;
                     order.paymentMethod = selectedPayment;

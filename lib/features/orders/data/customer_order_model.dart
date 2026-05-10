@@ -27,6 +27,8 @@ class CustomerOrder {
   
   double advancePayment = 0.0;
 
+  String? phoneNumber;
+
   DateTime? fulfilledAt;
   
   bool isVoid = false;
