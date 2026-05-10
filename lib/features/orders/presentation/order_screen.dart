@@ -141,7 +141,7 @@ class OrderScreen extends ConsumerWidget {
           floatingActionButton: Padding(
             padding: const EdgeInsets.only(bottom: 80),
             child: FloatingActionButton.extended(
-              onPressed: () => _showCreateOrderDialog(context, ref),
+              onPressed: () => _onCreateOrder(context, ref),
               backgroundColor: const Color(0xFF6366F1),
               foregroundColor: Colors.white,
               icon: const Icon(Icons.add_shopping_cart_rounded),
@@ -159,209 +159,228 @@ class OrderScreen extends ConsumerWidget {
     );
   }
 
-  void _showCreateOrderDialog(BuildContext context, WidgetRef ref) {
-    final products = ref.read(productsProvider).value ?? [];
-    if (products.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please add products first!')),
-      );
-      return;
-    }
+  void _onCreateOrder(BuildContext context, WidgetRef ref) {
+    _showOrderDialog(context, ref);
+  }
+}
 
-    int? selectedProductId = products.first.id;
-    final customerController = TextEditingController();
-    final amountController = TextEditingController();
-    PaymentMethod selectedPayment = PaymentMethod.cash;
-    DateTime selectedDate = ref.read(selectedDateProvider);
+void _showOrderDialog(
+  BuildContext context,
+  WidgetRef ref, [
+  CustomerOrder? existing,
+]) {
+  final products = ref.read(productsProvider).value ?? [];
+  if (products.isEmpty) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Please add products first!')));
+    return;
+  }
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFF1E293B),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+  int? selectedProductId = existing?.productId ?? products.first.id;
+  final customerController = TextEditingController(
+    text: existing?.customerName,
+  );
+  final amountController = TextEditingController(
+    text: existing?.amount.toStringAsFixed(0),
+  );
+  PaymentMethod selectedPayment = existing?.paymentMethod ?? PaymentMethod.cash;
+  DateTime selectedDate = existing?.dueDate ?? ref.read(selectedDateProvider);
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: const Color(0xFF1E293B),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+    ),
+    builder: (context) => Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        left: 24,
+        right: 24,
+        top: 24,
       ),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 24,
-          right: 24,
-          top: 24,
-        ),
-        child: StatefulBuilder(
-          builder: (context, setState) => Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'NEW CUSTOMER ORDER',
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 2,
-                  fontSize: 14,
+      child: StatefulBuilder(
+        builder: (context, setState) => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              existing == null ? 'NEW CUSTOMER ORDER' : 'EDIT CUSTOMER ORDER',
+              style: const TextStyle(
+                fontWeight: FontWeight.w900,
+                letterSpacing: 2,
+                fontSize: 14,
+                color: Colors.indigoAccent,
+              ),
+            ),
+            const SizedBox(height: 24),
+            DropdownButtonFormField<int>(
+              value: selectedProductId,
+              dropdownColor: const Color(0xFF1E293B),
+              items: products
+                  .map(
+                    (p) => DropdownMenuItem(value: p.id, child: Text(p.name)),
+                  )
+                  .toList(),
+              onChanged: (val) => setState(() => selectedProductId = val),
+              decoration: _fieldDecoration(
+                'Product',
+                Icons.inventory_2_rounded,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildTextField(
+              customerController,
+              'Customer Name',
+              Icons.person_rounded,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildTextField(
+                    amountController,
+                    'Amount',
+                    Icons.numbers_rounded,
+                    isNumber: true,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: DropdownButtonFormField<PaymentMethod>(
+                    value: selectedPayment,
+                    dropdownColor: const Color(0xFF1E293B),
+                    items: PaymentMethod.values
+                        .map(
+                          (p) => DropdownMenuItem(
+                            value: p,
+                            child: Text(p.name.toUpperCase()),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (val) => setState(
+                      () => selectedPayment = val ?? selectedPayment,
+                    ),
+                    decoration: _fieldDecoration(
+                      'Payment',
+                      Icons.payments_rounded,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                'Due: ${DateFormat('yyyy-MM-dd').format(selectedDate)}',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.calendar_month_rounded,
                   color: Colors.indigoAccent,
                 ),
               ),
-              const SizedBox(height: 24),
-              DropdownButtonFormField<int>(
-                initialValue: selectedProductId,
-                dropdownColor: const Color(0xFF1E293B),
-                items: products
-                    .map(
-                      (p) => DropdownMenuItem(value: p.id, child: Text(p.name)),
-                    )
-                    .toList(),
-                onChanged: (val) => setState(() => selectedProductId = val),
-                decoration: _fieldDecoration(
-                  'Product',
-                  Icons.inventory_2_rounded,
-                ),
+              trailing: const Icon(
+                Icons.edit_rounded,
+                size: 20,
+                color: Colors.white24,
               ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                customerController,
-                'Customer Name',
-                Icons.person_rounded,
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildTextField(
-                      amountController,
-                      'Amount',
-                      Icons.numbers_rounded,
-                      isNumber: true,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: DropdownButtonFormField<PaymentMethod>(
-                      initialValue: selectedPayment,
-                      dropdownColor: const Color(0xFF1E293B),
-                      items: PaymentMethod.values
-                          .map(
-                            (p) => DropdownMenuItem(
-                              value: p,
-                              child: Text(p.name.toUpperCase()),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (val) =>
-                          setState(() => selectedPayment = val!),
-                      decoration: _fieldDecoration(
-                        'Payment',
-                        Icons.payments_rounded,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(
-                  'Due: ${DateFormat('yyyy-MM-dd').format(selectedDate)}',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.calendar_month_rounded,
-                    color: Colors.indigoAccent,
+              onTap: () async {
+                final date = await showDatePicker(
+                  context: context,
+                  initialDate: selectedDate,
+                  firstDate: DateTime.now().subtract(const Duration(days: 30)),
+                  lastDate: DateTime.now().add(const Duration(days: 90)),
+                );
+                if (date != null) setState(() => selectedDate = date);
+              },
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6366F1),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                trailing: const Icon(
-                  Icons.edit_rounded,
-                  size: 20,
-                  color: Colors.white24,
-                ),
-                onTap: () async {
-                  final date = await showDatePicker(
-                    context: context,
-                    initialDate: selectedDate,
-                    firstDate: DateTime.now(),
-                    lastDate: DateTime.now().add(const Duration(days: 90)),
+                onPressed: () async {
+                  if (selectedProductId == null) return;
+                  final product = products.firstWhere(
+                    (p) => p.id == selectedProductId,
                   );
-                  if (date != null) setState(() => selectedDate = date);
-                },
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6366F1),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  onPressed: () async {
-                    final product = products.firstWhere(
-                      (p) => p.id == selectedProductId,
-                    );
-                    final order = CustomerOrder()
-                      ..productId = selectedProductId!
-                      ..customerName = customerController.text
-                      ..amount = double.tryParse(amountController.text) ?? 1.0
-                      ..dueDate = selectedDate
-                      ..status = OrderStatus.pending
-                      ..paymentMethod = selectedPayment
-                      ..costPriceAtTime = product.costPrice
-                      ..sellingPriceAtTime = product.sellingPrice;
 
-                    await ref.read(orderRepositoryProvider).saveOrder(order);
-                    if (context.mounted) Navigator.pop(context);
-                  },
-                  child: const Text(
-                    'CREATE ORDER',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.2,
-                    ),
+                  final order = existing ?? CustomerOrder();
+                  order.productId = selectedProductId!;
+                  order.customerName = customerController.text;
+                  order.amount = double.tryParse(amountController.text) ?? 1;
+                  order.paymentMethod = selectedPayment;
+                  order.dueDate = selectedDate;
+                  order.sellingPriceAtTime = product.sellingPrice;
+                  order.costPriceAtTime = product.costPrice;
+                  // If new order, status is pending
+                  if (existing == null) {
+                    order.status = OrderStatus.pending;
+                  }
+
+                  await ref.read(orderRepositoryProvider).saveOrder(order);
+
+                  if (context.mounted) Navigator.pop(context);
+                },
+                child: Text(
+                  existing == null ? 'SAVE ORDER' : 'UPDATE ORDER',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2,
                   ),
                 ),
               ),
-              const SizedBox(height: 40),
-            ],
-          ),
+            ),
+            const SizedBox(height: 40),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
-  InputDecoration _fieldDecoration(String label, IconData icon) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icon, size: 20),
-      filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.03),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide.none,
-      ),
-      labelStyle: const TextStyle(fontSize: 14, color: Colors.white38),
-    );
-  }
+InputDecoration _fieldDecoration(String label, IconData icon) {
+  return InputDecoration(
+    labelText: label,
+    prefixIcon: Icon(icon, size: 20),
+    filled: true,
+    fillColor: Colors.white.withValues(alpha: 0.03),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide.none,
+    ),
+    labelStyle: const TextStyle(fontSize: 14, color: Colors.white38),
+  );
+}
 
-  Widget _buildTextField(
-    TextEditingController controller,
-    String label,
-    IconData icon, {
-    bool isNumber = false,
-  }) {
-    return TextField(
-      controller: controller,
-      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-      decoration: _fieldDecoration(label, icon),
-    );
-  }
+Widget _buildTextField(
+  TextEditingController controller,
+  String label,
+  IconData icon, {
+  bool isNumber = false,
+}) {
+  return TextField(
+    controller: controller,
+    keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+    decoration: _fieldDecoration(label, icon),
+  );
 }
 
 class _OrderCard extends ConsumerWidget {
@@ -537,6 +556,16 @@ class _OrderCard extends ConsumerWidget {
                           ),
                         ),
                       ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: () => _showOrderDialog(context, ref, order),
+                      icon: const Icon(
+                        Icons.edit_rounded,
+                        color: Colors.white24,
+                        size: 20,
+                      ),
+                      tooltip: 'Edit Order',
+                    ),
                     const SizedBox(width: 8),
                     IconButton(
                       onPressed: () =>

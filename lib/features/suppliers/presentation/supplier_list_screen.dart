@@ -88,7 +88,7 @@ class SupplierListScreen extends ConsumerWidget {
                         Icons.person_add_rounded,
                         color: Color(0xFF818CF8),
                       ),
-                      onPressed: () => _showAddSupplierDialog(context, ref),
+                      onPressed: () => _showSupplierDialog(context, ref),
                     ),
                   ),
                 ],
@@ -134,108 +134,113 @@ class SupplierListScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
-  void _showAddSupplierDialog(BuildContext context, WidgetRef ref) {
-    final nameController = TextEditingController();
-    final contactController = TextEditingController();
+void _showSupplierDialog(
+  BuildContext context,
+  WidgetRef ref, [
+  Supplier? existing,
+]) {
+  final nameController = TextEditingController(text: existing?.name);
+  final contactController = TextEditingController(text: existing?.contact);
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFF1E293B),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: const Color(0xFF1E293B),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+    ),
+    builder: (context) => Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        left: 24,
+        right: 24,
+        top: 24,
       ),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 24,
-          right: 24,
-          top: 24,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'NEW SUPPLIER',
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                letterSpacing: 2,
-                fontSize: 14,
-                color: Colors.indigoAccent,
-              ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            existing == null ? 'NEW SUPPLIER' : 'EDIT SUPPLIER',
+            style: const TextStyle(
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2,
+              fontSize: 14,
+              color: Colors.indigoAccent,
             ),
-            const SizedBox(height: 24),
-            _buildTextField(
-              nameController,
-              'Supplier Name',
-              Icons.person_rounded,
-            ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              contactController,
-              'Phone Number',
-              Icons.phone_rounded,
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6366F1),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                onPressed: () async {
-                  final supplier = Supplier()
-                    ..name = nameController.text
-                    ..contact = contactController.text;
-                  await ref
-                      .read(supplierRepositoryProvider)
-                      .saveSupplier(supplier);
-
-                  if (context.mounted) Navigator.pop(context);
-                },
-                child: const Text(
-                  'SAVE SUPPLIER',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2,
-                  ),
+          ),
+          const SizedBox(height: 24),
+          _buildTextField(
+            nameController,
+            'Supplier Name',
+            Icons.person_rounded,
+          ),
+          const SizedBox(height: 16),
+          _buildTextField(
+            contactController,
+            'Phone Number',
+            Icons.phone_rounded,
+          ),
+          const SizedBox(height: 32),
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6366F1),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
               ),
-            ),
-            const SizedBox(height: 40),
-          ],
-        ),
-      ),
-    );
-  }
+              onPressed: () async {
+                final supplier = existing ?? Supplier();
+                supplier.name = nameController.text;
+                supplier.contact = contactController.text;
 
-  Widget _buildTextField(
-    TextEditingController controller,
-    String label,
-    IconData icon,
-  ) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, size: 20),
-        filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.03),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-        labelStyle: const TextStyle(fontSize: 14, color: Colors.white38),
+                await ref
+                    .read(supplierRepositoryProvider)
+                    .saveSupplier(supplier);
+
+                if (context.mounted) Navigator.pop(context);
+              },
+              child: Text(
+                existing == null ? 'SAVE SUPPLIER' : 'UPDATE SUPPLIER',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 40),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
+
+Widget _buildTextField(
+  TextEditingController controller,
+  String label,
+  IconData icon,
+) {
+  return TextField(
+    controller: controller,
+    decoration: InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, size: 20),
+      filled: true,
+      fillColor: Colors.white.withValues(alpha: 0.03),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      labelStyle: const TextStyle(fontSize: 14, color: Colors.white38),
+    ),
+  );
 }
 
 class _SupplierCard extends ConsumerWidget {
@@ -362,6 +367,14 @@ class _SupplierCard extends ConsumerWidget {
                         ),
                       ),
                     ],
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.edit_rounded,
+                      size: 20,
+                      color: Colors.white12,
+                    ),
+                    onPressed: () => _showSupplierDialog(context, ref, supplier),
                   ),
                   IconButton(
                     icon: Icon(

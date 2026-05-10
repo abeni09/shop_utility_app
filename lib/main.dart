@@ -11,6 +11,8 @@ import 'package:shopsync/features/orders/presentation/order_providers.dart';
 import 'package:shopsync/features/orders/data/customer_order_model.dart';
 import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/dashboard/presentation/quick_sale_dialog.dart';
+import 'package:shopsync/features/products/presentation/daily_receive_screen.dart';
+import 'package:shopsync/features/products/presentation/daily_stock_providers.dart';
 
 final databaseServiceProvider = Provider<DatabaseService>((ref) {
   throw UnimplementedError('DatabaseService not initialized');
@@ -339,12 +341,40 @@ class DashboardScreen extends ConsumerWidget {
                         ),
                         const SizedBox(width: 16),
                         Expanded(
-                          child: _buildMiniStat(
-                            'ALERTS',
-                            '0',
-                            'No Issues',
-                            const Color(0xFFF59E0B),
-                          ),
+                          child: ref
+                              .watch(walkInAvailabilityProvider(DateTime.now()))
+                              .when(
+                                data: (availability) {
+                                  final readyCount = availability.values
+                                      .where((v) => v > 0)
+                                      .length;
+                                  final shortCount = availability.values
+                                      .where((v) => v < 0)
+                                      .length;
+                                  return _buildMiniStat(
+                                    'WALK-IN',
+                                    '$readyCount Ready',
+                                    shortCount > 0
+                                        ? '$shortCount Shortfall!'
+                                        : 'Stock OK',
+                                    shortCount > 0
+                                        ? Colors.redAccent
+                                        : const Color(0xFFF59E0B),
+                                  );
+                                },
+                                loading: () => _buildMiniStat(
+                                  'WALK-IN',
+                                  '...',
+                                  'Checking...',
+                                  Colors.grey,
+                                ),
+                                error: (_, __) => _buildMiniStat(
+                                  'WALK-IN',
+                                  '!',
+                                  'Error',
+                                  Colors.red,
+                                ),
+                              ),
                         ),
                       ],
                     ),
@@ -584,6 +614,17 @@ class DashboardScreen extends ConsumerWidget {
             () => showDialog(
               context: context,
               builder: (_) => const QuickSaleDialog(),
+            ),
+          ),
+        ),
+        Expanded(
+          child: _buildGlassAction(
+            'Receiving',
+            Icons.move_to_inbox_rounded,
+            const Color(0xFF10B981),
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const DailyReceiveScreen()),
             ),
           ),
         ),

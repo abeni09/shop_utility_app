@@ -76,7 +76,7 @@ class ProductListScreen extends ConsumerWidget {
                         Icons.add_rounded,
                         color: Color(0xFF818CF8),
                       ),
-                      onPressed: () => _showAddProductDialog(context, ref),
+                      onPressed: () => _showProductDialog(context, ref),
                     ),
                   ),
                 ],
@@ -123,169 +123,174 @@ class ProductListScreen extends ConsumerWidget {
     );
   }
 
-  void _showAddProductDialog(BuildContext context, WidgetRef ref) {
-    final nameController = TextEditingController();
-    final costController = TextEditingController();
-    final saleController = TextEditingController();
-    int? selectedSupplierId;
-    final suppliers = ref.read(suppliersProvider).value ?? [];
+  void _onAddProduct(BuildContext context, WidgetRef ref) {
+    _showProductDialog(context, ref);
+  }
+}
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFF1E293B),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            left: 24,
-            right: 24,
-            top: 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'NEW PRODUCT',
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 2,
-                  fontSize: 14,
-                  color: Colors.indigoAccent,
+void _showProductDialog(
+  BuildContext context,
+  WidgetRef ref, [
+  Product? existing,
+]) {
+  final nameController = TextEditingController(text: existing?.name);
+  final costController =
+      TextEditingController(text: existing?.costPrice.toStringAsFixed(0));
+  final saleController =
+      TextEditingController(text: existing?.sellingPrice.toStringAsFixed(0));
+  int? selectedSupplierId = existing?.supplierId;
+  final suppliers = ref.read(suppliersProvider).value ?? [];
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: const Color(0xFF1E293B),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+    ),
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 24,
+          right: 24,
+          top: 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              existing == null ? 'NEW PRODUCT' : 'EDIT PRODUCT',
+              style: const TextStyle(
+                fontWeight: FontWeight.w900,
+                letterSpacing: 2,
+                fontSize: 14,
+                color: Colors.indigoAccent,
+              ),
+            ),
+            const SizedBox(height: 24),
+            _buildTextField(
+              nameController,
+              'Product Name',
+              Icons.inventory_2_rounded,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildTextField(
+                    costController,
+                    'Cost Price',
+                    Icons.south_rounded,
+                    isNumber: true,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildTextField(
+                    saleController,
+                    'Selling Price',
+                    Icons.sell_rounded,
+                    isNumber: true,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'SUPPLIER (OPTIONAL)',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5,
+                fontSize: 10,
+                color: Colors.white24,
+              ),
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<int?>(
+              value: selectedSupplierId,
+              dropdownColor: const Color(0xFF1E293B),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.03),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
                 ),
               ),
-              const SizedBox(height: 24),
-              _buildTextField(
-                nameController,
-                'Product Name',
-                Icons.inventory_2_rounded,
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildTextField(
-                      costController,
-                      'Cost Price',
-                      Icons.south_rounded,
-                      isNumber: true,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildTextField(
-                      saleController,
-                      'Selling Price',
-                      Icons.sell_rounded,
-                      isNumber: true,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'SUPPLIER (OPTIONAL)',
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.5,
-                  fontSize: 10,
-                  color: Colors.white24,
+              items: [
+                const DropdownMenuItem(value: null, child: Text('No Supplier')),
+                ...suppliers.map(
+                  (s) => DropdownMenuItem(value: s.id, child: Text(s.name)),
                 ),
-              ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<int?>(
-                value: selectedSupplierId,
-                dropdownColor: const Color(0xFF1E293B),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.03),
-                  border: OutlineInputBorder(
+              ],
+              onChanged: (val) => setState(() => selectedSupplierId = val),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6366F1),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
                   ),
                 ),
-                items: [
-                  const DropdownMenuItem(
-                    value: null,
-                    child: Text('No Supplier'),
-                  ),
-                  ...suppliers.map(
-                    (s) => DropdownMenuItem(value: s.id, child: Text(s.name)),
-                  ),
-                ],
-                onChanged: (val) => setState(() => selectedSupplierId = val),
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6366F1),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 0,
-                  ),
-                  onPressed: () async {
-                    final product = Product()
-                      ..name = nameController.text
-                      ..costPrice = double.tryParse(costController.text) ?? 0.0
-                      ..sellingPrice =
-                          double.tryParse(saleController.text) ?? 0.0
-                      ..supplierId = selectedSupplierId
-                      ..lastUpdated = DateTime.now();
+                onPressed: () async {
+                  final product = existing ?? Product();
+                  product.name = nameController.text;
+                  product.costPrice = double.tryParse(costController.text) ?? 0;
+                  product.sellingPrice =
+                      double.tryParse(saleController.text) ?? 0;
+                  product.supplierId = selectedSupplierId;
 
-                    await ref
-                        .read(productRepositoryProvider)
-                        .saveProduct(product);
+                  await ref
+                      .read(productRepositoryProvider)
+                      .saveProduct(product);
 
-                    if (context.mounted) Navigator.pop(context);
-                  },
-                  child: const Text(
-                    'SAVE PRODUCT',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.2,
-                    ),
+                  if (context.mounted) Navigator.pop(context);
+                },
+                child: Text(
+                  existing == null ? 'SAVE PRODUCT' : 'UPDATE PRODUCT',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2,
                   ),
                 ),
               ),
-              const SizedBox(height: 40),
-            ],
-          ),
+            ),
+            const SizedBox(height: 40),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
-  Widget _buildTextField(
-    TextEditingController controller,
-    String label,
-    IconData icon, {
-    bool isNumber = false,
-  }) {
-    return TextField(
-      controller: controller,
-      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, size: 20),
-        filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.03),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-        labelStyle: const TextStyle(fontSize: 14, color: Colors.white38),
+Widget _buildTextField(
+  TextEditingController controller,
+  String label,
+  IconData icon, {
+  bool isNumber = false,
+}) {
+  return TextField(
+    controller: controller,
+    keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+    decoration: InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, size: 20),
+      filled: true,
+      fillColor: Colors.white.withValues(alpha: 0.03),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
       ),
-    );
-  }
+      labelStyle: const TextStyle(fontSize: 14, color: Colors.white38),
+    ),
+  );
 }
 
 class _ProductCard extends ConsumerWidget {
@@ -344,15 +349,29 @@ class _ProductCard extends ConsumerWidget {
                 ],
               ),
             ),
-            trailing: IconButton(
-              icon: Icon(
-                isVoid ? Icons.restore_rounded : Icons.delete_sweep_rounded,
-                color: isVoid ? Colors.greenAccent : Colors.white12,
-                size: 20,
-              ),
-              onPressed: () => isVoid
-                  ? _showRestoreProductDialog(context, ref, product)
-                  : _showVoidProductDialog(context, ref, product),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (!isVoid)
+                  IconButton(
+                    icon: const Icon(
+                      Icons.edit_rounded,
+                      color: Colors.white12,
+                      size: 20,
+                    ),
+                    onPressed: () => _showProductDialog(context, ref, product),
+                  ),
+                IconButton(
+                  icon: Icon(
+                    isVoid ? Icons.restore_rounded : Icons.delete_sweep_rounded,
+                    color: isVoid ? Colors.greenAccent : Colors.white12,
+                    size: 20,
+                  ),
+                  onPressed: () => isVoid
+                      ? _showRestoreProductDialog(context, ref, product)
+                      : _showVoidProductDialog(context, ref, product),
+                ),
+              ],
             ),
           ),
         ),
