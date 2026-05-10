@@ -17,7 +17,8 @@ class QuickSaleDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final products = ref.watch(productsProvider).value ?? [];
+    var products = ref.watch(productsProvider).value ?? [];
+    products = products.where((p) => !p.isVoid).toList();
 
     return Dialog(
       backgroundColor: const Color(0xFF1E293B),

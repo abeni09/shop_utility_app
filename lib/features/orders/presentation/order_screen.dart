@@ -169,7 +169,19 @@ void _showOrderDialog(
   WidgetRef ref, [
   CustomerOrder? existing,
 ]) {
-  final products = ref.read(productsProvider).value ?? [];
+  var products = ref.read(productsProvider).value ?? [];
+  // Only show non-voided products
+  products = products.where((p) => !p.isVoid).toList();
+  // Ensure the existing product is in the list even if voided
+  if (existing?.productId != null) {
+    final existingProduct = (ref.read(productsProvider).value ?? [])
+        .where((p) => p.id == existing!.productId)
+        .firstOrNull;
+    if (existingProduct != null && !products.any((p) => p.id == existingProduct.id)) {
+      products.add(existingProduct);
+    }
+  }
+
   if (products.isEmpty) {
     ScaffoldMessenger.of(
       context,
@@ -384,7 +396,24 @@ void _showOrderDialog(
 
                     await ref.read(orderRepositoryProvider).saveOrder(order);
 
-                    if (context.mounted) Navigator.pop(context);
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          backgroundColor: const Color(0xFF10B981),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          content: Text(
+                            existing == null
+                                ? 'Order created successfully!'
+                                : 'Order updated successfully!',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      );
+                    }
                   },
                   child: Text(
                     existing == null ? 'SAVE ORDER' : 'UPDATE ORDER',

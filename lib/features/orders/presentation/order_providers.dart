@@ -14,7 +14,10 @@ final orderRepositoryProvider = Provider<OrderRepository>((ref) {
   return OrderRepository(dbService.isar, dashboardRepo, backupService);
 });
 
-final selectedDateProvider = StateProvider<DateTime>((ref) => DateTime.now());
+final selectedDateProvider = StateProvider<DateTime>((ref) {
+  final now = DateTime.now();
+  return DateTime(now.year, now.month, now.day);
+});
 
 final ordersProvider = StreamProvider<List<CustomerOrder>>((ref) {
   final repository = ref.watch(orderRepositoryProvider);

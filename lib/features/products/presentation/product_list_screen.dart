@@ -141,7 +141,18 @@ void _showProductDialog(
     text: existing?.sellingPrice.toStringAsFixed(0),
   );
   int? selectedSupplierId = existing?.supplierId;
-  final suppliers = ref.read(suppliersProvider).value ?? [];
+  var suppliers = ref.read(suppliersProvider).value ?? [];
+  // Only show active and non-void suppliers
+  suppliers = suppliers.where((s) => s.isActive && !s.isVoid).toList();
+  // Ensure the existing supplier is in the list even if inactive
+  if (existing?.supplierId != null) {
+    final existingSupplier = (ref.read(suppliersProvider).value ?? [])
+        .where((s) => s.id == existing!.supplierId)
+        .firstOrNull;
+    if (existingSupplier != null && !suppliers.any((s) => s.id == existingSupplier.id)) {
+      suppliers.add(existingSupplier);
+    }
+  }
 
   showModalBottomSheet(
     context: context,

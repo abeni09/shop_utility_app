@@ -11,18 +11,13 @@ final selectedSalesDateProvider = StateProvider<DateTime>(
   (ref) => DateTime.now(),
 );
 
-final dailySalesProvider = Provider<AsyncValue<List<CustomerOrder>>>((ref) {
+final dailySalesProvider = StreamProvider<List<CustomerOrder>>((ref) {
   final date = ref.watch(selectedSalesDateProvider);
-  final ordersAsync = ref.watch(ordersProvider);
+  final repository = ref.watch(orderRepositoryProvider);
 
-  return ordersAsync.whenData((orders) {
-    return orders.where((o) {
-      final sameDate =
-          o.dueDate.year == date.year &&
-          o.dueDate.month == date.month &&
-          o.dueDate.day == date.day;
-      return sameDate && o.status == OrderStatus.sold && !o.isVoid;
-    }).toList();
+  // We want to watch ALL orders for this date that are SOLD and not VOID
+  return repository.watchOrdersForDate(date, includeVoided: false).map((orders) {
+    return orders.where((o) => o.status == OrderStatus.sold).toList();
   });
 });
 
