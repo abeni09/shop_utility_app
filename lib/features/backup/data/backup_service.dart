@@ -39,6 +39,16 @@ class BackupService {
     }, onError: (e) {
       print('Backup authentication stream error: $e');
     });
+
+    // SILENTLY restore the session on startup.
+    // This will populate the 'currentUser' and stream without showing a popup.
+    Future.microtask(() async {
+      try {
+        await _googleSignIn.attemptLightweightAuthentication();
+      } catch (e) {
+        // Ignore errors here to prevent popups or crashes on startup
+      }
+    });
   }
 
   Future<bool> signIn() async {
