@@ -8,6 +8,7 @@ import 'package:shopsync/features/products/data/product_model.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
 
 import 'package:shopsync/features/dashboard/presentation/ui_providers.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class OrderScreen extends ConsumerWidget {
   const OrderScreen({super.key});
@@ -486,216 +487,229 @@ class _OrderCard extends ConsumerWidget {
     final isSold = order.status == OrderStatus.sold;
     final isVoid = order.isVoid;
     final balance = (order.amount * order.sellingPriceAtTime) - order.advancePayment;
+    final accentColor = isVoid 
+        ? Colors.white24 
+        : (isSold ? const Color(0xFF10B981) : const Color(0xFF818CF8));
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+      margin: const EdgeInsets.only(bottom: 20, left: 16, right: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B).withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(32),
+        color: const Color(0xFF1E293B).withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isVoid
-              ? Colors.white.withValues(alpha: 0.05)
-              : (isSold
-                  ? Colors.greenAccent.withValues(alpha: 0.1)
-                  : Colors.white.withValues(alpha: 0.08)),
+          color: Colors.white.withValues(alpha: 0.08),
         ),
         boxShadow: [
-          if (!isVoid)
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 30,
+            offset: const Offset(0, 15),
+          ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(32),
-        child: Opacity(
-          opacity: isVoid ? 0.4 : 1.0,
-          child: Column(
+        borderRadius: BorderRadius.circular(24),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: isVoid
-                              ? [Colors.white10, Colors.white10]
-                              : (isSold
-                                  ? [const Color(0xFF10B981), const Color(0xFF059669)]
-                                  : [const Color(0xFF818CF8), const Color(0xFF6366F1)]),
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          if (!isVoid)
-                            BoxShadow(
-                              color: (isSold ? Colors.green : Colors.indigo)
-                                  .withValues(alpha: 0.3),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                        ],
-                      ),
-                      child: Icon(
-                        isVoid
-                            ? Icons.auto_delete_rounded
-                            : (isSold
-                                ? Icons.check_circle_rounded
-                                : Icons.receipt_long_rounded),
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            order.customerName,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 17,
-                              letterSpacing: -0.5,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.05),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              '${order.amount.toStringAsFixed(0)} × ${product.name}',
-                              style: const TextStyle(
-                                color: Colors.white60,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          (order.amount * order.sellingPriceAtTime).toStringAsFixed(0),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 22,
-                            letterSpacing: -1,
-                          ),
-                        ),
-                        const Text(
-                          'TOTAL ETB',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white24,
-                            fontSize: 9,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ],
+              // Vertical Status Bar
+              Container(
+                width: 6,
+                decoration: BoxDecoration(
+                  color: accentColor,
+                  boxShadow: [
+                    BoxShadow(
+                      color: accentColor.withValues(alpha: 0.4),
+                      blurRadius: 8,
+                      spreadRadius: 2,
                     ),
                   ],
                 ),
               ),
-              if (!isVoid && (order.advancePayment > 0 || isSold))
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 20),
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.02),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Expanded(
+                child: Opacity(
+                  opacity: isVoid ? 0.5 : 1.0,
+                  child: Column(
                     children: [
-                      _buildMiniInfo('ADVANCE', '${order.advancePayment.toStringAsFixed(0)} ETB', Colors.greenAccent),
-                      _buildMiniInfo('BALANCE', '${balance.toStringAsFixed(0)} ETB', balance > 0 ? Colors.orangeAccent : Colors.white24),
-                    ],
-                  ),
-                ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
-                ),
-                child: Row(
-                  children: [
-                    if (!isVoid) ...[
-                      Flexible(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                      Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
                           children: [
-                            _buildBadge(
-                              order.paymentMethod.name.toUpperCase(),
-                              const Color(0xFF60A5FA),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        order.customerName.toUpperCase(),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 14,
+                                          letterSpacing: 1.5,
+                                          color: Colors.white70,
+                                        ),
+                                      ),
+                                      if (order.phoneNumber != null) ...[
+                                        const SizedBox(height: 4),
+                                        GestureDetector(
+                                          onTap: () => launchUrl(Uri.parse('tel:${order.phoneNumber}')),
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.phone_rounded, size: 12, color: accentColor),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                order.phoneNumber!,
+                                                style: TextStyle(
+                                                  color: accentColor.withValues(alpha: 0.8),
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: accentColor.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    isSold ? 'FULFILLED' : (isVoid ? 'VOIDED' : 'PENDING'),
+                                    style: TextStyle(
+                                      color: accentColor,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 9,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 8),
-                            _buildBadge(
-                              order.status.name.toUpperCase(),
-                              isSold ? const Color(0xFF34D399) : const Color(0xFFFBBF24),
+                            const SizedBox(height: 20),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      product.name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 18,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Quantity: ${order.amount.toStringAsFixed(0)}',
+                                      style: const TextStyle(
+                                        color: Colors.white38,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      (order.amount * order.sellingPriceAtTime).toStringAsFixed(0),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 24,
+                                        letterSpacing: -1,
+                                      ),
+                                    ),
+                                    const Text(
+                                      'TOTAL ETB',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.white24,
+                                        fontSize: 8,
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ],
                         ),
                       ),
-                    ] else
-                      _buildBadge('VOIDED', Colors.redAccent),
-                    const Spacer(),
-                    if (!isVoid) ...[
-                      if (isSold)
-                        _ActionButton(
-                          icon: Icons.undo_rounded,
-                          label: 'UNDO',
-                          color: Colors.white24,
-                          onTap: () => ref
-                              .read(orderRepositoryProvider)
-                              .updateOrderStatus(order.id, OrderStatus.pending),
-                        )
-                      else
-                        _ActionButton(
-                          icon: Icons.check_circle_outline_rounded,
-                          label: 'FULFILL',
-                          color: const Color(0xFF10B981),
-                          onTap: () => ref
-                              .read(orderRepositoryProvider)
-                              .updateOrderStatus(order.id, OrderStatus.sold),
-                          filled: true,
+                      // Financial Tier
+                      if (!isVoid && (order.advancePayment > 0 || isSold))
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.02),
+                            border: Border.symmetric(
+                              horizontal: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              _buildMiniInfo('ADVANCE PAID', '${order.advancePayment.toStringAsFixed(0)} ETB', Colors.greenAccent),
+                              const Spacer(),
+                              _buildMiniInfo('REMAINING', '${balance.toStringAsFixed(0)} ETB', balance > 0 ? Colors.orangeAccent : Colors.white24),
+                            ],
+                          ),
                         ),
-                      const SizedBox(width: 12),
-                      _CircleAction(
-                        icon: Icons.edit_rounded,
-                        onTap: () => _showOrderDialog(context, ref, order),
+                      // Action Tier
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        child: Row(
+                          children: [
+                            if (!isVoid) ...[
+                              _buildBadge(order.paymentMethod.name.toUpperCase(), const Color(0xFF60A5FA)),
+                              const Spacer(),
+                              if (isSold)
+                                _ActionButton(
+                                  icon: Icons.history_rounded,
+                                  label: 'REVERT',
+                                  color: Colors.white38,
+                                  onTap: () => ref.read(orderRepositoryProvider).updateOrderStatus(order.id, OrderStatus.pending),
+                                )
+                              else
+                                _ActionButton(
+                                  icon: Icons.done_all_rounded,
+                                  label: 'MARK SOLD',
+                                  color: const Color(0xFF10B981),
+                                  onTap: () => ref.read(orderRepositoryProvider).updateOrderStatus(order.id, OrderStatus.sold),
+                                  filled: true,
+                                ),
+                              const SizedBox(width: 8),
+                              _CircleAction(
+                                icon: Icons.edit_note_rounded,
+                                onTap: () => _showOrderDialog(context, ref, order),
+                              ),
+                              const SizedBox(width: 8),
+                              _CircleAction(
+                                icon: Icons.delete_outline_rounded,
+                                color: Colors.redAccent.withValues(alpha: 0.5),
+                                onTap: () => _showVoidOrderDialog(context, ref, order),
+                              ),
+                            ] else ...[
+                              _buildBadge('ARCHIVED', Colors.redAccent),
+                              const Spacer(),
+                              _CircleAction(
+                                icon: Icons.settings_backup_restore_rounded,
+                                color: Colors.greenAccent,
+                                onTap: () => _showRestoreOrderDialog(context, ref, order),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      _CircleAction(
-                        icon: Icons.delete_sweep_rounded,
-                        color: Colors.redAccent.withValues(alpha: 0.4),
-                        onTap: () => _showVoidOrderDialog(context, ref, order),
-                      ),
-                    ] else
-                      _CircleAction(
-                        icon: Icons.restore_rounded,
-                        color: Colors.greenAccent,
-                        onTap: () => _showRestoreOrderDialog(context, ref, order),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -711,11 +725,12 @@ class _OrderCard extends ConsumerWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 1, color: Colors.white24),
+          style: const TextStyle(fontSize: 7, fontWeight: FontWeight.w900, letterSpacing: 0.5, color: Colors.white24),
         ),
+        const SizedBox(height: 2),
         Text(
           value,
-          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color),
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: color),
         ),
       ],
     );
