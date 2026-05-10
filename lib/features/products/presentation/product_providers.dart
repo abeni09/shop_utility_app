@@ -4,6 +4,8 @@ import 'package:shopsync/features/products/data/product_model.dart';
 import 'package:shopsync/features/products/data/product_repository.dart';
 import 'package:shopsync/main.dart';
 
+import 'package:shopsync/features/dashboard/presentation/ui_providers.dart';
+
 final productRepositoryProvider = Provider<ProductRepository>((ref) {
   final dbService = ref.watch(databaseServiceProvider);
   final backupService = ref.watch(backupServiceProvider);
@@ -12,5 +14,6 @@ final productRepositoryProvider = Provider<ProductRepository>((ref) {
 
 final productsProvider = StreamProvider<List<Product>>((ref) {
   final repository = ref.watch(productRepositoryProvider);
-  return repository.watchProducts();
+  final showVoided = ref.watch(showVoidedProductsProvider);
+  return repository.watchProducts(includeVoided: showVoided);
 });

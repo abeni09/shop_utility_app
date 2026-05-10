@@ -4,6 +4,7 @@ import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/suppliers/data/supplier_model.dart';
 import 'package:shopsync/features/suppliers/data/supplier_repository.dart';
 import 'package:shopsync/main.dart';
+import 'package:shopsync/features/dashboard/presentation/ui_providers.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 final supplierRepositoryProvider = Provider<SupplierRepository>((ref) {
@@ -14,7 +15,8 @@ final supplierRepositoryProvider = Provider<SupplierRepository>((ref) {
 
 final suppliersProvider = StreamProvider<List<Supplier>>((ref) {
   final repository = ref.watch(supplierRepositoryProvider);
-  return repository.watchSuppliers();
+  final showArchived = ref.watch(showArchivedSuppliersProvider);
+  return repository.watchSuppliers(includeVoided: showArchived);
 });
 
 class SupplierListScreen extends ConsumerWidget {
@@ -23,6 +25,7 @@ class SupplierListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final suppliersAsync = ref.watch(suppliersProvider);
+    final showArchived = ref.watch(showArchivedSuppliersProvider);
 
     return Container(
       decoration: const BoxDecoration(
@@ -51,6 +54,29 @@ class SupplierListScreen extends ConsumerWidget {
                 backgroundColor: Colors.transparent,
                 title: const Text('SUPPLIERS'),
                 actions: [
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: showArchived
+                          ? const Color(0xFF818CF8).withValues(alpha: 0.2)
+                          : Colors.white.withValues(alpha: 0.05),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: Icon(
+                        showArchived
+                            ? Icons.visibility_rounded
+                            : Icons.visibility_off_rounded,
+                        color: showArchived
+                            ? const Color(0xFF818CF8)
+                            : Colors.white24,
+                      ),
+                      onPressed: () => ref
+                          .read(showArchivedSuppliersProvider.notifier)
+                          .state = !showArchived,
+                      tooltip: 'Show Voided Suppliers',
+                    ),
+                  ),
                   Container(
                     margin: const EdgeInsets.only(right: 16),
                     decoration: BoxDecoration(
@@ -338,18 +364,55 @@ class _SupplierCard extends ConsumerWidget {
                     ],
                   ),
                   IconButton(
-                    icon: const Icon(
-                      Icons.delete_outline_rounded,
+                    icon: Icon(
+                      supplier.isVoid
+                          ? Icons.restore_rounded
+                          : Icons.delete_outline_rounded,
                       size: 20,
-                      color: Colors.white12,
+                      color: supplier.isVoid ? Colors.greenAccent : Colors.white12,
                     ),
-                    onPressed: () => _showVoidDialog(context, ref, supplier),
+                    onPressed: () => supplier.isVoid
+                        ? _showRestoreDialog(context, ref, supplier)
+                        : _showVoidDialog(context, ref, supplier),
                   ),
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showRestoreDialog(BuildContext context, WidgetRef ref, Supplier s) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text(
+          'RESTORE SUPPLIER?',
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+        ),
+        content: Text(
+          'Do you want to bring "${s.name.replaceFirst('[VOID] ', '')}" back to your active list?',
+          style: const TextStyle(color: Colors.white70, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await ref.read(supplierRepositoryProvider).unvoidSupplier(s.id);
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text(
+              'RESTORE',
+              style: TextStyle(color: Colors.greenAccent),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -364,7 +427,7 @@ class _SupplierCard extends ConsumerWidget {
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
         ),
         content: const Text(
-          'This will permanently hide the supplier and their records. This cannot be undone.',
+          'This will hide the supplier from your daily view. You can restore them later by toggling "Show Archived" in the top menu.',
           style: TextStyle(color: Colors.white70, fontSize: 13),
         ),
         actions: [
@@ -374,18 +437,7 @@ class _SupplierCard extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () async {
-              // Soft-delete: inactivate and clear name to allow re-use if needed?
-              // Or we add isVoid. For now, let's just use isActive as the primary filter.
-              // If they want to VOID, we can set a separate flag if added to model.
-              // Since we don't have isVoid in Supplier model yet, let's just
-              // set isActive to false and maybe a name prefix.
-              final updated = Supplier()
-                ..id = s.id
-                ..name = '[VOID] ${s.name}'
-                ..contact = s.contact
-                ..balance = s.balance
-                ..isActive = false;
-              await ref.read(supplierRepositoryProvider).saveSupplier(updated);
+              await ref.read(supplierRepositoryProvider).voidSupplier(s.id);
               if (context.mounted) Navigator.pop(context);
             },
             child: const Text(

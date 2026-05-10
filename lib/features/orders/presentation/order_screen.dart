@@ -7,6 +7,8 @@ import 'package:shopsync/features/orders/presentation/order_providers.dart';
 import 'package:shopsync/features/products/data/product_model.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
 
+import 'package:shopsync/features/dashboard/presentation/ui_providers.dart';
+
 class OrderScreen extends ConsumerWidget {
   const OrderScreen({super.key});
 
@@ -14,6 +16,7 @@ class OrderScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ordersAsync = ref.watch(ordersProvider);
     final selectedDate = ref.watch(selectedDateProvider);
+    final showVoided = ref.watch(showVoidedOrdersProvider);
 
     return Container(
       decoration: const BoxDecoration(
@@ -45,6 +48,29 @@ class OrderScreen extends ConsumerWidget {
                   'ORDERS: ${DateFormat('MMM dd').format(selectedDate).toUpperCase()}',
                 ),
                 actions: [
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: showVoided
+                          ? const Color(0xFF818CF8).withValues(alpha: 0.2)
+                          : Colors.white.withValues(alpha: 0.05),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: Icon(
+                        showVoided
+                            ? Icons.visibility_rounded
+                            : Icons.visibility_off_rounded,
+                        color: showVoided
+                            ? const Color(0xFF818CF8)
+                            : Colors.white24,
+                      ),
+                      onPressed: () =>
+                          ref.read(showVoidedOrdersProvider.notifier).state =
+                              !showVoided,
+                      tooltip: 'Show Voided Orders',
+                    ),
+                  ),
                   Container(
                     margin: const EdgeInsets.only(right: 16),
                     decoration: BoxDecoration(
@@ -352,212 +378,287 @@ class _OrderCard extends ConsumerWidget {
 
     final isSold = order.status == OrderStatus.sold;
 
+    final isVoid = order.isVoid;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: isSold
-            ? Colors.green.withValues(alpha: 0.03)
-            : Colors.white.withValues(alpha: 0.03),
+        color: isVoid
+            ? Colors.white.withValues(alpha: 0.01)
+            : (isSold
+                  ? Colors.green.withValues(alpha: 0.03)
+                  : Colors.white.withValues(alpha: 0.03)),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isSold
-              ? Colors.green.withValues(alpha: 0.2)
-              : Colors.white.withValues(alpha: 0.05),
+          color: isVoid
+              ? Colors.white.withValues(alpha: 0.02)
+              : (isSold
+                    ? Colors.green.withValues(alpha: 0.2)
+                    : Colors.white.withValues(alpha: 0.05)),
         ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: (isSold ? Colors.green : Colors.indigo).withValues(
-                      alpha: 0.1,
+      child: Opacity(
+        opacity: isVoid ? 0.5 : 1.0,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color:
+                          (isVoid
+                                  ? Colors.white24
+                                  : (isSold ? Colors.green : Colors.indigo))
+                              .withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    borderRadius: BorderRadius.circular(16),
+                    child: Icon(
+                      isVoid
+                          ? Icons.auto_delete_rounded
+                          : (isSold
+                                ? Icons.check_circle_rounded
+                                : Icons.pending_actions_rounded),
+                      color: isVoid
+                          ? Colors.white24
+                          : (isSold
+                                ? Colors.greenAccent
+                                : const Color(0xFF818CF8)),
+                    ),
                   ),
-                  child: Icon(
-                    isSold
-                        ? Icons.check_circle_rounded
-                        : Icons.pending_actions_rounded,
-                    color: isSold
-                        ? Colors.greenAccent
-                        : const Color(0xFF818CF8),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          order.customerName + (isVoid ? ' [VOID]' : ''),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 18,
+                          ),
+                        ),
+                        Text(
+                          '${order.amount} × ${product.name}',
+                          style: const TextStyle(
+                            color: Colors.white38,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        order.customerName,
+                        'TOTAL',
                         style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white24,
+                          fontSize: 9,
+                          letterSpacing: 1,
                         ),
                       ),
                       Text(
-                        '${order.amount} × ${product.name}',
+                        (order.amount * order.sellingPriceAtTime)
+                            .toStringAsFixed(0),
                         style: const TextStyle(
-                          color: Colors.white38,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 18,
+                          color: Colors.white,
                         ),
                       ),
                     ],
                   ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'TOTAL',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white24,
-                        fontSize: 9,
-                        letterSpacing: 1,
-                      ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  if (!isVoid) ...[
+                    _buildBadge(
+                      order.paymentMethod.name.toUpperCase(),
+                      Colors.blueAccent,
                     ),
-                    Text(
-                      (order.amount * order.sellingPriceAtTime).toStringAsFixed(
-                        0,
-                      ),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 18,
-                        color: Colors.white,
-                      ),
+                    const SizedBox(width: 8),
+                    _buildBadge(
+                      order.status.name.toUpperCase(),
+                      isSold ? Colors.greenAccent : Colors.orangeAccent,
                     ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                _buildBadge(
-                  order.paymentMethod.name.toUpperCase(),
-                  Colors.blueAccent,
-                ),
-                const SizedBox(width: 8),
-                _buildBadge(
-                  order.status.name.toUpperCase(),
-                  isSold ? Colors.greenAccent : Colors.orangeAccent,
-                ),
-                const Spacer(),
-                if (isSold)
-                  TextButton.icon(
-                    onPressed: () => ref
-                        .read(orderRepositoryProvider)
-                        .updateOrderStatus(order.id, OrderStatus.pending),
-                    icon: const Icon(
-                      Icons.undo_rounded,
-                      size: 16,
-                      color: Colors.white24,
-                    ),
-                    label: const Text(
-                      'UNDO',
-                      style: TextStyle(
-                        color: Colors.white24,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 11,
-                      ),
-                    ),
-                  )
-                else
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF10B981),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 0,
-                      ),
-                    ),
-                    onPressed: () => ref
-                        .read(orderRepositoryProvider)
-                        .updateOrderStatus(order.id, OrderStatus.sold),
-                    child: const Text(
-                      'FULFILL',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: () async {
-                    final confirmed = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        backgroundColor: const Color(0xFF1E293B),
-                        title: const Text('Void Order?'),
-                        content: const Text(
-                          'This will invalidate the order and remove it from calculations. This action cannot be easily undone.',
-                          style: TextStyle(color: Colors.white70),
+                  ] else
+                    _buildBadge('VOIDED', Colors.redAccent),
+                  const Spacer(),
+                  if (!isVoid) ...[
+                    if (isSold)
+                      TextButton.icon(
+                        onPressed: () => ref
+                            .read(orderRepositoryProvider)
+                            .updateOrderStatus(order.id, OrderStatus.pending),
+                        icon: const Icon(
+                          Icons.undo_rounded,
+                          size: 16,
+                          color: Colors.white24,
                         ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, false),
-                            child: const Text('CANCEL'),
+                        label: const Text(
+                          'UNDO',
+                          style: TextStyle(
+                            color: Colors.white24,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 11,
                           ),
-                          TextButton(
-                            style: TextButton.styleFrom(
-                              foregroundColor: Colors.redAccent,
-                            ),
-                            onPressed: () => Navigator.pop(context, true),
-                            child: const Text('VOID'),
+                        ),
+                      )
+                    else
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        ],
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 0,
+                          ),
+                        ),
+                        onPressed: () => ref
+                            .read(orderRepositoryProvider)
+                            .updateOrderStatus(order.id, OrderStatus.sold),
+                        child: const Text(
+                          'FULFILL',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 12,
+                          ),
+                        ),
                       ),
-                    );
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: () =>
+                          _showVoidOrderDialog(context, ref, order),
+                      icon: const Icon(
+                        Icons.delete_sweep_rounded,
+                        color: Colors.white24,
+                        size: 20,
+                      ),
+                      tooltip: 'Void Order',
+                    ),
+                  ] else
+                    IconButton(
+                      onPressed: () =>
+                          _showRestoreOrderDialog(context, ref, order),
+                      icon: const Icon(
+                        Icons.restore_rounded,
+                        color: Colors.greenAccent,
+                        size: 20,
+                      ),
+                      tooltip: 'Restore Order',
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-                    if (confirmed == true) {
-                      ref.read(orderRepositoryProvider).voidOrder(order.id);
-                    }
-                  },
-                  icon: const Icon(
-                    Icons.delete_sweep_rounded,
-                    color: Colors.white24,
-                    size: 20,
-                  ),
-                  tooltip: 'Void Order',
-                ),
-              ],
+  void _showRestoreOrderDialog(
+    BuildContext context,
+    WidgetRef ref,
+    CustomerOrder order,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text(
+          'RESTORE ORDER?',
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+        ),
+        content: const Text(
+          'Do you want to bring this order back into your active list and calculations?',
+          style: TextStyle(color: Colors.white70, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await ref.read(orderRepositoryProvider).unvoidOrder(order.id);
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text(
+              'RESTORE',
+              style: TextStyle(color: Colors.greenAccent),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildBadge(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 0.5,
+  void _showVoidOrderDialog(
+    BuildContext context,
+    WidgetRef ref,
+    CustomerOrder order,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text(
+          'VOID ORDER?',
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
         ),
+        content: const Text(
+          'This will hide the order from your daily list. You can restore it later by toggling "Show Archived" in the top menu.',
+          style: TextStyle(color: Colors.white70, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await ref.read(orderRepositoryProvider).voidOrder(order.id);
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text(
+              'VOID',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
       ),
     );
   }
+}
+
+Widget _buildBadge(String label, Color color) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: color.withValues(alpha: 0.2)),
+    ),
+    child: Text(
+      label,
+      style: TextStyle(
+        color: color,
+        fontSize: 10,
+        fontWeight: FontWeight.w900,
+        letterSpacing: 0.5,
+      ),
+    ),
+  );
 }

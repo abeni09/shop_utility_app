@@ -34,7 +34,23 @@ class ProductRepository {
     backupService.autoBackupIfPossible();
   }
 
-  Stream<List<Product>> watchProducts() {
+  Future<void> unvoidProduct(Id id) async {
+    await isar.writeTxn(() async {
+      final product = await isar.products.get(id);
+      if (product != null) {
+        product.isVoid = false;
+        await isar.products.put(product);
+      }
+    });
+    
+    await backupService.markLocalChanged();
+    backupService.autoBackupIfPossible();
+  }
+
+  Stream<List<Product>> watchProducts({bool includeVoided = false}) {
+    if (includeVoided) {
+      return isar.products.where().watch(fireImmediately: true);
+    }
     return isar.products.filter().isVoidEqualTo(false).watch(fireImmediately: true);
   }
 }

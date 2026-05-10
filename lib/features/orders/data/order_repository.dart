@@ -72,19 +72,38 @@ class OrderRepository {
     }
   }
 
-  Stream<List<CustomerOrder>> watchOrdersForDate(DateTime date) {
+  Future<void> unvoidOrder(Id id) async {
+    await isar.writeTxn(() async {
+      final order = await isar.customerOrders.get(id);
+      if (order != null) {
+        order.isVoid = false;
+        await isar.customerOrders.put(order);
+      }
+    });
+
+    final order = await isar.customerOrders.get(id);
+    if (order != null) {
+      await dashboardRepo.recalculateDailyStats(order.dueDate);
+      await backupService.markLocalChanged();
+      backupService.autoBackupIfPossible();
+    }
+  }
+
+  Stream<List<CustomerOrder>> watchOrdersForDate(
+    DateTime date, {
+    bool includeVoided = false,
+  }) {
     final startOfDay = DateTime(date.year, date.month, date.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
 
-    return isar.customerOrders
-        .filter()
-        .dueDateGreaterThan(
+    var query = isar.customerOrders.filter().dueDateGreaterThan(
           startOfDay.subtract(const Duration(milliseconds: 1)),
-        )
-        .and()
-        .dueDateLessThan(endOfDay)
-        .and()
-        .isVoidEqualTo(false)
-        .watch(fireImmediately: true);
+        ).and().dueDateLessThan(endOfDay);
+
+    if (!includeVoided) {
+      query = query.and().isVoidEqualTo(false);
+    }
+
+    return query.watch(fireImmediately: true);
   }
 }

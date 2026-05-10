@@ -5,12 +5,15 @@ import 'package:shopsync/features/products/data/product_model.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
 import 'package:shopsync/features/suppliers/presentation/supplier_list_screen.dart';
 
+import 'package:shopsync/features/dashboard/presentation/ui_providers.dart';
+
 class ProductListScreen extends ConsumerWidget {
   const ProductListScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final productsAsync = ref.watch(productsProvider);
+    final showVoided = ref.watch(showVoidedProductsProvider);
 
     return Container(
       decoration: const BoxDecoration(
@@ -39,6 +42,29 @@ class ProductListScreen extends ConsumerWidget {
                 backgroundColor: Colors.transparent,
                 title: const Text('INVENTORY'),
                 actions: [
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: showVoided
+                          ? const Color(0xFF818CF8).withValues(alpha: 0.2)
+                          : Colors.white.withValues(alpha: 0.05),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: Icon(
+                        showVoided
+                            ? Icons.visibility_rounded
+                            : Icons.visibility_off_rounded,
+                        color: showVoided
+                            ? const Color(0xFF818CF8)
+                            : Colors.white24,
+                      ),
+                      onPressed: () => ref
+                          .read(showVoidedProductsProvider.notifier)
+                          .state = !showVoided,
+                      tooltip: 'Show Voided Products',
+                    ),
+                  ),
                   Container(
                     margin: const EdgeInsets.only(right: 16),
                     decoration: BoxDecoration(
@@ -268,55 +294,101 @@ class _ProductCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isVoid = product.isVoid;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
+        color: isVoid
+            ? Colors.white.withValues(alpha: 0.01)
+            : Colors.white.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(
+          color: isVoid
+              ? Colors.white.withValues(alpha: 0.02)
+              : Colors.white.withValues(alpha: 0.05),
+        ),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: ListTile(
-          contentPadding: const EdgeInsets.all(20),
-          leading: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.indigo.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
+      child: Opacity(
+        opacity: isVoid ? 0.5 : 1.0,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: ListTile(
+            contentPadding: const EdgeInsets.all(20),
+            leading: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.indigo.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(
+                isVoid ? Icons.auto_delete_rounded : Icons.inventory_2_rounded,
+                color: isVoid ? Colors.white24 : const Color(0xFF818CF8),
+              ),
             ),
-            child: const Icon(
-              Icons.inventory_2_rounded,
-              color: Color(0xFF818CF8),
+            title: Text(
+              product.name + (isVoid ? ' [VOID]' : ''),
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
             ),
-          ),
-          title: Text(
-            product.name,
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-          ),
-          subtitle: Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Row(
-              children: [
-                _buildPriceTag('COST', product.costPrice, Colors.redAccent),
-                const SizedBox(width: 12),
-                _buildPriceTag(
-                  'SALE',
-                  product.sellingPrice,
-                  Colors.greenAccent,
-                ),
-              ],
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Row(
+                children: [
+                  _buildPriceTag('COST', product.costPrice, Colors.redAccent),
+                  const SizedBox(width: 12),
+                  _buildPriceTag(
+                    'SALE',
+                    product.sellingPrice,
+                    Colors.greenAccent,
+                  ),
+                ],
+              ),
             ),
-          ),
-          trailing: IconButton(
-            icon: const Icon(
-              Icons.delete_sweep_rounded,
-              color: Colors.white12,
-              size: 20,
+            trailing: IconButton(
+              icon: Icon(
+                isVoid ? Icons.restore_rounded : Icons.delete_sweep_rounded,
+                color: isVoid ? Colors.greenAccent : Colors.white12,
+                size: 20,
+              ),
+              onPressed: () => isVoid
+                  ? _showRestoreProductDialog(context, ref, product)
+                  : _showVoidProductDialog(context, ref, product),
             ),
-            onPressed: () => _showVoidProductDialog(context, ref, product),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showRestoreProductDialog(BuildContext context, WidgetRef ref, Product p) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text(
+          'RESTORE PRODUCT?',
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+        ),
+        content: Text(
+          'Do you want to bring "${p.name}" back to your active inventory?',
+          style: const TextStyle(color: Colors.white70, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await ref.read(productRepositoryProvider).unvoidProduct(p.id);
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text(
+              'RESTORE',
+              style: TextStyle(color: Colors.greenAccent),
+            ),
+          ),
+        ],
       ),
     );
   }

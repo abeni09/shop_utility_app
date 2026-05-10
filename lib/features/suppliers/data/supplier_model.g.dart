@@ -32,8 +32,18 @@ const SupplierSchema = CollectionSchema(
       name: r'isActive',
       type: IsarType.bool,
     ),
-    r'name': PropertySchema(
+    r'isVoid': PropertySchema(
       id: 3,
+      name: r'isVoid',
+      type: IsarType.bool,
+    ),
+    r'lastUpdated': PropertySchema(
+      id: 4,
+      name: r'lastUpdated',
+      type: IsarType.dateTime,
+    ),
+    r'name': PropertySchema(
+      id: 5,
       name: r'name',
       type: IsarType.string,
     )
@@ -91,7 +101,9 @@ void _supplierSerialize(
   writer.writeDouble(offsets[0], object.balance);
   writer.writeString(offsets[1], object.contact);
   writer.writeBool(offsets[2], object.isActive);
-  writer.writeString(offsets[3], object.name);
+  writer.writeBool(offsets[3], object.isVoid);
+  writer.writeDateTime(offsets[4], object.lastUpdated);
+  writer.writeString(offsets[5], object.name);
 }
 
 Supplier _supplierDeserialize(
@@ -105,7 +117,9 @@ Supplier _supplierDeserialize(
   object.contact = reader.readStringOrNull(offsets[1]);
   object.id = id;
   object.isActive = reader.readBool(offsets[2]);
-  object.name = reader.readString(offsets[3]);
+  object.isVoid = reader.readBool(offsets[3]);
+  object.lastUpdated = reader.readDateTimeOrNull(offsets[4]);
+  object.name = reader.readString(offsets[5]);
   return object;
 }
 
@@ -123,6 +137,10 @@ P _supplierDeserializeProp<P>(
     case 2:
       return (reader.readBool(offset)) as P;
     case 3:
+      return (reader.readBool(offset)) as P;
+    case 4:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 5:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -586,6 +604,87 @@ extension SupplierQueryFilter
     });
   }
 
+  QueryBuilder<Supplier, Supplier, QAfterFilterCondition> isVoidEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isVoid',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterFilterCondition> lastUpdatedIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'lastUpdated',
+      ));
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterFilterCondition>
+      lastUpdatedIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'lastUpdated',
+      ));
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterFilterCondition> lastUpdatedEqualTo(
+      DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lastUpdated',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterFilterCondition>
+      lastUpdatedGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'lastUpdated',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterFilterCondition> lastUpdatedLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'lastUpdated',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterFilterCondition> lastUpdatedBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'lastUpdated',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<Supplier, Supplier, QAfterFilterCondition> nameEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -760,6 +859,30 @@ extension SupplierQuerySortBy on QueryBuilder<Supplier, Supplier, QSortBy> {
     });
   }
 
+  QueryBuilder<Supplier, Supplier, QAfterSortBy> sortByIsVoid() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isVoid', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterSortBy> sortByIsVoidDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isVoid', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterSortBy> sortByLastUpdated() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastUpdated', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterSortBy> sortByLastUpdatedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastUpdated', Sort.desc);
+    });
+  }
+
   QueryBuilder<Supplier, Supplier, QAfterSortBy> sortByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -823,6 +946,30 @@ extension SupplierQuerySortThenBy
     });
   }
 
+  QueryBuilder<Supplier, Supplier, QAfterSortBy> thenByIsVoid() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isVoid', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterSortBy> thenByIsVoidDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isVoid', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterSortBy> thenByLastUpdated() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastUpdated', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterSortBy> thenByLastUpdatedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastUpdated', Sort.desc);
+    });
+  }
+
   QueryBuilder<Supplier, Supplier, QAfterSortBy> thenByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -857,6 +1004,18 @@ extension SupplierQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Supplier, Supplier, QDistinct> distinctByIsVoid() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isVoid');
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QDistinct> distinctByLastUpdated() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lastUpdated');
+    });
+  }
+
   QueryBuilder<Supplier, Supplier, QDistinct> distinctByName(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -888,6 +1047,18 @@ extension SupplierQueryProperty
   QueryBuilder<Supplier, bool, QQueryOperations> isActiveProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isActive');
+    });
+  }
+
+  QueryBuilder<Supplier, bool, QQueryOperations> isVoidProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isVoid');
+    });
+  }
+
+  QueryBuilder<Supplier, DateTime?, QQueryOperations> lastUpdatedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lastUpdated');
     });
   }
 
