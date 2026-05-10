@@ -21,11 +21,18 @@ class QuickSaleDialog extends ConsumerStatefulWidget {
 
 class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
   final Map<int, double> _quantities = {};
+  final Map<int, bool> _addBag = {};
 
   @override
   Widget build(BuildContext context) {
     var products = ref.watch(productsProvider).value ?? [];
     products = products.where((p) => !p.isVoid).toList();
+
+    // Find the "Bag" product if it exists (searching for 'bag' or 'festal')
+    final bagProduct = products.where((p) {
+      final name = p.name.toLowerCase();
+      return name.contains('bag') || name.contains('festal');
+    }).firstOrNull;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -83,7 +90,9 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                       separatorBuilder: (_, _) => const SizedBox(height: 8),
                       itemBuilder: (context, index) {
                         final product = products[index];
-                        return _buildQuickSaleTile(product);
+                        // Don't show the bag itself in the list if it's the target of a toggle?
+                        // Actually, better to show it in case someone wants to buy ONLY bags.
+                        return _buildQuickSaleTile(product, bagProduct);
                       },
                     ),
             ),
@@ -94,8 +103,10 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
     );
   }
 
-  Widget _buildQuickSaleTile(dynamic product) {
+  Widget _buildQuickSaleTile(dynamic product, dynamic bagProduct) {
     final quantity = _quantities[product.id] ?? 1.0;
+    final hasBag = _addBag[product.id] ?? false;
+    final isBag = product.id == bagProduct?.id;
 
     return Container(
       padding: const EdgeInsets.all(8),
@@ -126,6 +137,21 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
           ),
           Row(
             children: [
+              if (!isBag && bagProduct != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.shopping_bag_rounded,
+                      color: hasBag ? const Color(0xFFFACC15) : Colors.white10,
+                      size: 20,
+                    ),
+                    onPressed: () {
+                      setState(() => _addBag[product.id] = !hasBag);
+                    },
+                    tooltip: 'Add Bag',
+                  ),
+                ),
               _IconButton(
                 icon: Icons.remove_rounded,
                 onTap: () {
@@ -135,11 +161,11 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                 },
               ),
               Container(
-                width: 40,
+                width: 32,
                 alignment: Alignment.center,
                 child: Text(
                   quantity.toStringAsFixed(0),
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
                 ),
               ),
               _IconButton(
@@ -150,16 +176,16 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
               ),
               const SizedBox(width: 8),
               ElevatedButton(
-                onPressed: () => _processSale(product, quantity),
+                onPressed: () => _processSale(product, quantity, hasBag ? bagProduct : null),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF818CF8),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 child: const Text(
                   'SELL',
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11),
                 ),
               ),
             ],
@@ -169,19 +195,38 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
     );
   }
 
-  Future<void> _processSale(dynamic product, double quantity) async {
+  Future<void> _processSale(dynamic product, double quantity, dynamic bagProduct) async {
+    final now = DateTime.now();
+
+    // 1. Process the main product sale
     final order = CustomerOrder()
       ..productId = product.id
       ..customerName = "Walk-in Customer"
       ..amount = quantity
-      ..dueDate = DateTime.now()
+      ..dueDate = now
       ..status = OrderStatus.sold
       ..paymentMethod = PaymentMethod.cash
       ..costPriceAtTime = product.costPrice
       ..sellingPriceAtTime = product.sellingPrice
-      ..fulfilledAt = DateTime.now();
+      ..fulfilledAt = now;
 
     await ref.read(orderRepositoryProvider).saveOrder(order);
+
+    // 2. Process the bag sale if selected
+    if (bagProduct != null) {
+      final bagOrder = CustomerOrder()
+        ..productId = bagProduct.id
+        ..customerName = "Walk-in Customer"
+        ..amount = 1.0
+        ..dueDate = now
+        ..status = OrderStatus.sold
+        ..paymentMethod = PaymentMethod.cash
+        ..costPriceAtTime = bagProduct.costPrice
+        ..sellingPriceAtTime = bagProduct.sellingPrice
+        ..fulfilledAt = now;
+      
+      await ref.read(orderRepositoryProvider).saveOrder(bagOrder);
+    }
 
     if (mounted) Navigator.pop(context);
 
@@ -191,7 +236,7 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         content: Text(
-          'Instant Sale: ${quantity.toStringAsFixed(0)} ${product.name}',
+          'Sale processed: ${quantity.toStringAsFixed(0)} ${product.name}${bagProduct != null ? ' + Bag' : ''}',
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
