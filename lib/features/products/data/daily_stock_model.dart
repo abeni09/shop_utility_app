@@ -6,12 +6,12 @@ part 'daily_stock_model.g.dart';
 class DailyStock {
   Id id = Isar.autoIncrement;
 
-  late int productId;
+  int productId = 0;
   
   @Index()
-  late DateTime date;
+  DateTime date = DateTime.now();
 
-  late double receivedQuantity;
+  double receivedQuantity = 0.0;
   
   // Optional: track who delivered it if multiple suppliers
   int? supplierId;

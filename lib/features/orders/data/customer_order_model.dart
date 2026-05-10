@@ -9,22 +9,22 @@ enum PaymentMethod { cash, mobile, credit }
 class CustomerOrder {
   Id id = Isar.autoIncrement;
 
-  late int productId;
-  late String customerName;
+  int productId = 0;
+  String customerName = '';
   String? phoneNumber;
-  late double amount;
+  double amount = 0.0;
   
   @Index()
-  late DateTime dueDate;
+  DateTime dueDate = DateTime.now();
 
   @enumerated
-  late OrderStatus status;
+  OrderStatus status = OrderStatus.pending;
 
   @enumerated
-  late PaymentMethod paymentMethod;
+  PaymentMethod paymentMethod = PaymentMethod.cash;
 
-  late double costPriceAtTime;
-  late double sellingPriceAtTime;
+  double costPriceAtTime = 0.0;
+  double sellingPriceAtTime = 0.0;
   
   double advancePayment = 0.0;
 

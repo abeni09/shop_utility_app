@@ -24,7 +24,8 @@ class RequisitionService {
   RequisitionService({required this.orderRepo, required this.productRepo});
 
   Future<List<RequisitionItem>> calculateTomorrowRequisition() async {
-    final tomorrow = DateTime.now().add(const Duration(days: 1));
+    final now = DateTime.now();
+    final tomorrow = DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
     final orders = await orderRepo.getOrdersForDate(tomorrow);
     final products = await productRepo.getAllProducts();
 
