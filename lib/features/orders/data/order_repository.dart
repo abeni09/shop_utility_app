@@ -12,15 +12,13 @@ class OrderRepository {
 
   Future<List<CustomerOrder>> getOrdersForDate(DateTime date) async {
     final startOfDay = DateTime(date.year, date.month, date.day);
-    final endOfDay = startOfDay.add(const Duration(days: 1));
+    final endOfDay = startOfDay.add(const Duration(days: 1)).subtract(const Duration(milliseconds: 1));
+
+    print('DEBUG: Fetching orders between ${startOfDay.toIso8601String()} and ${endOfDay.toIso8601String()}');
 
     return await isar.customerOrders
         .filter()
-        .dueDateGreaterThan(
-          startOfDay.subtract(const Duration(milliseconds: 1)),
-        )
-        .and()
-        .dueDateLessThan(endOfDay)
+        .dueDateBetween(startOfDay, endOfDay)
         .findAll();
   }
 
@@ -96,11 +94,9 @@ class OrderRepository {
     bool includeVoided = false,
   }) {
     final startOfDay = DateTime(date.year, date.month, date.day);
-    final endOfDay = startOfDay.add(const Duration(days: 1));
+    final endOfDay = startOfDay.add(const Duration(days: 1)).subtract(const Duration(milliseconds: 1));
 
-    var query = isar.customerOrders.filter().dueDateGreaterThan(
-          startOfDay.subtract(const Duration(milliseconds: 1)),
-        ).and().dueDateLessThan(endOfDay);
+    var query = isar.customerOrders.filter().dueDateBetween(startOfDay, endOfDay);
 
     if (!includeVoided) {
       query = query.and().isVoidEqualTo(false);

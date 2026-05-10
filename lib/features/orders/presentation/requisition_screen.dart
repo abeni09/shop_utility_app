@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shopsync/features/orders/data/customer_order_model.dart';
 import 'package:shopsync/features/orders/data/requisition_service.dart';
 import 'package:shopsync/features/orders/presentation/order_providers.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
@@ -12,11 +13,56 @@ final requisitionServiceProvider = Provider<RequisitionService>((ref) {
   );
 });
 
-final tomorrowRequisitionProvider = FutureProvider<List<RequisitionItem>>((
-  ref,
-) async {
-  return ref.watch(requisitionServiceProvider).calculateTomorrowRequisition();
-});
+final tomorrowRequisitionProvider = Provider<AsyncValue<List<RequisitionItem>>>(
+  (ref) {
+    final now = DateTime.now();
+    final tomorrow = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).add(const Duration(days: 1));
+
+    // Watch the orders stream for tomorrow
+    final ordersAsync = ref.watch(
+      ordersForDateProvider((date: tomorrow, includeVoided: false)),
+    );
+    final productsAsync = ref.watch(productsProvider);
+
+    return productsAsync.when(
+      data: (products) {
+        return ordersAsync.when(
+          data: (orders) {
+            final Map<int, double> productTotals = {};
+
+            for (var order in orders) {
+              if (order.status == OrderStatus.pending && !order.isVoid) {
+                productTotals[order.productId] =
+                    (productTotals[order.productId] ?? 0.0) + order.amount;
+              }
+            }
+
+            final items = products
+                .map((p) {
+                  return RequisitionItem(
+                    product: p,
+                    orderAmount: productTotals[p.id] ?? 0.0,
+                    bufferAmount: (productTotals[p.id] ?? 0.0) * 0.1,
+                  );
+                })
+                .where((item) => item.totalNeeded > 0)
+                .toList();
+
+            return AsyncValue.data(items);
+          },
+          loading: () => const AsyncValue.loading(),
+          error: (e, s) => AsyncValue.error(e, s),
+        );
+      },
+      loading: () => const AsyncValue.loading(),
+      error: (e, s) => AsyncValue.error(e, s),
+    );
+  },
+);
 
 class RequisitionScreen extends ConsumerWidget {
   const RequisitionScreen({super.key});

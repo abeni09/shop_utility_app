@@ -27,6 +27,7 @@ class RequisitionService {
     final now = DateTime.now();
     final tomorrow = DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
     final orders = await orderRepo.getOrdersForDate(tomorrow);
+    print('DEBUG: Requisition calculating for ${tomorrow.toIso8601String()}. Found ${orders.length} orders.');
     final products = await productRepo.getAllProducts();
 
     final Map<int, double> productTotals = {};
