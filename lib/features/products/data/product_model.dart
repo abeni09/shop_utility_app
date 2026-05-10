@@ -9,8 +9,6 @@ class Product {
   @Index(unique: true)
   late String name;
 
-  late String unit; // e.g., "piece", "kg", "packet"
-
   late double costPrice;
   late double sellingPrice;
 

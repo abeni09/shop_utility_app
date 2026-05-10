@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/products/data/product_model.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
+import 'package:shopsync/features/suppliers/presentation/supplier_list_screen.dart';
 
 class ProductListScreen extends ConsumerWidget {
   const ProductListScreen({super.key});
@@ -100,7 +101,8 @@ class ProductListScreen extends ConsumerWidget {
     final nameController = TextEditingController();
     final costController = TextEditingController();
     final saleController = TextEditingController();
-    String selectedUnit = 'piece';
+    int? selectedSupplierId;
+    final suppliers = ref.read(suppliersProvider).value ?? [];
 
     showModalBottomSheet(
       context: context,
@@ -137,41 +139,6 @@ class ProductListScreen extends ConsumerWidget {
                 Icons.inventory_2_rounded,
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                initialValue: selectedUnit,
-                dropdownColor: const Color(0xFF1E293B),
-                items: ['piece', 'pack', 'kg', 'litre', 'dozen', 'box', 'other']
-                    .map(
-                      (u) => DropdownMenuItem(
-                        value: u,
-                        child: Text(
-                          u.toUpperCase(),
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (val) => setState(() => selectedUnit = val!),
-                decoration: InputDecoration(
-                  labelText: 'Unit Type',
-                  prefixIcon: const Icon(Icons.straighten_rounded, size: 20),
-                  filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.03),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-                  labelStyle: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.white38,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
@@ -186,12 +153,45 @@ class ProductListScreen extends ConsumerWidget {
                   Expanded(
                     child: _buildTextField(
                       saleController,
-                      'Sale Price',
-                      Icons.north_rounded,
+                      'Selling Price',
+                      Icons.sell_rounded,
                       isNumber: true,
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'SUPPLIER (OPTIONAL)',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.5,
+                  fontSize: 10,
+                  color: Colors.white24,
+                ),
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<int?>(
+                value: selectedSupplierId,
+                dropdownColor: const Color(0xFF1E293B),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white.withValues(alpha: 0.03),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                items: [
+                  const DropdownMenuItem(
+                    value: null,
+                    child: Text('No Supplier'),
+                  ),
+                  ...suppliers.map(
+                    (s) => DropdownMenuItem(value: s.id, child: Text(s.name)),
+                  ),
+                ],
+                onChanged: (val) => setState(() => selectedSupplierId = val),
               ),
               const SizedBox(height: 32),
               SizedBox(
@@ -209,10 +209,10 @@ class ProductListScreen extends ConsumerWidget {
                   onPressed: () async {
                     final product = Product()
                       ..name = nameController.text
-                      ..unit = selectedUnit
                       ..costPrice = double.tryParse(costController.text) ?? 0.0
                       ..sellingPrice =
                           double.tryParse(saleController.text) ?? 0.0
+                      ..supplierId = selectedSupplierId
                       ..lastUpdated = DateTime.now();
 
                     await ref
@@ -307,22 +307,6 @@ class _ProductCard extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-          trailing: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                product.unit.toUpperCase(),
-                style: const TextStyle(
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white24,
-                  fontSize: 10,
-                  letterSpacing: 1,
-                ),
-              ),
-              const Icon(Icons.chevron_right_rounded, color: Colors.white24),
-            ],
           ),
         ),
       ),

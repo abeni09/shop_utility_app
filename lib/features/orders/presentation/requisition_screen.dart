@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopsync/features/orders/data/requisition_service.dart';
 import 'package:shopsync/features/orders/presentation/order_providers.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
+import 'package:shopsync/features/suppliers/presentation/supplier_list_screen.dart';
 
 final requisitionServiceProvider = Provider<RequisitionService>((ref) {
   return RequisitionService(
@@ -23,6 +24,7 @@ class RequisitionScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final requisitionAsync = ref.watch(tomorrowRequisitionProvider);
+    final suppliersAsync = ref.watch(suppliersProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
@@ -62,7 +64,7 @@ class RequisitionScreen extends ConsumerWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: Text(
-                'Consolidated list of items needed for tomorrow\'s fulfillment.',
+                'Consolidated list of items needed for tomorrow\'s fulfillment, grouped by supplier.',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.4),
                   fontSize: 13,
@@ -72,33 +74,71 @@ class RequisitionScreen extends ConsumerWidget {
             ),
           ),
           requisitionAsync.when(
-            data: (items) => items.isEmpty
-                ? const SliverFillRemaining(
-                    child: Center(
-                      child: Text(
-                        'No orders recorded for tomorrow.',
-                        style: TextStyle(color: Colors.white24),
-                      ),
-                    ),
-                  )
-                : SliverPadding(
-                    padding: const EdgeInsets.all(24),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final item = items[index];
-                          return _buildRequisitionCard(item);
-                        },
-                        childCount: items.length,
-                      ),
+            data: (items) {
+              if (items.isEmpty) {
+                return const SliverFillRemaining(
+                  child: Center(
+                    child: Text(
+                      'No orders recorded for tomorrow.',
+                      style: TextStyle(color: Colors.white24),
                     ),
                   ),
+                );
+              }
+
+              // Group items by supplier
+              final Map<int?, List<RequisitionItem>> grouped = {};
+              for (var item in items) {
+                final sid = item.product.supplierId;
+                grouped[sid] ??= [];
+                grouped[sid]!.add(item);
+              }
+
+              final suppliers = suppliersAsync.value ?? [];
+
+              return SliverPadding(
+                padding: const EdgeInsets.all(24),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final supplierId = grouped.keys.elementAt(index);
+                    final supplierItems = grouped[supplierId]!;
+                    final supplierName =
+                        suppliers
+                            .where((s) => s.id == supplierId)
+                            .firstOrNull
+                            ?.name ??
+                        'Unassigned Supplier';
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8, bottom: 12),
+                          child: Text(
+                            supplierName.toUpperCase(),
+                            style: const TextStyle(
+                              color: Color(0xFF818CF8),
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 2,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        ...supplierItems.map(
+                          (item) => _buildRequisitionCard(item),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                    );
+                  }, childCount: grouped.keys.length),
+                ),
+              );
+            },
             loading: () => const SliverFillRemaining(
               child: Center(child: CircularProgressIndicator()),
             ),
-            error: (err, stack) => SliverFillRemaining(
-              child: Center(child: Text('Error: $err')),
-            ),
+            error: (err, stack) =>
+                SliverFillRemaining(child: Center(child: Text('Error: $err'))),
           ),
         ],
       ),
@@ -177,14 +217,6 @@ class RequisitionScreen extends ConsumerWidget {
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
                     color: Colors.white,
-                  ),
-                ),
-                Text(
-                  item.product.unit,
-                  style: const TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white70,
                   ),
                 ),
               ],
