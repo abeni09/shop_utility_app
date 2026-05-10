@@ -619,8 +619,13 @@ class DashboardScreen extends ConsumerWidget {
             'Quick Sale',
             Icons.bolt_rounded,
             const Color(0xFF818CF8),
-            () => showDialog(
+            () => showModalBottomSheet(
               context: context,
+              isScrollControlled: true,
+              backgroundColor: const Color(0xFF1E293B),
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+              ),
               builder: (_) => const QuickSaleDialog(),
             ),
           ),

@@ -27,15 +27,27 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
     var products = ref.watch(productsProvider).value ?? [];
     products = products.where((p) => !p.isVoid).toList();
 
-    return Dialog(
-      backgroundColor: const Color(0xFF1E293B),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      child: Padding(
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 24),
+                decoration: BoxDecoration(
+                  color: Colors.white10,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
             const Text(
               'QUICK SALE',
               style: TextStyle(
@@ -53,7 +65,7 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
             const SizedBox(height: 24),
             ConstrainedBox(
               constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.5,
+                maxHeight: MediaQuery.of(context).size.height * 0.6,
               ),
               child: products.isEmpty
                   ? const Padding(
@@ -75,21 +87,7 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                       },
                     ),
             ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  'CANCEL',
-                  style: TextStyle(
-                    color: Colors.white38,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1,
-                  ),
-                ),
-              ),
-            ),
+            const SizedBox(height: 32),
           ],
         ),
       ),
