@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
 import 'package:shopsync/features/orders/data/customer_order_model.dart';
 import 'package:shopsync/features/orders/presentation/order_providers.dart';
@@ -106,6 +107,10 @@ class QuickSaleDialog extends ConsumerWidget {
           ..fulfilledAt = DateTime.now();
 
         await ref.read(orderRepositoryProvider).saveOrder(order);
+
+        // Trigger background backup after work is done
+        ref.read(backupServiceProvider).autoBackupIfPossible();
+
         if (context.mounted) Navigator.pop(context);
 
         ScaffoldMessenger.of(context).showSnackBar(

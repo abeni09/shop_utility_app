@@ -621,20 +621,54 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   Widget _buildBackupTile(BuildContext context, WidgetRef ref) {
+    final backupService = ref.watch(backupServiceProvider);
     final userAsync = ref.watch(backupUserProvider);
+    final cloudNewerAsync = ref.watch(cloudSyncStatusProvider);
+    
     final user = userAsync.value;
+    final isConnected = user != null || backupService.cachedEmail != null;
+    final isCloudNewer = cloudNewerAsync.value ?? false;
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
+        color: isCloudNewer 
+          ? const Color(0xFFF59E0B).withValues(alpha: 0.1) // Amber for warning
+          : Colors.white.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(
+          color: isCloudNewer 
+            ? const Color(0xFFF59E0B).withValues(alpha: 0.2)
+            : Colors.white.withValues(alpha: 0.05)
+        ),
       ),
       child: Column(
         children: [
+          if (isCloudNewer)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                color: Color(0xFFF59E0B),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.sync_problem_rounded, color: Colors.white, size: 16),
+                  SizedBox(width: 8),
+                  Text(
+                    'UPDATE AVAILABLE FROM OTHER DEVICE',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 10,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ListTile(
             onTap: () async {
-              final backupService = ref.read(backupServiceProvider);
               try {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -642,8 +676,10 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                 );
                 
-                // This will show the popup ONLY because we pass forceSignIn: true
                 await backupService.uploadBackup(forceSignIn: true);
+                
+                // Refresh status after backup
+                ref.invalidate(cloudSyncStatusProvider);
                 
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -686,15 +722,15 @@ class DashboardScreen extends ConsumerWidget {
               ),
             ),
             subtitle: Text(
-              user != null
-                  ? 'Connected: ${user.email}'
+              isConnected
+                  ? 'Connected: ${user?.email ?? backupService.cachedEmail}'
                   : 'Secure your data to Google Drive',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.4),
                 fontSize: 11,
               ),
             ),
-            trailing: user != null
+            trailing: isConnected
                 ? IconButton(
                     icon: const Icon(
                       Icons.logout_rounded,
@@ -702,7 +738,7 @@ class DashboardScreen extends ConsumerWidget {
                       size: 20,
                     ),
                     onPressed: () async {
-                      await ref.read(backupServiceProvider).signOut();
+                      await backupService.signOut();
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -714,9 +750,10 @@ class DashboardScreen extends ConsumerWidget {
                   )
                 : const Icon(
                     Icons.chevron_right_rounded,
-            ),
+                    color: Colors.white24,
+                  ),
           ),
-          if (user != null) ...[
+          if (isConnected) ...[
             const Divider(height: 1, color: Colors.white10),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -759,6 +796,10 @@ class DashboardScreen extends ConsumerWidget {
                               ),
                             );
                             await backupService.restoreLatestBackup();
+                            
+                            // Clear sync warning
+                            ref.invalidate(cloudSyncStatusProvider);
+                            
                             if (context.mounted) {
                               showDialog(
                                 context: context,
