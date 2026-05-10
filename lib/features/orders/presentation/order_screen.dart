@@ -268,6 +268,7 @@ void _showOrderDialog(
   WidgetRef ref, [
   CustomerOrder? existing,
 ]) {
+  final orderRepo = ref.read(orderRepositoryProvider);
   var products = ref.read(productsProvider).value ?? [];
   // Only show non-voided products
   products = products.where((p) => !p.isVoid).toList();
@@ -302,6 +303,7 @@ void _showOrderDialog(
   final phoneController = TextEditingController(text: existing?.phoneNumber);
   PaymentMethod selectedPayment = existing?.paymentMethod ?? PaymentMethod.cash;
   DateTime selectedDate = existing?.dueDate ?? ref.read(selectedDateProvider);
+  bool isSaving = false;
 
   showModalBottomSheet(
     context: context,
@@ -451,7 +453,7 @@ void _showOrderDialog(
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  onPressed: () async {
+                  onPressed: isSaving ? null : () async {
                     if (customerController.text.trim().isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -505,10 +507,18 @@ void _showOrderDialog(
                       order.status = OrderStatus.pending;
                     }
 
-                    print(
-                      'DEBUG: Dialog saving order. Name: ${order.customerName}, Status: ${order.status}',
-                    );
-                    await ref.read(orderRepositoryProvider).saveOrder(order);
+                    setState(() => isSaving = true);
+                    try {
+                      await orderRepo.saveOrder(order);
+                    } catch (e) {
+                      if (context.mounted) {
+                        setState(() => isSaving = false);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: $e')),
+                        );
+                      }
+                      return;
+                    }
 
                     if (context.mounted) {
                       Navigator.pop(context);
@@ -529,13 +539,22 @@ void _showOrderDialog(
                       );
                     }
                   },
-                  child: Text(
-                    existing == null ? 'SAVE ORDER' : 'UPDATE ORDER',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
+                  child: isSaving
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          existing == null ? 'SAVE ORDER' : 'UPDATE ORDER',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 40),
