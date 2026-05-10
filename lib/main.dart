@@ -616,67 +616,70 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   Widget _buildBackupTile(BuildContext context, WidgetRef ref) {
-    return InkWell(
-      onTap: () async {
-        final backupService = ref.read(backupServiceProvider);
-        try {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Connecting to Google Drive...')));
-          final success = await backupService.signIn();
-          
-          if (success) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Syncing with Cloud...')));
-            await backupService.uploadBackup();
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  backgroundColor: Color(0xFF10B981),
-                  content: Text('Backup Secured Successfully!', style: TextStyle(fontWeight: FontWeight.w700)),
-                ),
-              );
-            }
-          } else {
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sign-in cancelled or failed.')));
-            }
-          }
-        } catch (e) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                backgroundColor: Colors.redAccent,
-                content: Text('Cloud Sync Failed: ${e.toString().split(':').last}'),
-              ),
-            );
-          }
-        }
-      },
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.03),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-        ),
-        child: const Row(
-          children: [
-            Icon(Icons.cloud_done_rounded, color: Color(0xFF38BDF8)),
-            SizedBox(width: 16),
-            Text(
-              'Cloud Sync Status',
-              style: TextStyle(fontWeight: FontWeight.w600),
+    final userAsync = ref.watch(backupUserProvider);
+    final user = userAsync.value;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        children: [
+          ListTile(
+            onTap: () async {
+              final backupService = ref.read(backupServiceProvider);
+              try {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Connecting to Google Drive...')));
+                final success = await backupService.signIn();
+
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Syncing with Cloud...')));
+                  await backupService.uploadBackup();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        backgroundColor: Color(0xFF10B981),
+                        content: Text('Backup Secured Successfully!', style: TextStyle(fontWeight: FontWeight.w700)),
+                      ),
+                    );
+                  }
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: Colors.redAccent,
+                      content: Text('Cloud Sync Failed: ${e.toString().split(':').last}'),
+                    ),
+                  );
+                }
+              }
+            },
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            leading: const Icon(Icons.cloud_done_rounded, color: Color(0xFF38BDF8)),
+            title: const Text(
+              'CLOUD SYNC & BACKUP',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
             ),
-            Spacer(),
-            Text(
-              'SAFE',
-              style: TextStyle(
-                color: Color(0xFF10B981),
-                fontWeight: FontWeight.w900,
-                fontSize: 12,
-              ),
+            subtitle: Text(
+              user != null ? 'Connected: ${user.email}' : 'Secure your data to Google Drive',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 11),
             ),
-          ],
-        ),
+            trailing: user != null
+                ? IconButton(
+                    icon: const Icon(Icons.logout_rounded, color: Colors.redAccent, size: 20),
+                    onPressed: () async {
+                      await ref.read(backupServiceProvider).signOut();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Disconnected from Google Account')));
+                      }
+                    },
+                  )
+                : const Icon(Icons.chevron_right_rounded, color: Colors.white24),
+          ),
+        ],
       ),
     );
   }

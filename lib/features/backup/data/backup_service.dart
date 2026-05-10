@@ -11,6 +11,9 @@ class BackupService {
 
   BackupService(this.isar);
 
+  auth.GoogleSignInAccount? get currentUser => _googleSignIn.currentUser;
+  Stream<auth.GoogleSignInAccount?> get onCurrentUserChanged => _googleSignIn.onCurrentUserChanged;
+
   Future<bool> signIn() async {
     try {
       await _googleSignIn.authenticate(
@@ -21,6 +24,10 @@ class BackupService {
       print('Backup sign-in error: $e');
       return false;
     }
+  }
+
+  Future<void> signOut() async {
+    await _googleSignIn.signOut();
   }
 
   Future<void> uploadBackup() async {
