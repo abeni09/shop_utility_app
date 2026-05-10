@@ -358,10 +358,10 @@ class DashboardScreen extends ConsumerWidget {
                               .when(
                                 data: (availability) {
                                   final readyCount = availability.values
-                                      .where((v) => v > 0)
+                                      .where((v) => v.walkInAvailable > 0)
                                       .length;
                                   final shortCount = availability.values
-                                      .where((v) => v < 0)
+                                      .where((v) => v.walkInAvailable < 0)
                                       .length;
                                   return _buildMiniStat(
                                     'WALK-IN',

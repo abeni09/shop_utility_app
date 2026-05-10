@@ -580,11 +580,9 @@ class _OrderCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final availabilityAsync = ref.watch(
-      walkInAvailabilityProvider(order.dueDate),
-    );
+    final availabilityAsync = ref.watch(walkInAvailabilityProvider(order.dueDate));
     final availability = availabilityAsync.asData?.value ?? {};
-    final remaining = availability[order.productId] ?? 0.0;
+    final status = availability[order.productId] ?? (walkInAvailable: 0.0, physicalRemaining: 0.0, reserved: 0.0);
 
     final products = ref.watch(productsProvider).value ?? [];
     final product = products.firstWhere(
@@ -902,53 +900,43 @@ class _OrderCard extends ConsumerWidget {
                           icon: Icons.check_rounded,
                           color: Colors.greenAccent,
                           onTap: () async {
-                            if (remaining < 0) {
+                            if (status.walkInAvailable < 0) {
+                              String title = 'Stock Shortfall';
+                              String message = 'Fulfilling this order will exacerbate a stock shortfall for this product.';
+                              Color titleColor = Colors.redAccent;
+
+                              if (status.physicalRemaining >= 0) {
+                                title = 'Dipping into Pre-orders';
+                                message = 'Fulfilling this will use stock that is technically reserved for other pre-orders (likely walk-in sales have already used some stock).';
+                                titleColor = Colors.orangeAccent;
+                              } else {
+                                title = 'Physical Shortfall';
+                                message = 'You do not have enough physical stock to fulfill this order! You are short by ${status.physicalRemaining.abs().toStringAsFixed(1)} units.';
+                              }
+
                               final proceed = await showDialog<bool>(
                                 context: context,
                                 builder: (context) => AlertDialog(
                                   backgroundColor: const Color(0xFF1E293B),
-                                  title: const Text(
-                                    'Stock Shortfall',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      color: Colors.redAccent,
-                                    ),
-                                  ),
-                                  content: Text(
-                                    'Fulfilling this order will exacerbate a stock shortfall of ${remaining.abs().toStringAsFixed(1)} units for this product. Proceed anyway?',
-                                  ),
+                                  title: Text(title, style: TextStyle(fontWeight: FontWeight.w900, color: titleColor)),
+                                  content: Text(message),
                                   actions: [
                                     TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(context, false),
-                                      child: const Text(
-                                        'CANCEL',
-                                        style: TextStyle(color: Colors.white38),
-                                      ),
+                                      onPressed: () => Navigator.pop(context, false),
+                                      child: const Text('CANCEL', style: TextStyle(color: Colors.white38)),
                                     ),
                                     ElevatedButton(
-                                      onPressed: () =>
-                                          Navigator.pop(context, true),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.redAccent,
-                                        foregroundColor: Colors.white,
-                                      ),
-                                      child: const Text(
-                                        'PROCEED',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w900,
-                                        ),
-                                      ),
+                                      onPressed: () => Navigator.pop(context, true),
+                                      style: ElevatedButton.styleFrom(backgroundColor: titleColor, foregroundColor: Colors.black),
+                                      child: const Text('PROCEED', style: TextStyle(fontWeight: FontWeight.w900)),
                                     ),
                                   ],
                                 ),
                               );
                               if (proceed != true) return;
                             }
-
-                            ref
-                                .read(orderRepositoryProvider)
-                                .updateOrderStatus(order.id, OrderStatus.sold);
+                            
+                            ref.read(orderRepositoryProvider).updateOrderStatus(order.id, OrderStatus.sold);
                           },
                         ),
                       const Spacer(),

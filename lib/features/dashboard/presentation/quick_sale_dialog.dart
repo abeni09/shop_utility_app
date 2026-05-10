@@ -174,13 +174,8 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                       separatorBuilder: (_, _) => const SizedBox(height: 8),
                       itemBuilder: (context, index) {
                         final product = activeProducts[index];
-                        final remaining = availability[product.id] ?? 0.0;
-                        return _buildQuickSaleTile(
-                          product,
-                          currentBag,
-                          bagProducts,
-                          remaining,
-                        );
+                        final status = availability[product.id] ?? (walkInAvailable: 0.0, physicalRemaining: 0.0, reserved: 0.0);
+                        return _buildQuickSaleTile(product, currentBag, bagProducts, status);
                       },
                     ),
             ),
@@ -195,11 +190,12 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
     dynamic product,
     dynamic bagProduct,
     List<dynamic> allBagProducts,
-    double remaining,
+    StockStatus status,
   ) {
     final quantity = _quantities[product.id] ?? 1.0;
     final hasBag = _addBag[product.id] ?? false;
     final isAnyBag = allBagProducts.any((p) => p.id == product.id);
+    final walkInAvailable = status.walkInAvailable;
 
     return Container(
       padding: const EdgeInsets.all(8),
@@ -232,19 +228,15 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color:
-                              (remaining > 0
-                                      ? Colors.greenAccent
-                                      : Colors.redAccent)
-                                  .withValues(alpha: 0.1),
+                          color: (walkInAvailable > 0 ? Colors.greenAccent : Colors.redAccent).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          '${remaining.toStringAsFixed(0)} LEFT',
+                          '${walkInAvailable.toStringAsFixed(0)} LEFT',
                           style: TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.w900,
-                            color: remaining > 0
+                            color: walkInAvailable > 0
                                 ? Colors.greenAccent
                                 : Colors.redAccent,
                           ),
@@ -252,9 +244,20 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                       ),
                     ],
                   ),
-                  Text(
-                    '${product.sellingPrice} ETB/unit',
-                    style: const TextStyle(color: Colors.white38, fontSize: 12),
+                  Row(
+                    children: [
+                      Text(
+                        '${product.sellingPrice} ETB/unit',
+                        style: const TextStyle(color: Colors.white38, fontSize: 12),
+                      ),
+                      if (status.reserved > 0) ...[
+                        const SizedBox(width: 8),
+                        Text(
+                          '• ${status.reserved.toStringAsFixed(0)} Reserved',
+                          style: const TextStyle(color: Colors.amberAccent, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
@@ -308,7 +311,7 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                   product,
                   quantity,
                   hasBag ? bagProduct : null,
-                  remaining,
+                  status,
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF818CF8),
@@ -334,9 +337,16 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
     dynamic product,
     double quantity,
     dynamic bagProduct,
-    double remaining,
+    StockStatus status,
   ) async {
-    if (quantity > remaining) {
+    if (quantity > status.walkInAvailable) {
+      String message = 'You are attempting to sell $quantity ${product.name}, but only ${status.walkInAvailable} are currently available for walk-in.';
+      if (quantity <= status.physicalRemaining) {
+        message += '\n\nNote: This will dip into reserved stock.';
+      } else {
+        message += '\n\nWarning: This exceeds total physical stock (${status.physicalRemaining}).';
+      }
+
       final proceed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
@@ -348,9 +358,7 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
               color: Colors.amberAccent,
             ),
           ),
-          content: Text(
-            'You are attempting to sell $quantity ${product.name}, but only $remaining are recorded as available. Proceed anyway?',
-          ),
+          content: Text(message),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),

@@ -21,43 +21,62 @@ final dailyStockProvider = StreamProvider.family<List<DailyStock>, DateTime>((
   return repository.watchDailyStock(date);
 });
 
+typedef StockStatus = ({
+  double walkInAvailable,
+  double physicalRemaining,
+  double reserved
+});
+
 final walkInAvailabilityProvider =
-    Provider.family<AsyncValue<Map<int, double>>, DateTime>((ref, date) {
-      final productsAsync = ref.watch(productsProvider);
-      final stocksAsync = ref.watch(dailyStockProvider(date));
-      final ordersAsync = ref.watch(
-        ordersForDateProvider((date: date, includeVoided: false)),
-      );
+    Provider.family<AsyncValue<Map<int, StockStatus>>, DateTime>((ref, date) {
+  final productsAsync = ref.watch(productsProvider);
+  final stocksAsync = ref.watch(dailyStockProvider(date));
+  final ordersAsync =
+      ref.watch(ordersForDateProvider((date: date, includeVoided: false)));
 
-      return productsAsync.when(
-        data: (products) => stocksAsync.when(
-          data: (stocks) => ordersAsync.when(
-            data: (orders) {
-              final Map<int, double> availability = {};
+  return productsAsync.when(
+    data: (products) => stocksAsync.when(
+      data: (stocks) => ordersAsync.when(
+        data: (orders) {
+          final Map<int, StockStatus> availability = {};
 
-              for (var p in products) {
-                if (p.isVoid) continue;
+          for (var p in products) {
+            if (p.isVoid) continue;
 
-                final received = stocks
-                    .where((s) => s.productId == p.id)
-                    .fold(0.0, (sum, s) => sum + s.receivedQuantity);
+            final received = stocks
+                .where((s) => s.productId == p.id)
+                .fold(0.0, (sum, s) => sum + s.receivedQuantity);
 
-                final allocated = orders
-                .where((o) => o.productId == p.id && !o.isVoid && o.status != OrderStatus.cancelled)
+            final sold = orders
+                .where((o) =>
+                    o.productId == p.id &&
+                    !o.isVoid &&
+                    o.status == OrderStatus.sold)
                 .fold(0.0, (sum, o) => sum + o.amount);
 
-                availability[p.id] = received - allocated;
-              }
+            final pending = orders
+                .where((o) =>
+                    o.productId == p.id &&
+                    !o.isVoid &&
+                    o.status == OrderStatus.pending)
+                .fold(0.0, (sum, o) => sum + o.amount);
 
-              return AsyncValue.data(availability);
-            },
-            loading: () => const AsyncValue.loading(),
-            error: (err, stack) => AsyncValue.error(err, stack),
-          ),
-          loading: () => const AsyncValue.loading(),
-          error: (err, stack) => AsyncValue.error(err, stack),
-        ),
+            availability[p.id] = (
+              walkInAvailable: received - (sold + pending),
+              physicalRemaining: received - sold,
+              reserved: pending,
+            );
+          }
+
+          return AsyncValue.data(availability);
+        },
         loading: () => const AsyncValue.loading(),
         error: (err, stack) => AsyncValue.error(err, stack),
-      );
-    });
+      ),
+      loading: () => const AsyncValue.loading(),
+      error: (err, stack) => AsyncValue.error(err, stack),
+    ),
+    loading: () => const AsyncValue.loading(),
+    error: (err, stack) => AsyncValue.error(err, stack),
+  );
+});
