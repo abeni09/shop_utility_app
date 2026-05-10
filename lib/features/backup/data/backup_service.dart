@@ -36,8 +36,18 @@ class BackupService {
       } else if (event is auth.GoogleSignInAuthenticationEventSignOut) {
         _currentUser = null;
       }
+    }, onError: (e) {
+      print('Backup authentication stream error: $e');
     });
-    _googleSignIn.attemptLightweightAuthentication();
+
+    // Attempt to restore sign-in silently without crashing the build
+    Future.microtask(() async {
+      try {
+        await _googleSignIn.attemptLightweightAuthentication();
+      } catch (e) {
+        print('Initial backup auth attempt failed: $e');
+      }
+    });
   }
 
   Future<bool> signIn() async {
