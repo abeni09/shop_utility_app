@@ -251,12 +251,16 @@ void _showOrderDialog(
                 Expanded(
                   child: DropdownButtonFormField<PaymentMethod>(
                     value: selectedPayment,
+                    isExpanded: true,
                     dropdownColor: const Color(0xFF1E293B),
                     items: PaymentMethod.values
                         .map(
                           (p) => DropdownMenuItem(
                             value: p,
-                            child: Text(p.name.toUpperCase()),
+                            child: Text(
+                              p.name.toUpperCase(),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         )
                         .toList(),
@@ -317,6 +321,20 @@ void _showOrderDialog(
                   ),
                 ),
                 onPressed: () async {
+                  if (customerController.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please enter customer name')),
+                    );
+                    return;
+                  }
+                  final amount = double.tryParse(amountController.text);
+                  if (amount == null || amount <= 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please enter a valid amount')),
+                    );
+                    return;
+                  }
+
                   if (selectedProductId == null) return;
                   final product = products.firstWhere(
                     (p) => p.id == selectedProductId,
@@ -324,8 +342,8 @@ void _showOrderDialog(
 
                   final order = existing ?? CustomerOrder();
                   order.productId = selectedProductId!;
-                  order.customerName = customerController.text;
-                  order.amount = double.tryParse(amountController.text) ?? 1;
+                  order.customerName = customerController.text.trim();
+                  order.amount = amount;
                   order.paymentMethod = selectedPayment;
                   order.dueDate = selectedDate;
                   order.sellingPriceAtTime = product.sellingPrice;

@@ -240,11 +240,32 @@ void _showProductDialog(
                   ),
                 ),
                 onPressed: () async {
+                  if (nameController.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please enter product name')),
+                    );
+                    return;
+                  }
+                  final cost = double.tryParse(costController.text);
+                  final sale = double.tryParse(saleController.text);
+                  
+                  if (cost == null || cost < 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please enter valid cost price')),
+                    );
+                    return;
+                  }
+                  if (sale == null || sale < 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please enter valid sale price')),
+                    );
+                    return;
+                  }
+
                   final product = existing ?? Product();
-                  product.name = nameController.text;
-                  product.costPrice = double.tryParse(costController.text) ?? 0;
-                  product.sellingPrice =
-                      double.tryParse(saleController.text) ?? 0;
+                  product.name = nameController.text.trim();
+                  product.costPrice = cost;
+                  product.sellingPrice = sale;
                   product.supplierId = selectedSupplierId;
 
                   await ref

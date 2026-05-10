@@ -123,8 +123,18 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                       onPressed: () async {
                         final repo = ref.read(dailyStockRepositoryProvider);
                         for (var p in products) {
-                          final amount =
-                              double.tryParse(_controllers[p.id]!.text) ?? 0;
+                          final text = _controllers[p.id]!.text.trim();
+                          final amount = double.tryParse(text) ?? 0;
+
+                          if (amount < 0) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Invalid amount for ${p.name}'),
+                                backgroundColor: Colors.redAccent,
+                              ),
+                            );
+                            return;
+                          }
 
                           var stock = await repo.getStockForProduct(
                             p.id,

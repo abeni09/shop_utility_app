@@ -196,9 +196,22 @@ void _showSupplierDialog(
                 ),
               ),
               onPressed: () async {
+                if (nameController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter supplier name')),
+                  );
+                  return;
+                }
+                if (contactController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter phone number')),
+                  );
+                  return;
+                }
+
                 final supplier = existing ?? Supplier();
-                supplier.name = nameController.text;
-                supplier.contact = contactController.text;
+                supplier.name = nameController.text.trim();
+                supplier.contact = contactController.text.trim();
 
                 await ref
                     .read(supplierRepositoryProvider)
@@ -531,7 +544,13 @@ class _SupplierCard extends ConsumerWidget {
                   ),
                 ),
                 onPressed: () async {
-                  final amount = double.tryParse(amountController.text) ?? 0.0;
+                  final amount = double.tryParse(amountController.text);
+                  if (amount == null || amount <= 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please enter valid amount')),
+                    );
+                    return;
+                  }
                   await ref
                       .read(supplierRepositoryProvider)
                       .updateBalance(supplier.id, -amount);
