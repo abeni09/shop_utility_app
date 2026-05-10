@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:shopsync/features/orders/data/customer_order_model.dart';
 import 'package:shopsync/features/orders/presentation/order_providers.dart';
+import 'package:shopsync/features/products/data/product_model.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
 import 'package:shopsync/features/orders/presentation/order_screen.dart';
 
-final selectedSalesDateProvider = StateProvider<DateTime>((ref) => DateTime.now());
+final selectedSalesDateProvider = StateProvider<DateTime>(
+  (ref) => DateTime.now(),
+);
 
 final dailySalesProvider = Provider<AsyncValue<List<CustomerOrder>>>((ref) {
   final date = ref.watch(selectedSalesDateProvider);
@@ -14,7 +17,8 @@ final dailySalesProvider = Provider<AsyncValue<List<CustomerOrder>>>((ref) {
 
   return ordersAsync.whenData((orders) {
     return orders.where((o) {
-      final sameDate = o.dueDate.year == date.year &&
+      final sameDate =
+          o.dueDate.year == date.year &&
           o.dueDate.month == date.month &&
           o.dueDate.day == date.day;
       return sameDate && o.status == OrderStatus.sold && !o.isVoid;
@@ -46,7 +50,9 @@ class SalesScreen extends ConsumerWidget {
                   final date = await showDatePicker(
                     context: context,
                     initialDate: selectedDate,
-                    firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                    firstDate: DateTime.now().subtract(
+                      const Duration(days: 365),
+                    ),
                     lastDate: DateTime.now(),
                   );
                   if (date != null) {
@@ -64,7 +70,9 @@ class SalesScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    DateFormat('EEEE, MMM dd yyyy').format(selectedDate).toUpperCase(),
+                    DateFormat(
+                      'EEEE, MMM dd yyyy',
+                    ).format(selectedDate).toUpperCase(),
                     style: const TextStyle(
                       color: Color(0xFF818CF8),
                       fontWeight: FontWeight.w900,
@@ -77,13 +85,16 @@ class SalesScreen extends ConsumerWidget {
                     data: (sales) {
                       final totalRevenue = sales.fold<double>(
                         0,
-                        (sum, item) => sum + (item.amount * item.sellingPriceAtTime),
+                        (sum, item) =>
+                            sum + (item.amount * item.sellingPriceAtTime),
                       );
                       final totalProfit = sales.fold<double>(
                         0,
                         (sum, item) =>
                             sum +
-                            (item.amount * (item.sellingPriceAtTime - item.costPriceAtTime)),
+                            (item.amount *
+                                (item.sellingPriceAtTime -
+                                    item.costPriceAtTime)),
                       );
 
                       return Row(
@@ -137,31 +148,30 @@ class SalesScreen extends ConsumerWidget {
                 : SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final sale = sales[index];
-                          return productsAsync.when(
-                            data: (products) {
-                              final product = products.firstWhere(
-                                (p) => p.id == sale.productId,
-                                orElse: () => Product()..name = 'Unknown',
-                              );
-                              return _SaleTile(sale: sale, productName: product.name);
-                            },
-                            loading: () => const SizedBox.shrink(),
-                            error: (_, __) => const SizedBox.shrink(),
-                          );
-                        },
-                        childCount: sales.length,
-                      ),
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final sale = sales[index];
+                        return productsAsync.when(
+                          data: (products) {
+                            final product = products.firstWhere(
+                              (p) => p.id == sale.productId,
+                              orElse: () => Product()..name = 'Unknown',
+                            );
+                            return _SaleTile(
+                              sale: sale,
+                              productName: product.name,
+                            );
+                          },
+                          loading: () => const SizedBox.shrink(),
+                          error: (_, __) => const SizedBox.shrink(),
+                        );
+                      }, childCount: sales.length),
                     ),
                   ),
             loading: () => const SliverFillRemaining(
               child: Center(child: CircularProgressIndicator()),
             ),
-            error: (err, __) => SliverFillRemaining(
-              child: Center(child: Text('Error: $err')),
-            ),
+            error: (err, __) =>
+                SliverFillRemaining(child: Center(child: Text('Error: $err'))),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 120)),
         ],
@@ -229,7 +239,8 @@ class _SaleTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final revenue = sale.amount * sale.sellingPriceAtTime;
-    final profit = sale.amount * (sale.sellingPriceAtTime - sale.costPriceAtTime);
+    final profit =
+        sale.amount * (sale.sellingPriceAtTime - sale.costPriceAtTime);
 
     return InkWell(
       onLongPress: () {
@@ -244,7 +255,10 @@ class _SaleTile extends ConsumerWidget {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('CANCEL', style: TextStyle(color: Colors.white38)),
+                child: const Text(
+                  'CANCEL',
+                  style: TextStyle(color: Colors.white38),
+                ),
               ),
               TextButton(
                 onPressed: () async {
@@ -253,7 +267,10 @@ class _SaleTile extends ConsumerWidget {
                 },
                 child: const Text(
                   'VOID SALE',
-                  style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w900),
+                  style: TextStyle(
+                    color: Color(0xFFEF4444),
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
             ],
@@ -290,7 +307,10 @@ class _SaleTile extends ConsumerWidget {
                 children: [
                   Text(
                     sale.customerName,
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
                   ),
                   Text(
                     '${sale.amount.toStringAsFixed(0)} × $productName',
@@ -304,7 +324,10 @@ class _SaleTile extends ConsumerWidget {
               children: [
                 Text(
                   '${revenue.toStringAsFixed(0)} ETB',
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14,
+                  ),
                 ),
                 Text(
                   '+${profit.toStringAsFixed(0)} profit',
