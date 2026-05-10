@@ -297,6 +297,9 @@ void _showOrderDialog(
   final advanceController = TextEditingController(
     text: existing?.advancePayment.toStringAsFixed(0) ?? '0',
   );
+  final phoneController = TextEditingController(
+    text: existing?.phoneNumber,
+  );
   PaymentMethod selectedPayment = existing?.paymentMethod ?? PaymentMethod.cash;
   DateTime selectedDate = existing?.dueDate ?? ref.read(selectedDateProvider);
 
@@ -349,6 +352,12 @@ void _showOrderDialog(
                 customerController,
                 'Customer Name',
                 Icons.person_rounded,
+              ),
+              const SizedBox(height: 16),
+              _buildTextField(
+                phoneController,
+                'Phone Number (Optional)',
+                Icons.phone_rounded,
               ),
               const SizedBox(height: 16),
               Row(
@@ -481,7 +490,10 @@ void _showOrderDialog(
                     final order = existing ?? CustomerOrder();
                     order.productId = selectedProductId!;
                     order.customerName = customerController.text.trim();
-                    order.amount = amount;
+                    order.phoneNumber = phoneController.text.trim().isEmpty 
+                        ? null 
+                        : phoneController.text.trim();
+                    order.amount = double.tryParse(amountController.text) ?? 1.0;
                     order.advancePayment = advance;
                     order.paymentMethod = selectedPayment;
                     order.dueDate = selectedDate;
@@ -657,6 +669,23 @@ class _OrderCard extends ConsumerWidget {
                               letterSpacing: -0.5,
                             ),
                           ),
+                          if (order.phoneNumber != null && order.phoneNumber!.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(Icons.phone_rounded, size: 12, color: Colors.white38),
+                                const SizedBox(width: 4),
+                                Text(
+                                  order.phoneNumber!,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.white38,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),
