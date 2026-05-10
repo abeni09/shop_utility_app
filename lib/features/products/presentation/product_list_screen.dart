@@ -262,12 +262,12 @@ class ProductListScreen extends ConsumerWidget {
   }
 }
 
-class _ProductCard extends StatelessWidget {
+class _ProductCard extends ConsumerWidget {
   final Product product;
   const _ProductCard({required this.product});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -308,7 +308,48 @@ class _ProductCard extends StatelessWidget {
               ],
             ),
           ),
+          trailing: IconButton(
+            icon: const Icon(
+              Icons.delete_sweep_rounded,
+              color: Colors.white12,
+              size: 20,
+            ),
+            onPressed: () => _showVoidProductDialog(context, ref, product),
+          ),
         ),
+      ),
+    );
+  }
+
+  void _showVoidProductDialog(BuildContext context, WidgetRef ref, Product p) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text(
+          'VOID PRODUCT?',
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+        ),
+        content: const Text(
+          'This will hide the product from your sales list. Past orders will NOT be affected.',
+          style: TextStyle(color: Colors.white70, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await ref.read(productRepositoryProvider).voidProduct(p.id);
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text(
+              'VOID',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
       ),
     );
   }

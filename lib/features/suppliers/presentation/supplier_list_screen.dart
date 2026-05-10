@@ -219,86 +219,181 @@ class _SupplierCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final hasBalance = supplier.balance > 0;
+    final isActive = supplier.isActive;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
+        color: isActive
+            ? Colors.white.withValues(alpha: 0.03)
+            : Colors.white.withValues(alpha: 0.01),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(
+          color: isActive
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.white.withValues(alpha: 0.02),
+        ),
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(20),
-        leading: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.indigo.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Icon(
-            Icons.local_shipping_rounded,
-            color: Color(0xFF818CF8),
-          ),
-        ),
-        title: Text(
-          supplier.name,
-          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-        ),
-        subtitle: Row(
+      child: Opacity(
+        opacity: isActive ? 1.0 : 0.5,
+        child: Column(
           children: [
-            Text(
-              supplier.contact ?? 'No contact',
-              style: const TextStyle(color: Colors.white38, fontSize: 12),
-            ),
-            if (supplier.contact != null && supplier.contact!.isNotEmpty) ...[
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () async {
-                  final url = Uri.parse('tel:${supplier.contact}');
-                  if (await canLaunchUrl(url)) {
-                    await launchUrl(url);
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF818CF8).withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.call_rounded,
-                    size: 14,
-                    color: Color(0xFF818CF8),
-                  ),
+            ListTile(
+              contentPadding: const EdgeInsets.all(20),
+              leading: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.indigo.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  isActive
+                      ? Icons.local_shipping_rounded
+                      : Icons.pause_circle_filled_rounded,
+                  color: isActive ? const Color(0xFF818CF8) : Colors.white24,
                 ),
               ),
-            ],
-          ],
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              'BALANCE',
-              style: const TextStyle(
-                fontWeight: FontWeight.w900,
-                color: Colors.white24,
-                fontSize: 9,
-                letterSpacing: 1,
+              title: Text(
+                supplier.name,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+              ),
+              subtitle: Row(
+                children: [
+                  Text(
+                    supplier.contact ?? 'No contact',
+                    style: const TextStyle(color: Colors.white38, fontSize: 12),
+                  ),
+                ],
+              ),
+              trailing: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'BALANCE',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white24,
+                      fontSize: 9,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  Text(
+                    supplier.balance.toStringAsFixed(0),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 18,
+                      color: hasBalance ? Colors.redAccent : Colors.greenAccent,
+                    ),
+                  ),
+                ],
+              ),
+              onTap: isActive
+                  ? () => _showSettlementDialog(context, ref, supplier)
+                  : null,
+            ),
+            Divider(
+              height: 1,
+              color: Colors.white.withValues(alpha: 0.05),
+              indent: 20,
+              endIndent: 20,
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Transform.scale(
+                        scale: 0.7,
+                        child: Switch(
+                          value: isActive,
+                          onChanged: (val) async {
+                            final updated = Supplier()
+                              ..id = supplier.id
+                              ..name = supplier.name
+                              ..contact = supplier.contact
+                              ..balance = supplier.balance
+                              ..isActive = val;
+                            await ref
+                                .read(supplierRepositoryProvider)
+                                .saveSupplier(updated);
+                          },
+                          activeColor: const Color(0xFF818CF8),
+                        ),
+                      ),
+                      Text(
+                        isActive ? 'ACTIVE' : 'INACTIVE',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1,
+                          color: isActive
+                              ? const Color(0xFF818CF8)
+                              : Colors.white24,
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.delete_outline_rounded,
+                      size: 20,
+                      color: Colors.white12,
+                    ),
+                    onPressed: () => _showVoidDialog(context, ref, supplier),
+                  ),
+                ],
               ),
             ),
-            Text(
-              supplier.balance.toStringAsFixed(0),
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 18,
-                color: hasBalance ? Colors.redAccent : Colors.greenAccent,
-              ),
-            ),
           ],
         ),
-        onTap: () => _showSettlementDialog(context, ref, supplier),
+      ),
+    );
+  }
+
+  void _showVoidDialog(BuildContext context, WidgetRef ref, Supplier s) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text(
+          'VOID SUPPLIER?',
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+        ),
+        content: const Text(
+          'This will permanently hide the supplier and their records. This cannot be undone.',
+          style: TextStyle(color: Colors.white70, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () async {
+              // Soft-delete: inactivate and clear name to allow re-use if needed?
+              // Or we add isVoid. For now, let's just use isActive as the primary filter.
+              // If they want to VOID, we can set a separate flag if added to model.
+              // Since we don't have isVoid in Supplier model yet, let's just
+              // set isActive to false and maybe a name prefix.
+              final updated = Supplier()
+                ..id = s.id
+                ..name = '[VOID] ${s.name}'
+                ..contact = s.contact
+                ..balance = s.balance
+                ..isActive = false;
+              await ref.read(supplierRepositoryProvider).saveSupplier(updated);
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text(
+              'VOID',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
       ),
     );
   }
