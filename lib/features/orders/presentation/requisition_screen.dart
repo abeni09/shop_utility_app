@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopsync/features/orders/data/customer_order_model.dart';
 import 'package:shopsync/features/orders/data/requisition_service.dart';
 import 'package:shopsync/features/orders/presentation/order_providers.dart';
+import 'package:shopsync/features/products/data/daily_stock_model.dart';
+import 'package:shopsync/features/products/presentation/daily_stock_providers.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
 import 'package:shopsync/features/suppliers/presentation/supplier_list_screen.dart';
 
@@ -13,35 +15,49 @@ final requisitionServiceProvider = Provider<RequisitionService>((ref) {
   );
 });
 
-final tomorrowRequisitionProvider = FutureProvider<List<RequisitionItem>>((ref) async {
+final tomorrowRequisitionProvider = FutureProvider<List<RequisitionItem>>((
+  ref,
+) async {
   final now = DateTime.now();
-  final tomorrow = DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
-  
+  final tomorrow = DateTime(
+    now.year,
+    now.month,
+    now.day,
+  ).add(const Duration(days: 1));
+
   // Watch the orders stream for tomorrow
-  final ordersAsync = ref.watch(ordersForDateProvider((date: tomorrow, includeVoided: false)));
+  final ordersAsync = ref.watch(
+    ordersForDateProvider((date: tomorrow, includeVoided: false)),
+  );
   final productsAsync = ref.watch(productsProvider);
 
   // We safely extract the data or fetch it directly if still loading
-  final products = productsAsync.asData?.value ?? 
-                   await ref.read(productRepositoryProvider).getAllProducts();
+  final products =
+      productsAsync.asData?.value ??
+      await ref.read(productRepositoryProvider).getAllProducts();
 
-  final orders = ordersAsync.asData?.value ?? 
-                 await ref.read(orderRepositoryProvider).getOrdersForDate(tomorrow);
+  final orders =
+      ordersAsync.asData?.value ??
+      await ref.read(orderRepositoryProvider).getOrdersForDate(tomorrow);
 
   final Map<int, double> productTotals = {};
   for (var order in orders) {
     if (order.status == OrderStatus.pending && !order.isVoid) {
-      productTotals[order.productId] = (productTotals[order.productId] ?? 0.0) + order.amount;
+      productTotals[order.productId] =
+          (productTotals[order.productId] ?? 0.0) + order.amount;
     }
   }
 
-  return products.map((p) {
-    return RequisitionItem(
-      product: p,
-      orderAmount: productTotals[p.id] ?? 0.0,
-      bufferAmount: (productTotals[p.id] ?? 0.0) * 0.1,
-    );
-  }).where((item) => item.totalNeeded > 0).toList();
+  return products
+      .map((p) {
+        return RequisitionItem(
+          product: p,
+          orderAmount: productTotals[p.id] ?? 0.0,
+          bufferAmount: (productTotals[p.id] ?? 0.0) * 0.1,
+        );
+      })
+      .where((item) => item.totalNeeded > 0)
+      .toList();
 });
 
 class RequisitionScreen extends ConsumerWidget {
@@ -166,9 +182,102 @@ class RequisitionScreen extends ConsumerWidget {
             error: (err, stack) =>
                 SliverFillRemaining(child: Center(child: Text('Error: $err'))),
           ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              child: ref
+                  .watch(tomorrowRequisitionProvider)
+                  .when(
+                    data: (items) {
+                      if (items.isEmpty) return const SizedBox.shrink();
+
+                      return SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF38BDF8),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            elevation: 8,
+                            shadowColor: const Color(
+                              0xFF38BDF8,
+                            ).withValues(alpha: 0.4),
+                          ),
+                          onPressed: () => _placeOrder(context, ref, items),
+                          child: const Text(
+                            'PLACE ORDER TO SUPPLIERS',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.5,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _placeOrder(
+    BuildContext context,
+    WidgetRef ref,
+    List<RequisitionItem> items,
+  ) async {
+    final now = DateTime.now();
+    final tomorrow = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).add(const Duration(days: 1));
+    final repo = ref.read(dailyStockRepositoryProvider);
+
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      for (var item in items) {
+        var stock = await repo.getStockForProduct(item.product.id, tomorrow);
+        stock ??= DailyStock()
+          ..productId = item.product.id
+          ..date = tomorrow;
+
+        stock.requestedQuantity = item.totalNeeded;
+        await repo.saveDailyStock(stock);
+      }
+
+      if (context.mounted) {
+        Navigator.pop(context); // Close loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Order placed successfully for tomorrow!'),
+            backgroundColor: Color(0xFF10B981),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error placing order: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildRequisitionCard(RequisitionItem item) {

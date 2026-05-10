@@ -107,9 +107,11 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                     separatorBuilder: (_, __) => const SizedBox(height: 16),
                     itemBuilder: (context, index) {
                       final product = products[index];
+                      final stock = stocks.where((s) => s.productId == product.id).firstOrNull;
                       return _StockInputCard(
                         productName: product.name,
                         controller: _controllers[product.id]!,
+                        requestedAmount: stock?.requestedQuantity ?? 0.0,
                       );
                     },
                   ),
@@ -192,8 +194,13 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
 class _StockInputCard extends StatelessWidget {
   final String productName;
   final TextEditingController controller;
+  final double requestedAmount;
 
-  const _StockInputCard({required this.productName, required this.controller});
+  const _StockInputCard({
+    required this.productName,
+    required this.controller,
+    required this.requestedAmount,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -207,9 +214,23 @@ class _StockInputCard extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              productName,
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  productName,
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                ),
+                if (requestedAmount > 0)
+                  Text(
+                    'Ordered: ${requestedAmount.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      color: Color(0xFF38BDF8),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+              ],
             ),
           ),
           SizedBox(

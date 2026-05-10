@@ -32,8 +32,13 @@ const DailyStockSchema = CollectionSchema(
       name: r'receivedQuantity',
       type: IsarType.double,
     ),
-    r'supplierId': PropertySchema(
+    r'requestedQuantity': PropertySchema(
       id: 3,
+      name: r'requestedQuantity',
+      type: IsarType.double,
+    ),
+    r'supplierId': PropertySchema(
+      id: 4,
       name: r'supplierId',
       type: IsarType.long,
     )
@@ -84,7 +89,8 @@ void _dailyStockSerialize(
   writer.writeDateTime(offsets[0], object.date);
   writer.writeLong(offsets[1], object.productId);
   writer.writeDouble(offsets[2], object.receivedQuantity);
-  writer.writeLong(offsets[3], object.supplierId);
+  writer.writeDouble(offsets[3], object.requestedQuantity);
+  writer.writeLong(offsets[4], object.supplierId);
 }
 
 DailyStock _dailyStockDeserialize(
@@ -98,7 +104,8 @@ DailyStock _dailyStockDeserialize(
   object.id = id;
   object.productId = reader.readLong(offsets[1]);
   object.receivedQuantity = reader.readDouble(offsets[2]);
-  object.supplierId = reader.readLongOrNull(offsets[3]);
+  object.requestedQuantity = reader.readDouble(offsets[3]);
+  object.supplierId = reader.readLongOrNull(offsets[4]);
   return object;
 }
 
@@ -116,6 +123,8 @@ P _dailyStockDeserializeProp<P>(
     case 2:
       return (reader.readDouble(offset)) as P;
     case 3:
+      return (reader.readDouble(offset)) as P;
+    case 4:
       return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -538,6 +547,72 @@ extension DailyStockQueryFilter
   }
 
   QueryBuilder<DailyStock, DailyStock, QAfterFilterCondition>
+      requestedQuantityEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'requestedQuantity',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<DailyStock, DailyStock, QAfterFilterCondition>
+      requestedQuantityGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'requestedQuantity',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<DailyStock, DailyStock, QAfterFilterCondition>
+      requestedQuantityLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'requestedQuantity',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<DailyStock, DailyStock, QAfterFilterCondition>
+      requestedQuantityBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'requestedQuantity',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<DailyStock, DailyStock, QAfterFilterCondition>
       supplierIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -656,6 +731,19 @@ extension DailyStockQuerySortBy
     });
   }
 
+  QueryBuilder<DailyStock, DailyStock, QAfterSortBy> sortByRequestedQuantity() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'requestedQuantity', Sort.asc);
+    });
+  }
+
+  QueryBuilder<DailyStock, DailyStock, QAfterSortBy>
+      sortByRequestedQuantityDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'requestedQuantity', Sort.desc);
+    });
+  }
+
   QueryBuilder<DailyStock, DailyStock, QAfterSortBy> sortBySupplierId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'supplierId', Sort.asc);
@@ -720,6 +808,19 @@ extension DailyStockQuerySortThenBy
     });
   }
 
+  QueryBuilder<DailyStock, DailyStock, QAfterSortBy> thenByRequestedQuantity() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'requestedQuantity', Sort.asc);
+    });
+  }
+
+  QueryBuilder<DailyStock, DailyStock, QAfterSortBy>
+      thenByRequestedQuantityDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'requestedQuantity', Sort.desc);
+    });
+  }
+
   QueryBuilder<DailyStock, DailyStock, QAfterSortBy> thenBySupplierId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'supplierId', Sort.asc);
@@ -750,6 +851,13 @@ extension DailyStockQueryWhereDistinct
   QueryBuilder<DailyStock, DailyStock, QDistinct> distinctByReceivedQuantity() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'receivedQuantity');
+    });
+  }
+
+  QueryBuilder<DailyStock, DailyStock, QDistinct>
+      distinctByRequestedQuantity() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'requestedQuantity');
     });
   }
 
@@ -784,6 +892,13 @@ extension DailyStockQueryProperty
       receivedQuantityProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'receivedQuantity');
+    });
+  }
+
+  QueryBuilder<DailyStock, double, QQueryOperations>
+      requestedQuantityProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'requestedQuantity');
     });
   }
 
