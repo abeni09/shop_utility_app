@@ -62,13 +62,13 @@ class ShopSyncApp extends StatelessWidget {
   }
 }
 
-class MainNavigationShell extends StatefulWidget {
+class MainNavigationShell extends ConsumerStatefulWidget {
   const MainNavigationShell({super.key});
   @override
-  State<MainNavigationShell> createState() => _MainNavigationShellState();
+  ConsumerState<MainNavigationShell> createState() => _MainNavigationShellState();
 }
 
-class _MainNavigationShellState extends State<MainNavigationShell> {
+class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
   int _selectedIndex = 0;
   final _screens = [
     const DashboardScreen(),
@@ -76,6 +76,15 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     const ProductListScreen(),
     const SupplierListScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto-backup on startup
+    Future.microtask(() {
+      ref.read(backupServiceProvider).autoBackupIfPossible();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -721,9 +730,94 @@ class DashboardScreen extends ConsumerWidget {
                   )
                 : const Icon(
                     Icons.chevron_right_rounded,
-                    color: Colors.white24,
-                  ),
+            ),
           ),
+          if (user != null) ...[
+            const Divider(height: 1, color: Colors.white10),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextButton.icon(
+                      onPressed: () async {
+                        final backupService = ref.read(backupServiceProvider);
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            backgroundColor: const Color(0xFF1E293B),
+                            title: const Text('Restore Data?'),
+                            content: const Text(
+                              'This will replace ALL local data with the latest backup from Google Drive. You will need to close and reopen the app after restoration.',
+                              style: TextStyle(color: Colors.white70),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('CANCEL'),
+                              ),
+                              TextButton(
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.redAccent,
+                                ),
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text('RESTORE'),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirmed == true) {
+                          try {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Downloading backup...'),
+                              ),
+                            );
+                            await backupService.restoreLatestBackup();
+                            if (context.mounted) {
+                              showDialog(
+                                context: context,
+                                barrierDismissible: false,
+                                builder: (context) => AlertDialog(
+                                  backgroundColor: const Color(0xFF1E293B),
+                                  title: const Text('Restore Complete'),
+                                  content: const Text(
+                                    'Database has been replaced. Please close the app and reopen it to see the restored data.',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('OK'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: Colors.redAccent,
+                                  content: Text('Restore Failed: $e'),
+                                ),
+                              );
+                            }
+                          }
+                        }
+                      },
+                      icon: const Icon(Icons.history_rounded, size: 18),
+                      label: const Text('Restore from Cloud'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white60,
+                        alignment: Alignment.centerLeft,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );

@@ -18,6 +18,7 @@ class DatabaseService {
         DailyLogSchema,
       ],
       directory: dir.path,
+      name: 'shopsync_db',
     );
   }
 

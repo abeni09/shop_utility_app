@@ -8,7 +8,7 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:461920714778:android:d27b95024e4dd6238a91a3",
+        "mobilesdk_app_id": "1:461920714778:android:4d029369992c09c28a91a3",
         "android_client_info": {
           "package_name": "com.example.shopsync"
         }
@@ -17,6 +17,14 @@
         {
           "client_id": "461920714778-tr1c97t16546jc2dd2isfosv9t88nh33.apps.googleusercontent.com",
           "client_type": 3
+        },
+        {
+          "client_id": "461920714778-cvbiqa9pabpgv0v4es9tojcj5i4p1jl0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.shopsync",
+            "certificate_hash": "77036761217c3dd222b565c5616ce1b566d6f3cd"
+          }
         }
       ],
       "api_key": [

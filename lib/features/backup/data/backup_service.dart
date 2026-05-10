@@ -85,10 +85,9 @@ class BackupService {
       final driveApi = drive.DriveApi(authClient);
 
       final dir = await getApplicationDocumentsDirectory();
-      final backupFile = File('${dir.path}/shop_backup.isar');
+      final backupFile = File('${dir.path}/temp_backup.isar');
 
       // Create a temporary copy of the DB for backup
-      // Note: copyToFile requires the file NOT to exist
       if (await backupFile.exists()) await backupFile.delete();
       await isar.copyToFile(backupFile.path);
 
@@ -108,9 +107,75 @@ class BackupService {
   }
 
   Future<void> autoBackupIfPossible() async {
-    final account = await _googleSignIn.attemptLightweightAuthentication();
-    if (account != null) {
-      await uploadBackup();
+    try {
+      final account = await _googleSignIn.attemptLightweightAuthentication();
+      if (account != null) {
+        // Run upload in background without blocking
+        uploadBackup().catchError((e) => print('Background backup failed: $e'));
+      }
+    } catch (e) {
+      print('Auto-backup check failed: $e');
+    }
+  }
+
+  Future<void> restoreLatestBackup() async {
+    try {
+      final account = await _googleSignIn.attemptLightweightAuthentication() ??
+          await _googleSignIn.authenticate(
+            scopeHint: [drive.DriveApi.driveFileScope],
+          );
+
+      final authz = await account.authorizationClient.authorizeScopes([
+        drive.DriveApi.driveFileScope,
+      ]);
+
+      final authClient = authz.authClient(
+        scopes: [drive.DriveApi.driveFileScope],
+      );
+
+      final driveApi = drive.DriveApi(authClient);
+
+      // 1. List backup files
+      final fileList = await driveApi.files.list(
+        q: "name contains 'ShopSync_Backup_' and trashed = false",
+        orderBy: "createdTime desc",
+        pageSize: 1,
+      );
+
+      if (fileList.files == null || fileList.files!.isEmpty) {
+        throw Exception("No backup files found on Google Drive.");
+      }
+
+      final latestFile = fileList.files!.first;
+      final fileId = latestFile.id!;
+
+      // 2. Download the file
+      final drive.Media response = await driveApi.files.get(
+        fileId,
+        downloadOptions: drive.DownloadOptions.metadata,
+      ) as drive.Media; // This gets metadata, we need media
+
+      final drive.Media media = await driveApi.files.get(
+        fileId,
+        downloadOptions: drive.DownloadOptions.fullMedia,
+      ) as drive.Media;
+
+      final dir = await getApplicationDocumentsDirectory();
+      final tempFile = File('${dir.path}/temp_restore.isar');
+      
+      final ios = tempFile.openWrite();
+      await media.stream.pipe(ios);
+      await ios.close();
+
+      // 3. Replace local DB
+      final dbPath = '${dir.path}/shopsync_db.isar'; 
+      
+      await tempFile.copy(dbPath);
+      await tempFile.delete();
+      
+    } catch (e) {
+      print('Restore error: $e');
+      rethrow;
     }
   }
 }
