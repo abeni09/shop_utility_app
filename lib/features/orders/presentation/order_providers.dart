@@ -25,3 +25,17 @@ final ordersProvider = StreamProvider<List<CustomerOrder>>((ref) {
   final showVoided = ref.watch(showVoidedOrdersProvider);
   return repository.watchOrdersForDate(date, includeVoided: showVoided);
 });
+
+final filteredOrdersProvider = Provider<List<CustomerOrder>>((ref) {
+  final orders = ref.watch(ordersProvider).value ?? [];
+  final filter = ref.watch(orderFilterProvider);
+
+  switch (filter) {
+    case OrderFilter.active:
+      return orders.where((o) => o.status == OrderStatus.pending).toList();
+    case OrderFilter.completed:
+      return orders.where((o) => o.status == OrderStatus.sold).toList();
+    case OrderFilter.all:
+      return orders;
+  }
+});

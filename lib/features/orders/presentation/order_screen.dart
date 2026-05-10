@@ -101,28 +101,37 @@ class OrderScreen extends ConsumerWidget {
                   ),
                 ],
               ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+                  child: _buildFilterBar(context, ref),
+                ),
+              ),
               ordersAsync.when(
-                data: (orders) => orders.isEmpty
-                    ? const SliverFillRemaining(
-                        child: Center(
-                          child: Text(
-                            'No orders for this date',
-                            style: TextStyle(color: Colors.white38),
+                data: (_) {
+                  final orders = ref.watch(filteredOrdersProvider);
+                  return orders.isEmpty
+                      ? const SliverFillRemaining(
+                          child: Center(
+                            child: Text(
+                              'No matching orders',
+                              style: TextStyle(color: Colors.white38),
+                            ),
                           ),
-                        ),
-                      )
-                    : SliverPadding(
-                        padding: const EdgeInsets.all(16),
-                        sliver: SliverList(
-                          delegate: SliverChildBuilderDelegate((
-                            context,
-                            index,
-                          ) {
-                            final order = orders[index];
-                            return _OrderCard(order: order);
-                          }, childCount: orders.length),
-                        ),
-                      ),
+                        )
+                      : SliverPadding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          sliver: SliverList(
+                            delegate: SliverChildBuilderDelegate((
+                              context,
+                              index,
+                            ) {
+                              final order = orders[index];
+                              return _OrderCard(order: order);
+                            }, childCount: orders.length),
+                          ),
+                        );
+                },
                 loading: () => const SliverFillRemaining(
                   child: Center(child: CircularProgressIndicator()),
                 ),
@@ -159,8 +168,96 @@ class OrderScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildFilterBar(BuildContext context, WidgetRef ref) {
+    final currentFilter = ref.watch(orderFilterProvider);
+
+    return Container(
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _FilterChip(
+              label: 'ACTIVE',
+              isSelected: currentFilter == OrderFilter.active,
+              onTap: () => ref.read(orderFilterProvider.notifier).state =
+                  OrderFilter.active,
+            ),
+          ),
+          Expanded(
+            child: _FilterChip(
+              label: 'COMPLETED',
+              isSelected: currentFilter == OrderFilter.completed,
+              onTap: () => ref.read(orderFilterProvider.notifier).state =
+                  OrderFilter.completed,
+            ),
+          ),
+          Expanded(
+            child: _FilterChip(
+              label: 'ALL',
+              isSelected: currentFilter == OrderFilter.all,
+              onTap: () => ref.read(orderFilterProvider.notifier).state =
+                  OrderFilter.all,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _onCreateOrder(BuildContext context, WidgetRef ref) {
     _showOrderDialog(context, ref);
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _FilterChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF6366F1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
+              color: isSelected ? Colors.white : Colors.white38,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -177,7 +274,8 @@ void _showOrderDialog(
     final existingProduct = (ref.read(productsProvider).value ?? [])
         .where((p) => p.id == existing!.productId)
         .firstOrNull;
-    if (existingProduct != null && !products.any((p) => p.id == existingProduct.id)) {
+    if (existingProduct != null &&
+        !products.any((p) => p.id == existingProduct.id)) {
       products.add(existingProduct);
     }
   }
@@ -394,7 +492,9 @@ void _showOrderDialog(
                       order.status = OrderStatus.pending;
                     }
 
-                    print('DEBUG: Dialog saving order. Name: ${order.customerName}, Status: ${order.status}');
+                    print(
+                      'DEBUG: Dialog saving order. Name: ${order.customerName}, Status: ${order.status}',
+                    );
                     await ref.read(orderRepositoryProvider).saveOrder(order);
 
                     if (context.mounted) {
@@ -477,7 +577,9 @@ class _OrderCard extends ConsumerWidget {
     final isVoid = order.isVoid;
     final total = order.amount * order.sellingPriceAtTime;
     final balance = total - order.advancePayment;
-    final progress = total > 0 ? (order.advancePayment / total).clamp(0.0, 1.0) : 0.0;
+    final progress = total > 0
+        ? (order.advancePayment / total).clamp(0.0, 1.0)
+        : 0.0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
@@ -516,14 +618,19 @@ class _OrderCard extends ConsumerWidget {
                                 decoration: BoxDecoration(
                                   color: isVoid
                                       ? Colors.redAccent
-                                      : (isSold ? Colors.greenAccent : Colors.amberAccent),
+                                      : (isSold
+                                            ? Colors.greenAccent
+                                            : Colors.amberAccent),
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: (isVoid
-                                              ? Colors.red
-                                              : (isSold ? Colors.green : Colors.amber))
-                                          .withValues(alpha: 0.5),
+                                      color:
+                                          (isVoid
+                                                  ? Colors.red
+                                                  : (isSold
+                                                        ? Colors.green
+                                                        : Colors.amber))
+                                              .withValues(alpha: 0.5),
                                       blurRadius: 8,
                                     ),
                                   ],
@@ -654,7 +761,9 @@ class _OrderCard extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w900,
-                              color: progress >= 1.0 ? Colors.greenAccent : Colors.white60,
+                              color: progress >= 1.0
+                                  ? Colors.greenAccent
+                                  : Colors.white60,
                             ),
                           ),
                         ],
@@ -673,7 +782,10 @@ class _OrderCard extends ConsumerWidget {
                           AnimatedContainer(
                             duration: const Duration(milliseconds: 500),
                             height: 6,
-                            width: MediaQuery.of(context).size.width * 0.7 * progress,
+                            width:
+                                MediaQuery.of(context).size.width *
+                                0.7 *
+                                progress,
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
                                 colors: [Color(0xFF6366F1), Color(0xFF818CF8)],
@@ -681,7 +793,9 @@ class _OrderCard extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(3),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+                                  color: const Color(
+                                    0xFF6366F1,
+                                  ).withValues(alpha: 0.3),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
@@ -694,8 +808,16 @@ class _OrderCard extends ConsumerWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _buildPriceInfo('PAID', order.advancePayment, Colors.greenAccent),
-                          _buildPriceInfo('DUE', balance, balance > 0 ? Colors.orangeAccent : Colors.white24),
+                          _buildPriceInfo(
+                            'PAID',
+                            order.advancePayment,
+                            Colors.greenAccent,
+                          ),
+                          _buildPriceInfo(
+                            'DUE',
+                            balance,
+                            balance > 0 ? Colors.orangeAccent : Colors.white24,
+                          ),
                         ],
                       ),
                     ],
@@ -746,7 +868,8 @@ class _OrderCard extends ConsumerWidget {
                         label: 'RESTORE',
                         icon: Icons.restore_rounded,
                         color: Colors.greenAccent,
-                        onTap: () => _showRestoreOrderDialog(context, ref, order),
+                        onTap: () =>
+                            _showRestoreOrderDialog(context, ref, order),
                       ),
                     ],
                   ],
@@ -784,44 +907,70 @@ class _OrderCard extends ConsumerWidget {
     );
   }
 
-  void _showRestoreOrderDialog(BuildContext context, WidgetRef ref, CustomerOrder order) {
+  void _showRestoreOrderDialog(
+    BuildContext context,
+    WidgetRef ref,
+    CustomerOrder order,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: const Text('RESTORE?', style: TextStyle(fontWeight: FontWeight.w900)),
+        title: const Text(
+          'RESTORE?',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
         content: const Text('Bring this order back?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('NO')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('NO'),
+          ),
           TextButton(
             onPressed: () async {
               await ref.read(orderRepositoryProvider).unvoidOrder(order.id);
               if (context.mounted) Navigator.pop(context);
             },
-            child: const Text('YES, RESTORE', style: TextStyle(color: Colors.greenAccent)),
+            child: const Text(
+              'YES, RESTORE',
+              style: TextStyle(color: Colors.greenAccent),
+            ),
           ),
         ],
       ),
     );
   }
 
-  void _showVoidOrderDialog(BuildContext context, WidgetRef ref, CustomerOrder order) {
+  void _showVoidOrderDialog(
+    BuildContext context,
+    WidgetRef ref,
+    CustomerOrder order,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: const Text('VOID ORDER?', style: TextStyle(fontWeight: FontWeight.w900)),
+        title: const Text(
+          'VOID ORDER?',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
         content: const Text('This will hide it from the main list.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
           TextButton(
             onPressed: () async {
               await ref.read(orderRepositoryProvider).voidOrder(order.id);
               if (context.mounted) Navigator.pop(context);
             },
-            child: const Text('VOID', style: TextStyle(color: Colors.redAccent)),
+            child: const Text(
+              'VOID',
+              style: TextStyle(color: Colors.redAccent),
+            ),
           ),
         ],
       ),
@@ -916,4 +1065,3 @@ Widget _buildBadge(String label, Color color) {
     ),
   );
 }
-

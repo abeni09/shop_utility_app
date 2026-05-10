@@ -11,6 +11,7 @@ class CustomerOrder {
 
   late int productId;
   late String customerName;
+  String? phoneNumber;
   late double amount;
   
   @Index()
