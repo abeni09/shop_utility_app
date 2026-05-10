@@ -22,17 +22,25 @@ class QuickSaleDialog extends ConsumerStatefulWidget {
 class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
   final Map<int, double> _quantities = {};
   final Map<int, bool> _addBag = {};
+  int? _selectedBagId;
 
   @override
   Widget build(BuildContext context) {
     var products = ref.watch(productsProvider).value ?? [];
     products = products.where((p) => !p.isVoid).toList();
 
-    // Find the "Bag" product if it exists (searching for 'bag' or 'festal')
-    final bagProduct = products.where((p) {
+    // Find all "Bag" products
+    final bagProducts = products.where((p) {
       final name = p.name.toLowerCase();
       return name.contains('bag') || name.contains('festal');
-    }).firstOrNull;
+    }).toList();
+
+    // Initialize selected bag if not set
+    if (_selectedBagId == null && bagProducts.isNotEmpty) {
+      _selectedBagId = bagProducts.first.id;
+    }
+
+    final currentBag = bagProducts.where((p) => p.id == _selectedBagId).firstOrNull;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -55,19 +63,47 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                 ),
               ),
             ),
-            const Text(
-              'QUICK SALE',
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                letterSpacing: 2,
-                fontSize: 14,
-                color: Color(0xFF818CF8),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'QUICK SALE',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2,
+                    fontSize: 14,
+                    color: Color(0xFF818CF8),
+                  ),
+                ),
+                if (bagProducts.length > 1)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: _selectedBagId,
+                        dropdownColor: const Color(0xFF1E293B),
+                        icon: const Icon(Icons.arrow_drop_down_rounded, color: Colors.white38),
+                        style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                        onChanged: (val) => setState(() => _selectedBagId = val),
+                        items: bagProducts.map((p) => DropdownMenuItem(
+                          value: p.id,
+                          child: Text(p.name.toUpperCase()),
+                        )).toList(),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Select a product and quantity for instant fulfillment.',
-              style: TextStyle(color: Colors.white38, fontSize: 13),
+            Text(
+              bagProducts.isNotEmpty 
+                ? 'Bundle with ${currentBag?.name ?? "Bag"} to fulfill instantly.'
+                : 'Select a product and quantity for instant fulfillment.',
+              style: const TextStyle(color: Colors.white38, fontSize: 13),
             ),
             const SizedBox(height: 24),
             ConstrainedBox(
@@ -90,9 +126,7 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                       separatorBuilder: (_, _) => const SizedBox(height: 8),
                       itemBuilder: (context, index) {
                         final product = products[index];
-                        // Don't show the bag itself in the list if it's the target of a toggle?
-                        // Actually, better to show it in case someone wants to buy ONLY bags.
-                        return _buildQuickSaleTile(product, bagProduct);
+                        return _buildQuickSaleTile(product, currentBag);
                       },
                     ),
             ),
