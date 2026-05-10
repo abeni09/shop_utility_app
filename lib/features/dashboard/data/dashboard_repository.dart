@@ -1,6 +1,8 @@
 import 'package:isar/isar.dart';
 import 'package:shopsync/features/dashboard/data/daily_log_model.dart';
 import 'package:shopsync/features/orders/data/customer_order_model.dart';
+import 'package:shopsync/features/products/data/daily_stock_model.dart';
+import 'package:shopsync/features/products/data/product_model.dart';
 
 class DashboardRepository {
   final Isar isar;
@@ -10,7 +12,7 @@ class DashboardRepository {
   Future<DailyLog> getOrCreateDailyLog(DateTime date) async {
     final startOfDay = DateTime(date.year, date.month, date.day);
     var log = await isar.dailyLogs.filter().dateEqualTo(startOfDay).findFirst();
-    
+
     if (log == null) {
       log = DailyLog()..date = startOfDay;
       await isar.writeTxn(() async {
@@ -26,7 +28,9 @@ class DashboardRepository {
 
     final orders = await isar.customerOrders
         .filter()
-        .dueDateGreaterThan(startOfDay.subtract(const Duration(milliseconds: 1)))
+        .dueDateGreaterThan(
+          startOfDay.subtract(const Duration(milliseconds: 1)),
+        )
         .and()
         .dueDateLessThan(endOfDay)
         .statusEqualTo(OrderStatus.sold)
@@ -53,13 +57,47 @@ class DashboardRepository {
     });
   }
 
-  Stream<DailyLog?> watchDailyLog(DateTime date) {
+  Future<void> recalculateSupplierOrders(DateTime date) async {
     final startOfDay = DateTime(date.year, date.month, date.day);
-    return isar.dailyLogs.filter().dateEqualTo(startOfDay).watch(fireImmediately: true).map((list) => list.isEmpty ? null : list.first);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
+
+    // Get all stocks for the day
+    final stocks = await isar.dailyStocks
+        .filter()
+        .dateBetween(startOfDay, endOfDay)
+        .findAll();
+
+    double totalCost = 0;
+    for (var stock in stocks) {
+      final product = await isar.products.get(stock.productId);
+      if (product != null) {
+        totalCost += stock.receivedQuantity * product.costPrice;
+      }
+    }
+
+    final log = await getOrCreateDailyLog(date);
+    log.totalSupplierOrders = totalCost;
+
+    await isar.writeTxn(() async {
+      await isar.dailyLogs.put(log);
+    });
   }
 
-  Future<Map<String, double>> getProfitForRange(DateTime start, DateTime end) async {
-    final logs = await isar.dailyLogs.filter()
+  Stream<DailyLog?> watchDailyLog(DateTime date) {
+    final startOfDay = DateTime(date.year, date.month, date.day);
+    return isar.dailyLogs
+        .filter()
+        .dateEqualTo(startOfDay)
+        .watch(fireImmediately: true)
+        .map((list) => list.isEmpty ? null : list.first);
+  }
+
+  Future<Map<String, double>> getProfitForRange(
+    DateTime start,
+    DateTime end,
+  ) async {
+    final logs = await isar.dailyLogs
+        .filter()
         .dateGreaterThan(start.subtract(const Duration(milliseconds: 1)))
         .and()
         .dateLessThan(end.add(const Duration(days: 1)))
@@ -73,9 +111,6 @@ class DashboardRepository {
       totalProfit += log.totalProfit;
     }
 
-    return {
-      'sales': totalSales,
-      'profit': totalProfit,
-    };
+    return {'sales': totalSales, 'profit': totalProfit};
   }
 }

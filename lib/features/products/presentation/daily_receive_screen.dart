@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:shopsync/features/products/data/daily_stock_model.dart';
 import 'package:shopsync/features/products/presentation/daily_stock_providers.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
+import 'package:shopsync/features/suppliers/presentation/supplier_list_screen.dart';
+import 'package:shopsync/features/dashboard/presentation/dashboard_providers.dart';
 
 class DailyReceiveScreen extends ConsumerStatefulWidget {
   const DailyReceiveScreen({super.key});
@@ -131,6 +133,9 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                       ),
                       onPressed: () async {
                         final repo = ref.read(dailyStockRepositoryProvider);
+                        final supplierRepo = ref.read(supplierRepositoryProvider);
+                        final dashboardRepo = ref.read(dashboardRepositoryProvider);
+
                         for (var p in products) {
                           final text = _controllers[p.id]!.text.trim();
                           final amount = double.tryParse(text) ?? 0;
@@ -150,18 +155,32 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                             _selectedDate,
                           );
 
+                          final oldReceived = stock?.receivedQuantity ?? 0.0;
+                          final delta = amount - oldReceived;
+
                           stock ??= DailyStock()
                             ..productId = p.id
                             ..date = _selectedDate;
 
                           stock.receivedQuantity = amount;
                           await repo.saveDailyStock(stock);
+
+                          // Update supplier balance if quantity changed
+                          if (delta != 0 && p.supplierId != null) {
+                            await supplierRepo.updateBalance(
+                              p.supplierId!,
+                              delta * p.costPrice,
+                            );
+                          }
                         }
+
+                        // Update daily log stats
+                        await dashboardRepo.recalculateSupplierOrders(_selectedDate);
 
                         if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Stock levels updated!'),
+                            content: Text('Stock levels and supplier balances updated!'),
                             backgroundColor: Color(0xFF10B981),
                           ),
                         );
