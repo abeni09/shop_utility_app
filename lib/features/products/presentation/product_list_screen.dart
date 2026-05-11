@@ -5,6 +5,7 @@ import 'package:shopsync/features/products/data/product_model.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
 import 'package:shopsync/features/suppliers/presentation/supplier_list_screen.dart';
 
+import 'package:shopsync/core/presentation/widgets/theme_toggle_button.dart';
 import 'package:shopsync/features/dashboard/presentation/ui_providers.dart';
 
 class ProductListScreen extends ConsumerWidget {
@@ -16,12 +17,8 @@ class ProductListScreen extends ConsumerWidget {
     final showVoided = ref.watch(showVoidedProductsProvider);
 
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF0F172A), Color(0xFF020617)],
-        ),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
       ),
       child: Stack(
         children: [
@@ -33,7 +30,9 @@ class ProductListScreen extends ConsumerWidget {
               height: 200,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF6366F1).withValues(alpha: 0.05),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.05),
               ),
             ),
           ),
@@ -43,8 +42,8 @@ class ProductListScreen extends ConsumerWidget {
               ref.invalidate(cloudSyncStatusProvider);
               ref.invalidate(localAheadProvider);
             },
-            backgroundColor: const Color(0xFF1E293B),
-            color: const Color(0xFF818CF8),
+            backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+            color: Theme.of(context).colorScheme.primary,
             child: Scaffold(
               backgroundColor: Colors.transparent,
               body: CustomScrollView(
@@ -60,8 +59,12 @@ class ProductListScreen extends ConsumerWidget {
                         margin: const EdgeInsets.only(right: 8),
                         decoration: BoxDecoration(
                           color: showVoided
-                              ? const Color(0xFF818CF8).withValues(alpha: 0.2)
-                              : Colors.white.withValues(alpha: 0.05),
+                              ? Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.2)
+                              : Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.05),
                           shape: BoxShape.circle,
                         ),
                         child: IconButton(
@@ -70,8 +73,9 @@ class ProductListScreen extends ConsumerWidget {
                                 ? Icons.visibility_rounded
                                 : Icons.visibility_off_rounded,
                             color: showVoided
-                                ? const Color(0xFF818CF8)
-                                : Colors.white24,
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context).colorScheme.onSurface
+                                      .withValues(alpha: 0.2),
                           ),
                           onPressed: () =>
                               ref
@@ -84,13 +88,15 @@ class ProductListScreen extends ConsumerWidget {
                       Container(
                         margin: const EdgeInsets.only(right: 16),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.05),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.05),
                           shape: BoxShape.circle,
                         ),
                         child: IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.add_rounded,
-                            color: Color(0xFF818CF8),
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                           onPressed: () => _showProductDialog(context, ref),
                         ),
@@ -101,8 +107,12 @@ class ProductListScreen extends ConsumerWidget {
                   productsAsync.when(
                     data: (products) {
                       final width = MediaQuery.of(context).size.width;
-                      final horizontalPadding = width > 1200 ? width * 0.1 : (width > 800 ? 48.0 : 24.0);
-                      final crossAxisCount = width > 1000 ? 3 : (width > 600 ? 2 : 1);
+                      final horizontalPadding = width > 1200
+                          ? width * 0.1
+                          : (width > 800 ? 48.0 : 24.0);
+                      final crossAxisCount = width > 1000
+                          ? 3
+                          : (width > 600 ? 2 : 1);
 
                       final filtered = products
                           .where((p) => showVoided ? true : !p.isVoid)
@@ -118,25 +128,34 @@ class ProductListScreen extends ConsumerWidget {
                               ),
                             )
                           : SliverPadding(
-                              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: horizontalPadding,
+                              ),
                               sliver: crossAxisCount > 1
                                   ? SliverGrid(
-                                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: crossAxisCount,
-                                        mainAxisSpacing: 16,
-                                        crossAxisSpacing: 16,
-                                        mainAxisExtent: 180,
-                                      ),
+                                      gridDelegate:
+                                          SliverGridDelegateWithFixedCrossAxisCount(
+                                            crossAxisCount: crossAxisCount,
+                                            mainAxisSpacing: 16,
+                                            crossAxisSpacing: 16,
+                                            mainAxisExtent: 180,
+                                          ),
                                       delegate: SliverChildBuilderDelegate(
-                                        (context, index) => _ProductCard(product: filtered[index]),
+                                        (context, index) => _ProductCard(
+                                          product: filtered[index],
+                                        ),
                                         childCount: filtered.length,
                                       ),
                                     )
                                   : SliverList(
                                       delegate: SliverChildBuilderDelegate(
                                         (context, index) => Padding(
-                                          padding: const EdgeInsets.only(bottom: 16),
-                                          child: _ProductCard(product: filtered[index]),
+                                          padding: const EdgeInsets.only(
+                                            bottom: 16,
+                                          ),
+                                          child: _ProductCard(
+                                            product: filtered[index],
+                                          ),
                                         ),
                                         childCount: filtered.length,
                                       ),
@@ -235,6 +254,7 @@ void _showProductDialog(
                 nameController,
                 'Product Name',
                 Icons.inventory_2_rounded,
+                context,
               ),
               const SizedBox(height: 16),
               Row(
@@ -244,6 +264,7 @@ void _showProductDialog(
                       costController,
                       'Cost Price',
                       Icons.south_rounded,
+                      context,
                       isNumber: true,
                     ),
                   ),
@@ -253,6 +274,7 @@ void _showProductDialog(
                       saleController,
                       'Selling Price',
                       Icons.sell_rounded,
+                      context,
                       isNumber: true,
                     ),
                   ),
@@ -367,7 +389,8 @@ void _showProductDialog(
 Widget _buildTextField(
   TextEditingController controller,
   String label,
-  IconData icon, {
+  IconData icon,
+  BuildContext context, {
   bool isNumber = false,
 }) {
   return TextField(
@@ -377,9 +400,14 @@ Widget _buildTextField(
     decoration: InputDecoration(
       labelText: label,
       prefixIcon: Icon(icon, color: const Color(0xFF818CF8), size: 20),
-      labelStyle: const TextStyle(color: Colors.white38, fontWeight: FontWeight.w500),
+      labelStyle: const TextStyle(
+        color: Colors.white38,
+        fontWeight: FontWeight.w500,
+      ),
       filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.05),
+      fillColor: Theme.of(
+        context,
+      ).colorScheme.onSurface.withValues(alpha: 0.05),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(20),
@@ -392,7 +420,6 @@ Widget _buildTextField(
     ),
   );
 }
-
 
 class _ProductCard extends ConsumerWidget {
   final Product product;

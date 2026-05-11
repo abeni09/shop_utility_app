@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shopsync/core/presentation/widgets/theme_toggle_button.dart';
 import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/suppliers/data/supplier_model.dart';
 import 'package:shopsync/features/suppliers/data/supplier_repository.dart';
@@ -28,12 +29,8 @@ class SupplierListScreen extends ConsumerWidget {
     final showArchived = ref.watch(showArchivedSuppliersProvider);
 
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF0F172A), Color(0xFF020617)],
-        ),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
       ),
       child: Stack(
         children: [
@@ -45,7 +42,9 @@ class SupplierListScreen extends ConsumerWidget {
               height: 200,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF818CF8).withValues(alpha: 0.05),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.05),
               ),
             ),
           ),
@@ -55,8 +54,8 @@ class SupplierListScreen extends ConsumerWidget {
               ref.invalidate(cloudSyncStatusProvider);
               ref.invalidate(localAheadProvider);
             },
-            backgroundColor: const Color(0xFF1E293B),
-            color: const Color(0xFF818CF8),
+            backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+            color: Theme.of(context).colorScheme.primary,
             child: Scaffold(
               backgroundColor: Colors.transparent,
               body: CustomScrollView(
@@ -72,8 +71,12 @@ class SupplierListScreen extends ConsumerWidget {
                         margin: const EdgeInsets.only(right: 8),
                         decoration: BoxDecoration(
                           color: showArchived
-                              ? const Color(0xFF818CF8).withValues(alpha: 0.2)
-                              : Colors.white.withValues(alpha: 0.05),
+                              ? Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.2)
+                              : Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.05),
                           shape: BoxShape.circle,
                         ),
                         child: IconButton(
@@ -82,8 +85,9 @@ class SupplierListScreen extends ConsumerWidget {
                                 ? Icons.visibility_rounded
                                 : Icons.visibility_off_rounded,
                             color: showArchived
-                                ? const Color(0xFF818CF8)
-                                : Colors.white24,
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context).colorScheme.onSurface
+                                      .withValues(alpha: 0.2),
                           ),
                           onPressed: () =>
                               ref
@@ -98,13 +102,15 @@ class SupplierListScreen extends ConsumerWidget {
                       Container(
                         margin: const EdgeInsets.only(right: 16),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.05),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.05),
                           shape: BoxShape.circle,
                         ),
                         child: IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.person_add_rounded,
-                            color: Color(0xFF818CF8),
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                           onPressed: () => _showSupplierDialog(context, ref),
                         ),
@@ -115,8 +121,12 @@ class SupplierListScreen extends ConsumerWidget {
                   suppliersAsync.when(
                     data: (suppliers) {
                       final width = MediaQuery.of(context).size.width;
-                      final horizontalPadding = width > 1200 ? width * 0.1 : (width > 800 ? 48.0 : 24.0);
-                      final crossAxisCount = width > 1000 ? 3 : (width > 600 ? 2 : 1);
+                      final horizontalPadding = width > 1200
+                          ? width * 0.1
+                          : (width > 800 ? 48.0 : 24.0);
+                      final crossAxisCount = width > 1000
+                          ? 3
+                          : (width > 600 ? 2 : 1);
 
                       return suppliers.isEmpty
                           ? const SliverFillRemaining(
@@ -128,25 +138,34 @@ class SupplierListScreen extends ConsumerWidget {
                               ),
                             )
                           : SliverPadding(
-                              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: horizontalPadding,
+                              ),
                               sliver: crossAxisCount > 1
                                   ? SliverGrid(
-                                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: crossAxisCount,
-                                        mainAxisSpacing: 16,
-                                        crossAxisSpacing: 16,
-                                        mainAxisExtent: 240,
-                                      ),
+                                      gridDelegate:
+                                          SliverGridDelegateWithFixedCrossAxisCount(
+                                            crossAxisCount: crossAxisCount,
+                                            mainAxisSpacing: 16,
+                                            crossAxisSpacing: 16,
+                                            mainAxisExtent: 240,
+                                          ),
                                       delegate: SliverChildBuilderDelegate(
-                                        (context, index) => _SupplierCard(supplier: suppliers[index]),
+                                        (context, index) => _SupplierCard(
+                                          supplier: suppliers[index],
+                                        ),
                                         childCount: suppliers.length,
                                       ),
                                     )
                                   : SliverList(
                                       delegate: SliverChildBuilderDelegate(
                                         (context, index) => Padding(
-                                          padding: const EdgeInsets.only(bottom: 16),
-                                          child: _SupplierCard(supplier: suppliers[index]),
+                                          padding: const EdgeInsets.only(
+                                            bottom: 16,
+                                          ),
+                                          child: _SupplierCard(
+                                            supplier: suppliers[index],
+                                          ),
                                         ),
                                         childCount: suppliers.length,
                                       ),
@@ -221,12 +240,14 @@ void _showSupplierDialog(
               nameController,
               'Supplier Name',
               Icons.person_rounded,
+              context,
             ),
             const SizedBox(height: 16),
             _buildTextField(
               contactController,
               'Phone Number',
               Icons.phone_rounded,
+              context,
             ),
             const SizedBox(height: 32),
             SizedBox(
@@ -291,6 +312,7 @@ Widget _buildTextField(
   TextEditingController controller,
   String label,
   IconData icon,
+  BuildContext context,
 ) {
   return TextField(
     controller: controller,
@@ -303,7 +325,9 @@ Widget _buildTextField(
         fontWeight: FontWeight.w500,
       ),
       filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.05),
+      fillColor: Theme.of(
+        context,
+      ).colorScheme.onSurface.withValues(alpha: 0.05),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(20),
@@ -416,7 +440,9 @@ class _SupplierCard extends ConsumerWidget {
             ),
             Divider(
               height: 1,
-              color: Colors.white.withValues(alpha: 0.05),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.05),
               indent: 20,
               endIndent: 20,
             ),
@@ -497,7 +523,11 @@ class _SupplierCard extends ConsumerWidget {
         backgroundColor: const Color(0xFF0F172A),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(28),
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+          side: BorderSide(
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.05),
+          ),
         ),
         title: const Text(
           'RESTORE SUPPLIER?',
@@ -548,7 +578,11 @@ class _SupplierCard extends ConsumerWidget {
         backgroundColor: const Color(0xFF0F172A),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(28),
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+          side: BorderSide(
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.05),
+          ),
         ),
         title: const Text(
           'VOID SUPPLIER?',
@@ -641,7 +675,9 @@ class _SupplierCard extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
@@ -692,7 +728,9 @@ class _SupplierCard extends ConsumerWidget {
                   fontWeight: FontWeight.w500,
                 ),
                 filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.05),
+                fillColor: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.05),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 16,

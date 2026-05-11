@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:shopsync/core/presentation/widgets/theme_toggle_button.dart';
 import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/orders/data/customer_order_model.dart';
 import 'package:shopsync/features/orders/presentation/order_providers.dart';
@@ -21,12 +22,8 @@ class OrderScreen extends ConsumerWidget {
     final showVoided = ref.watch(showVoidedOrdersProvider);
 
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF0F172A), Color(0xFF020617)],
-        ),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
       ),
       child: Stack(
         children: [
@@ -39,7 +36,9 @@ class OrderScreen extends ConsumerWidget {
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF6366F1).withValues(alpha: 0.05),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.05),
               ),
             ),
           ),
@@ -51,7 +50,9 @@ class OrderScreen extends ConsumerWidget {
               height: 250,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF10B981).withValues(alpha: 0.05),
+                color: Theme.of(
+                  context,
+                ).colorScheme.secondary.withValues(alpha: 0.05),
               ),
             ),
           ),
@@ -62,8 +63,8 @@ class OrderScreen extends ConsumerWidget {
               ref.invalidate(localAheadProvider);
               ref.invalidate(ordersProvider);
             },
-            backgroundColor: const Color(0xFF1E293B),
-            color: const Color(0xFF818CF8),
+            backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+            color: Theme.of(context).colorScheme.primary,
             child: Scaffold(
               backgroundColor: Colors.transparent,
               body: CustomScrollView(
@@ -81,8 +82,12 @@ class OrderScreen extends ConsumerWidget {
                         margin: const EdgeInsets.only(right: 8),
                         decoration: BoxDecoration(
                           color: showVoided
-                              ? const Color(0xFF818CF8).withValues(alpha: 0.2)
-                              : Colors.white.withValues(alpha: 0.05),
+                              ? Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.2)
+                              : Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.05),
                           shape: BoxShape.circle,
                         ),
                         child: IconButton(
@@ -91,8 +96,9 @@ class OrderScreen extends ConsumerWidget {
                                 ? Icons.visibility_rounded
                                 : Icons.visibility_off_rounded,
                             color: showVoided
-                                ? const Color(0xFF818CF8)
-                                : Colors.white24,
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context).colorScheme.onSurface
+                                      .withValues(alpha: 0.2),
                           ),
                           onPressed: () =>
                               ref
@@ -105,13 +111,15 @@ class OrderScreen extends ConsumerWidget {
                       Container(
                         margin: const EdgeInsets.only(right: 16),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.05),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.05),
                           shape: BoxShape.circle,
                         ),
                         child: IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.calendar_month_rounded,
-                            color: Color(0xFF818CF8),
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                           onPressed: () async {
                             final date = await showDatePicker(
@@ -143,8 +151,12 @@ class OrderScreen extends ConsumerWidget {
                     data: (_) {
                       final orders = ref.watch(filteredOrdersProvider);
                       final width = MediaQuery.of(context).size.width;
-                      final horizontalPadding = width > 1200 ? width * 0.1 : (width > 800 ? 48.0 : 24.0);
-                      final crossAxisCount = width > 1000 ? 3 : (width > 600 ? 2 : 1);
+                      final horizontalPadding = width > 1200
+                          ? width * 0.1
+                          : (width > 800 ? 48.0 : 24.0);
+                      final crossAxisCount = width > 1000
+                          ? 3
+                          : (width > 600 ? 2 : 1);
 
                       return orders.isEmpty
                           ? const SliverFillRemaining(
@@ -161,22 +173,28 @@ class OrderScreen extends ConsumerWidget {
                               ),
                               sliver: crossAxisCount > 1
                                   ? SliverGrid(
-                                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: crossAxisCount,
-                                        mainAxisSpacing: 16,
-                                        crossAxisSpacing: 16,
-                                        mainAxisExtent: 420,
-                                      ),
+                                      gridDelegate:
+                                          SliverGridDelegateWithFixedCrossAxisCount(
+                                            crossAxisCount: crossAxisCount,
+                                            mainAxisSpacing: 16,
+                                            crossAxisSpacing: 16,
+                                            mainAxisExtent: 420,
+                                          ),
                                       delegate: SliverChildBuilderDelegate(
-                                        (context, index) => _OrderCard(order: orders[index]),
+                                        (context, index) =>
+                                            _OrderCard(order: orders[index]),
                                         childCount: orders.length,
                                       ),
                                     )
                                   : SliverList(
                                       delegate: SliverChildBuilderDelegate(
                                         (context, index) => Padding(
-                                          padding: const EdgeInsets.only(bottom: 16),
-                                          child: _OrderCard(order: orders[index]),
+                                          padding: const EdgeInsets.only(
+                                            bottom: 16,
+                                          ),
+                                          child: _OrderCard(
+                                            order: orders[index],
+                                          ),
                                         ),
                                         childCount: orders.length,
                                       ),
@@ -228,7 +246,7 @@ class OrderScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -399,6 +417,7 @@ void _showOrderDialog(
                 decoration: _fieldDecoration(
                   'Product',
                   Icons.inventory_2_rounded,
+                  context,
                 ),
               ),
               const SizedBox(height: 16),
@@ -406,12 +425,14 @@ void _showOrderDialog(
                 customerController,
                 'Customer Name',
                 Icons.person_rounded,
+                context,
               ),
               const SizedBox(height: 16),
               _buildTextField(
                 phoneController,
                 'Phone Number (Optional)',
                 Icons.phone_rounded,
+                context,
               ),
               const SizedBox(height: 16),
               Row(
@@ -421,6 +442,7 @@ void _showOrderDialog(
                       amountController,
                       'Amount',
                       Icons.numbers_rounded,
+                      context,
                       isNumber: true,
                     ),
                   ),
@@ -430,6 +452,7 @@ void _showOrderDialog(
                       advanceController,
                       'Advance',
                       Icons.payments_rounded,
+                      context,
                       isNumber: true,
                     ),
                   ),
@@ -456,6 +479,7 @@ void _showOrderDialog(
                 decoration: _fieldDecoration(
                   'Payment Method',
                   Icons.account_balance_wallet_rounded,
+                  context,
                 ),
               ),
               const SizedBox(height: 16),
@@ -625,11 +649,22 @@ void _showOrderDialog(
   );
 }
 
-InputDecoration _fieldDecoration(String label, IconData icon) {
+InputDecoration _fieldDecoration(
+  String label,
+  IconData icon,
+  BuildContext context,
+) {
   return InputDecoration(
     labelText: label,
-    prefixIcon: Icon(icon, color: const Color(0xFF818CF8), size: 20),
-    labelStyle: const TextStyle(color: Colors.white38, fontWeight: FontWeight.w500),
+    prefixIcon: Icon(
+      icon,
+      color: Theme.of(context).colorScheme.primary,
+      size: 20,
+    ),
+    labelStyle: const TextStyle(
+      color: Colors.white38,
+      fontWeight: FontWeight.w500,
+    ),
     filled: true,
     fillColor: Colors.white.withValues(alpha: 0.05),
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -647,13 +682,14 @@ InputDecoration _fieldDecoration(String label, IconData icon) {
 Widget _buildTextField(
   TextEditingController controller,
   String label,
-  IconData icon, {
+  IconData icon,
+  BuildContext context, {
   bool isNumber = false,
 }) {
   return TextField(
     controller: controller,
     keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-    decoration: _fieldDecoration(label, icon),
+    decoration: _fieldDecoration(label, icon, context),
   );
 }
 
@@ -698,12 +734,16 @@ class _OrderCard extends ConsumerWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withValues(alpha: 0.04),
-            Colors.white.withValues(alpha: 0.01),
+            Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+            Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.02),
           ],
         ),
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(
+          color: Theme.of(
+            context,
+          ).colorScheme.onSurface.withValues(alpha: 0.05),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.2),
@@ -758,7 +798,8 @@ class _OrderCard extends ConsumerWidget {
                               Text(
                                 order.status.name.toUpperCase(),
                                 style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.4),
+                                  color: Theme.of(context).colorScheme.onSurface
+                                      .withValues(alpha: 0.4),
                                   fontSize: 10,
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: 1.5,
@@ -824,12 +865,14 @@ class _OrderCard extends ConsumerWidget {
                             letterSpacing: -1,
                           ),
                         ),
-                        const Text(
+                        Text(
                           'TOTAL ETB',
                           style: TextStyle(
                             fontSize: 9,
                             fontWeight: FontWeight.w800,
-                            color: Colors.white24,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.2),
                             letterSpacing: 1,
                           ),
                         ),
@@ -844,7 +887,9 @@ class _OrderCard extends ConsumerWidget {
                 margin: const EdgeInsets.symmetric(horizontal: 24),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.03),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.03),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
@@ -876,7 +921,9 @@ class _OrderCard extends ConsumerWidget {
                           Text(
                             'Qty: ${order.amount.toStringAsFixed(0)}',
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.4),
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.4),
                               fontSize: 12,
                             ),
                           ),
@@ -1035,7 +1082,11 @@ class _OrderCard extends ConsumerWidget {
                                   backgroundColor: const Color(0xFF0F172A),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(28),
-                                    side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+                                    side: BorderSide(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.05,
+                                      ),
+                                    ),
                                   ),
                                   title: Row(
                                     children: [
@@ -1059,7 +1110,10 @@ class _OrderCard extends ConsumerWidget {
                                   ),
                                   content: Text(
                                     message,
-                                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 13,
+                                    ),
                                   ),
                                   actions: [
                                     TextButton(
@@ -1082,14 +1136,20 @@ class _OrderCard extends ConsumerWidget {
                                         backgroundColor: titleColor,
                                         foregroundColor: Colors.white,
                                         elevation: 4,
-                                        shadowColor: titleColor.withValues(alpha: 0.3),
+                                        shadowColor: titleColor.withValues(
+                                          alpha: 0.3,
+                                        ),
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(14),
+                                          borderRadius: BorderRadius.circular(
+                                            14,
+                                          ),
                                         ),
                                       ),
                                       child: const Text(
                                         'PROCEED',
-                                        style: TextStyle(fontWeight: FontWeight.w900),
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w900,
+                                        ),
                                       ),
                                     ),
                                   ],

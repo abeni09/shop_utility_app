@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:shopsync/features/orders/data/customer_order_model.dart';
+import 'package:shopsync/core/presentation/widgets/theme_toggle_button.dart';
+import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/orders/presentation/order_providers.dart';
 import 'package:shopsync/features/products/data/product_model.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
@@ -33,12 +35,8 @@ class SalesScreen extends ConsumerWidget {
     final productsAsync = ref.watch(productsProvider);
 
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF0F172A), Color(0xFF020617)],
-        ),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
       ),
       child: Stack(
         children: [
@@ -50,7 +48,7 @@ class SalesScreen extends ConsumerWidget {
               height: 200,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF10B981).withValues(alpha: 0.05),
+                color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.05),
               ),
             ),
           ),
@@ -66,13 +64,15 @@ class SalesScreen extends ConsumerWidget {
                     Container(
                       margin: const EdgeInsets.only(right: 16),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.05),
                         shape: BoxShape.circle,
                       ),
                       child: IconButton(
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.calendar_today_rounded,
-                          color: Color(0xFF818CF8),
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                         onPressed: () async {
                           final date = await showDatePicker(
@@ -103,8 +103,8 @@ class SalesScreen extends ConsumerWidget {
                           DateFormat(
                             'EEEE, MMM dd yyyy',
                           ).format(selectedDate).toUpperCase(),
-                          style: const TextStyle(
-                            color: Color(0xFF818CF8),
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 1.5,
                             fontSize: 12,
@@ -170,8 +170,12 @@ class SalesScreen extends ConsumerWidget {
                 salesAsync.when(
                   data: (sales) {
                     final width = MediaQuery.of(context).size.width;
-                    final horizontalPadding = width > 1200 ? width * 0.1 : (width > 800 ? 48.0 : 24.0);
-                    final crossAxisCount = width > 1000 ? 3 : (width > 600 ? 2 : 1);
+                    final horizontalPadding = width > 1200
+                        ? width * 0.1
+                        : (width > 800 ? 48.0 : 24.0);
+                    final crossAxisCount = width > 1000
+                        ? 3
+                        : (width > 600 ? 2 : 1);
 
                     return sales.isEmpty
                         ? const SliverFillRemaining(
@@ -183,54 +187,70 @@ class SalesScreen extends ConsumerWidget {
                             ),
                           )
                         : SliverPadding(
-                            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: horizontalPadding,
+                            ),
                             sliver: crossAxisCount > 1
                                 ? SliverGrid(
-                                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: crossAxisCount,
-                                      mainAxisSpacing: 16,
-                                      crossAxisSpacing: 16,
-                                      mainAxisExtent: 140,
-                                    ),
-                                    delegate: SliverChildBuilderDelegate(
-                                      (context, index) {
-                                        final sale = sales[index];
-                                        return productsAsync.when(
+                                    gridDelegate:
+                                        SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: crossAxisCount,
+                                          mainAxisSpacing: 16,
+                                          crossAxisSpacing: 16,
+                                          mainAxisExtent: 140,
+                                        ),
+                                    delegate: SliverChildBuilderDelegate((
+                                      context,
+                                      index,
+                                    ) {
+                                      final sale = sales[index];
+                                      return productsAsync.when(
+                                        data: (products) {
+                                          final product = products.firstWhere(
+                                            (p) => p.id == sale.productId,
+                                            orElse: () =>
+                                                Product()..name = 'Unknown',
+                                          );
+                                          return _SaleTile(
+                                            sale: sale,
+                                            productName: product.name,
+                                          );
+                                        },
+                                        loading: () => const SizedBox.shrink(),
+                                        error: (_, __) =>
+                                            const SizedBox.shrink(),
+                                      );
+                                    }, childCount: sales.length),
+                                  )
+                                : SliverList(
+                                    delegate: SliverChildBuilderDelegate((
+                                      context,
+                                      index,
+                                    ) {
+                                      final sale = sales[index];
+                                      return Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 12,
+                                        ),
+                                        child: productsAsync.when(
                                           data: (products) {
                                             final product = products.firstWhere(
                                               (p) => p.id == sale.productId,
-                                              orElse: () => Product()..name = 'Unknown',
+                                              orElse: () =>
+                                                  Product()..name = 'Unknown',
                                             );
-                                            return _SaleTile(sale: sale, productName: product.name);
+                                            return _SaleTile(
+                                              sale: sale,
+                                              productName: product.name,
+                                            );
                                           },
-                                          loading: () => const SizedBox.shrink(),
-                                          error: (_, __) => const SizedBox.shrink(),
-                                        );
-                                      },
-                                      childCount: sales.length,
-                                    ),
-                                  )
-                                : SliverList(
-                                    delegate: SliverChildBuilderDelegate(
-                                      (context, index) {
-                                        final sale = sales[index];
-                                        return Padding(
-                                          padding: const EdgeInsets.only(bottom: 12),
-                                          child: productsAsync.when(
-                                            data: (products) {
-                                              final product = products.firstWhere(
-                                                (p) => p.id == sale.productId,
-                                                orElse: () => Product()..name = 'Unknown',
-                                              );
-                                              return _SaleTile(sale: sale, productName: product.name);
-                                            },
-                                            loading: () => const SizedBox.shrink(),
-                                            error: (_, __) => const SizedBox.shrink(),
-                                          ),
-                                        );
-                                      },
-                                      childCount: sales.length,
-                                    ),
+                                          loading: () =>
+                                              const SizedBox.shrink(),
+                                          error: (_, __) =>
+                                              const SizedBox.shrink(),
+                                        ),
+                                      );
+                                    }, childCount: sales.length),
                                   ),
                           );
                   },
@@ -344,7 +364,7 @@ class _SaleTile extends ConsumerWidget {
             backgroundColor: const Color(0xFF0F172A),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(28),
-              side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+              side: BorderSide(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05)),
             ),
             title: const Text(
               'VOID TRANSACTION?',
@@ -396,12 +416,12 @@ class _SaleTile extends ConsumerWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Colors.white.withValues(alpha: 0.05),
+              Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
               Colors.white.withValues(alpha: 0.02),
             ],
           ),
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.1),

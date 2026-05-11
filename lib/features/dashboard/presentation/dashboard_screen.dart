@@ -11,6 +11,7 @@ import 'package:shopsync/features/products/presentation/daily_stock_providers.da
 import 'package:shopsync/features/orders/presentation/requisition_screen.dart';
 import 'package:shopsync/features/sales/presentation/sales_screen.dart';
 import 'package:shopsync/features/dashboard/presentation/ui_providers.dart';
+import 'package:shopsync/core/presentation/widgets/theme_toggle_button.dart';
 import 'dart:ui';
 
 class DashboardScreen extends ConsumerWidget {
@@ -54,7 +55,7 @@ class DashboardScreen extends ConsumerWidget {
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF6366F1).withValues(alpha: 0.15),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
               ),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
@@ -71,8 +72,8 @@ class DashboardScreen extends ConsumerWidget {
               ref.invalidate(weeklyProfitProvider);
               ref.invalidate(monthlyProfitProvider);
             },
-            backgroundColor: const Color(0xFF1E293B),
-            color: const Color(0xFF818CF8),
+            backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+            color: Theme.of(context).colorScheme.primary,
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(
                 parent: BouncingScrollPhysics(),
@@ -146,17 +147,10 @@ class DashboardScreen extends ConsumerWidget {
           ),
         ),
       ),
-      actions: [
+      actions: const [
         Padding(
-          padding: const EdgeInsets.only(right: 24),
-          child: _CircleIconButton(
-            icon: isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-            onPressed: () {
-              ref.read(themeModeProvider.notifier).state = isDark
-                  ? ThemeMode.light
-                  : ThemeMode.dark;
-            },
-          ),
+          padding: EdgeInsets.only(right: 24),
+          child: ThemeToggleButton(),
         ),
       ],
     );
@@ -305,10 +299,17 @@ class DashboardScreen extends ConsumerWidget {
                     ),
                   ),
                   if (user != null)
-                    _CircleIconButton(
-                      icon: Icons.logout_rounded,
-                      onPressed: () =>
-                          ref.read(backupServiceProvider).signOut(),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.logout_rounded, size: 20),
+                        color: Theme.of(context).colorScheme.primary,
+                        onPressed: () =>
+                            ref.read(backupServiceProvider).signOut(),
+                      ),
                     ),
                 ],
               ),
@@ -985,31 +986,6 @@ class _QuickActionCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _CircleIconButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  const _CircleIconButton({required this.icon, required this.onPressed});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
-        shape: BoxShape.circle,
-      ),
-      child: IconButton(
-        icon: Icon(
-          icon,
-          color: Theme.of(context).colorScheme.primary,
-          size: 20,
-        ),
-        onPressed: onPressed,
       ),
     );
   }

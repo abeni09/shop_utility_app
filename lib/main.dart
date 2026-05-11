@@ -176,7 +176,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
         borderRadius: BorderRadius.circular(32),
         child: NavigationBarTheme(
           data: NavigationBarThemeData(
-            indicatorColor: const Color(0xFF818CF8).withValues(alpha: 0.2),
+            indicatorColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
             labelTextStyle: WidgetStateProperty.resolveWith((states) {
               if (states.contains(WidgetState.selected)) {
                 return TextStyle(
