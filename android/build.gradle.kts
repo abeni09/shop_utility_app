@@ -16,7 +16,7 @@ allprojects {
     configurations.all {
         resolutionStrategy.eachDependency {
             if (requested.group == "androidx.core") {
-                useVersion("1.9.0")
+                useVersion("1.13.1")
             }
         }
     }

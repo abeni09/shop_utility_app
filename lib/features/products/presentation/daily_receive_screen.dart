@@ -56,6 +56,7 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
           ),
           Scaffold(
             backgroundColor: Colors.transparent,
+            resizeToAvoidBottomInset: false,
             body: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(
                 parent: BouncingScrollPhysics(),
