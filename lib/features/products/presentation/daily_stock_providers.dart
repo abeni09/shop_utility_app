@@ -41,6 +41,8 @@ typedef StockStatus = ({
   double walkInAvailable,
   double physicalRemaining,
   double reserved,
+  double totalReceived,
+  double totalSold,
 });
 
 final walkInAvailabilityProvider =
@@ -110,6 +112,8 @@ final walkInAvailabilityProvider =
                 double.infinity,
               ),
               reserved: totalPending,
+              totalReceived: receivedUntilDate,
+              totalSold: soldUntilDate,
             );
           }
 

@@ -184,12 +184,16 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                         separatorBuilder: (_, _) => const SizedBox(height: 8),
                         itemBuilder: (context, index) {
                           final product = activeProducts[index];
-                          final status = availability[product.id] ??
+                          final status =
+                              availability[product.id] ??
                               (
                                 walkInAvailable: 0.0,
                                 physicalRemaining: 0.0,
                                 reserved: 0.0,
+                                totalReceived: 0.0,
+                                totalSold: 0.0,
                               );
+
                           return _buildQuickSaleTile(
                             product,
                             currentBag,
@@ -306,7 +310,10 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                         const SizedBox(width: 8),
                         if (status.reserved > 0)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.amberAccent.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
@@ -337,15 +344,25 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                       color: isOutOfStock ? Colors.redAccent : Colors.white70,
                     ),
                   ),
-                  Text(
-                    'AVAILABLE',
-                    style: TextStyle(
-                      fontSize: 8,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1,
-                      color: isOutOfStock ? Colors.redAccent : Colors.white38,
+                  if (isOutOfStock && status.totalReceived > 0)
+                    Text(
+                      'REC: ${status.totalReceived.toStringAsFixed(0)} / SOLD: ${status.totalSold.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        fontSize: 7,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white24,
+                      ),
+                    )
+                  else
+                    Text(
+                      'AVAILABLE',
+                      style: TextStyle(
+                        fontSize: 8,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1,
+                        color: isOutOfStock ? Colors.redAccent : Colors.white38,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ],
@@ -358,7 +375,9 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.05),
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -366,7 +385,9 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                       icon: Icons.remove_rounded,
                       onTap: () {
                         if (quantity > 1) {
-                          setState(() => _quantities[product.id] = quantity - 1);
+                          setState(
+                            () => _quantities[product.id] = quantity - 1,
+                          );
                         }
                       },
                     ),
@@ -400,12 +421,14 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                     duration: const Duration(milliseconds: 200),
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: hasBag 
-                        ? const Color(0xFFFACC15).withValues(alpha: 0.1)
-                        : Colors.white.withValues(alpha: 0.03),
+                      color: hasBag
+                          ? const Color(0xFFFACC15).withValues(alpha: 0.1)
+                          : Colors.white.withValues(alpha: 0.03),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: hasBag ? const Color(0xFFFACC15).withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.05),
+                        color: hasBag
+                            ? const Color(0xFFFACC15).withValues(alpha: 0.3)
+                            : Colors.white.withValues(alpha: 0.05),
                       ),
                     ),
                     child: Icon(
@@ -433,14 +456,18 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                     ],
                   ),
                   child: ElevatedButton(
-                    onPressed: isOutOfStock ? null : () => _processSale(
-                      product,
-                      quantity,
-                      hasBag ? bagProduct : null,
-                      status,
-                    ),
+                    onPressed: isOutOfStock
+                        ? null
+                        : () => _processSale(
+                            product,
+                            quantity,
+                            hasBag ? bagProduct : null,
+                            status,
+                          ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isOutOfStock ? Colors.white10 : const Color(0xFF10B981),
+                      backgroundColor: isOutOfStock
+                          ? Colors.white10
+                          : const Color(0xFF10B981),
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(horizontal: 16),

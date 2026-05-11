@@ -601,7 +601,14 @@ class _OrderCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final availabilityAsync = ref.watch(walkInAvailabilityProvider(order.dueDate));
     final availability = availabilityAsync.asData?.value ?? {};
-    final status = availability[order.productId] ?? (walkInAvailable: 0.0, physicalRemaining: 0.0, reserved: 0.0);
+    final status = availability[order.productId] ??
+        (
+          walkInAvailable: 0.0,
+          physicalRemaining: 0.0,
+          reserved: 0.0,
+          totalReceived: 0.0,
+          totalSold: 0.0,
+        );
 
     final products = ref.watch(productsProvider).value ?? [];
     final product = products.firstWhere(
