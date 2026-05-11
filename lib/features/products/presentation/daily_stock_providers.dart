@@ -76,13 +76,13 @@ final walkInAvailabilityProvider =
                 )
                 .fold(0.0, (sum, s) => sum + s.receivedQuantity);
 
-            // 2. Total sold up to the selected date
+            // 2. Total sold up to the selected date (use fulfillment date if sold)
             final soldUntilDate = allOrders
                 .where(
                   (o) =>
                       o.productId == p.id &&
                       o.status == OrderStatus.sold &&
-                      o.dueDate.isBefore(
+                      (o.fulfilledAt ?? o.dueDate).isBefore(
                         calculationDate.add(const Duration(seconds: 1)),
                       ),
                 )

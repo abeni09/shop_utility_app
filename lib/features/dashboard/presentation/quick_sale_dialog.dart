@@ -339,9 +339,17 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                   Text(
                     '${walkInAvailable.toStringAsFixed(0)}',
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: 22,
                       fontWeight: FontWeight.w900,
                       color: isOutOfStock ? Colors.redAccent : Colors.white70,
+                    ),
+                  ),
+                  Text(
+                    '${status.physicalRemaining.toStringAsFixed(0)} PHYSICAL',
+                    style: TextStyle(
+                      fontSize: 7,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white.withValues(alpha: 0.2),
                     ),
                   ),
                   if (isOutOfStock && status.totalReceived > 0)

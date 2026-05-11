@@ -805,6 +805,15 @@ class _OrderCard extends ConsumerWidget {
                               fontSize: 12,
                             ),
                           ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'STK: ${status.physicalRemaining.toStringAsFixed(0)} (AVL: ${status.walkInAvailable.toStringAsFixed(0)})',
+                            style: TextStyle(
+                              color: status.physicalRemaining < order.amount ? Colors.redAccent : Colors.greenAccent.withValues(alpha: 0.5),
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
                         ],
                       ),
                     ),
