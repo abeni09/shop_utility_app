@@ -549,28 +549,48 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
       final proceed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: const Color(0xFF1E293B),
-          title: const Text(
-            'Low Stock Warning',
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              color: Colors.amberAccent,
-            ),
+          backgroundColor: const Color(0xFF0F172A),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
           ),
-          content: Text(message),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent),
+              SizedBox(width: 12),
+              Text(
+                'LOW STOCK WARNING',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                  letterSpacing: 1.2,
+                  color: Colors.orangeAccent,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            message,
+            style: const TextStyle(color: Colors.white70, fontSize: 13),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
               child: const Text(
                 'CANCEL',
-                style: TextStyle(color: Colors.white38),
+                style: TextStyle(color: Colors.white24, fontWeight: FontWeight.w900),
               ),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.amberAccent,
+                backgroundColor: Colors.orangeAccent,
                 foregroundColor: Colors.black,
+                elevation: 4,
+                shadowColor: Colors.orangeAccent.withValues(alpha: 0.3),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
               child: const Text(
                 'PROCEED',

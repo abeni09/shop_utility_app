@@ -1015,15 +1015,35 @@ class _OrderCard extends ConsumerWidget {
                               final proceed = await showDialog<bool>(
                                 context: context,
                                 builder: (context) => AlertDialog(
-                                  backgroundColor: const Color(0xFF1E293B),
-                                  title: Text(
-                                    title,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      color: titleColor,
-                                    ),
+                                  backgroundColor: const Color(0xFF0F172A),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(28),
+                                    side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
                                   ),
-                                  content: Text(message),
+                                  title: Row(
+                                    children: [
+                                      Icon(
+                                        titleColor == Colors.redAccent
+                                            ? Icons.error_outline_rounded
+                                            : Icons.warning_amber_rounded,
+                                        color: titleColor,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        title.toUpperCase(),
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 14,
+                                          letterSpacing: 1.2,
+                                          color: titleColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  content: Text(
+                                    message,
+                                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                                  ),
                                   actions: [
                                     TextButton(
                                       onPressed: () => Navigator.canPop(context)
@@ -1031,7 +1051,10 @@ class _OrderCard extends ConsumerWidget {
                                           : null,
                                       child: const Text(
                                         'CANCEL',
-                                        style: TextStyle(color: Colors.white38),
+                                        style: TextStyle(
+                                          color: Colors.white24,
+                                          fontWeight: FontWeight.w900,
+                                        ),
                                       ),
                                     ),
                                     ElevatedButton(
@@ -1040,13 +1063,16 @@ class _OrderCard extends ConsumerWidget {
                                           : null,
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: titleColor,
-                                        foregroundColor: Colors.black,
+                                        foregroundColor: Colors.white,
+                                        elevation: 4,
+                                        shadowColor: titleColor.withValues(alpha: 0.3),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(14),
+                                        ),
                                       ),
                                       child: const Text(
                                         'PROCEED',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w900,
-                                        ),
+                                        style: TextStyle(fontWeight: FontWeight.w900),
                                       ),
                                     ),
                                   ],
@@ -1124,18 +1150,35 @@ class _OrderCard extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: const Text(
-          'RESTORE?',
-          style: TextStyle(fontWeight: FontWeight.w900),
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
         ),
-        content: const Text('Bring this order back?'),
+        title: const Text(
+          'RESTORE ORDER?',
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 16,
+            letterSpacing: 1.5,
+            color: Colors.greenAccent,
+          ),
+        ),
+        content: const Text(
+          'Bring this order back to your active list?',
+          style: TextStyle(color: Colors.white70, fontSize: 13),
+        ),
         actions: [
           TextButton(
             onPressed: () =>
                 Navigator.canPop(context) ? Navigator.pop(context) : null,
-            child: const Text('NO'),
+            child: const Text(
+              'NO',
+              style: TextStyle(
+                color: Colors.white24,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
           ),
           TextButton(
             onPressed: () async {
@@ -1145,7 +1188,10 @@ class _OrderCard extends ConsumerWidget {
             },
             child: const Text(
               'YES, RESTORE',
-              style: TextStyle(color: Colors.greenAccent),
+              style: TextStyle(
+                color: Colors.greenAccent,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
         ],
@@ -1161,18 +1207,35 @@ class _OrderCard extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+        ),
         title: const Text(
           'VOID ORDER?',
-          style: TextStyle(fontWeight: FontWeight.w900),
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 16,
+            letterSpacing: 1.5,
+            color: Color(0xFFEF4444),
+          ),
         ),
-        content: const Text('This will hide it from the main list.'),
+        content: const Text(
+          'This will hide the order from your main list and void its impact on stock.',
+          style: TextStyle(color: Colors.white70, fontSize: 13),
+        ),
         actions: [
           TextButton(
             onPressed: () =>
                 Navigator.canPop(context) ? Navigator.pop(context) : null,
-            child: const Text('CANCEL'),
+            child: const Text(
+              'CANCEL',
+              style: TextStyle(
+                color: Colors.white24,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
           ),
           TextButton(
             onPressed: () async {
@@ -1181,8 +1244,11 @@ class _OrderCard extends ConsumerWidget {
                 Navigator.pop(context);
             },
             child: const Text(
-              'VOID',
-              style: TextStyle(color: Colors.redAccent),
+              'VOID ORDER',
+              style: TextStyle(
+                color: Color(0xFFEF4444),
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
         ],

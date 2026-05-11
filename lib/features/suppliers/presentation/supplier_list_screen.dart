@@ -279,7 +279,10 @@ Widget _buildTextField(
     decoration: InputDecoration(
       labelText: label,
       prefixIcon: Icon(icon, color: const Color(0xFF818CF8), size: 20),
-      labelStyle: const TextStyle(color: Colors.white38, fontWeight: FontWeight.w500),
+      labelStyle: const TextStyle(
+        color: Colors.white38,
+        fontWeight: FontWeight.w500,
+      ),
       filled: true,
       fillColor: Colors.white.withValues(alpha: 0.05),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -294,8 +297,6 @@ Widget _buildTextField(
     ),
   );
 }
-
-
 
 class _SupplierCard extends ConsumerWidget {
   final Supplier supplier;
@@ -474,10 +475,19 @@ class _SupplierCard extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+        ),
         title: const Text(
           'RESTORE SUPPLIER?',
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 16,
+            letterSpacing: 1.5,
+            color: Colors.greenAccent,
+          ),
         ),
         content: Text(
           'Do you want to bring "${s.name.replaceFirst('[VOID] ', '')}" back to your active list?',
@@ -486,7 +496,13 @@ class _SupplierCard extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('CANCEL'),
+            child: const Text(
+              'CANCEL',
+              style: TextStyle(
+                color: Colors.white24,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
           ),
           TextButton(
             onPressed: () async {
@@ -495,7 +511,10 @@ class _SupplierCard extends ConsumerWidget {
             },
             child: const Text(
               'RESTORE',
-              style: TextStyle(color: Colors.greenAccent),
+              style: TextStyle(
+                color: Colors.greenAccent,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
         ],
@@ -507,10 +526,19 @@ class _SupplierCard extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+        ),
         title: const Text(
           'VOID SUPPLIER?',
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 16,
+            letterSpacing: 1.5,
+            color: Color(0xFFEF4444),
+          ),
         ),
         content: const Text(
           'This will hide the supplier from your daily view. You can restore them later by toggling "Show Archived" in the top menu.',
@@ -519,7 +547,13 @@ class _SupplierCard extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('CANCEL'),
+            child: const Text(
+              'CANCEL',
+              style: TextStyle(
+                color: Colors.white24,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
           ),
           TextButton(
             onPressed: () async {
@@ -528,7 +562,10 @@ class _SupplierCard extends ConsumerWidget {
             },
             child: const Text(
               'VOID',
-              style: TextStyle(color: Colors.redAccent),
+              style: TextStyle(
+                color: Color(0xFFEF4444),
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
         ],
@@ -546,7 +583,7 @@ class _SupplierCard extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: const Color(0xFF0F172A).withValues(alpha: 0.98),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
@@ -561,46 +598,111 @@ class _SupplierCard extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 24),
+                decoration: BoxDecoration(
+                  color: Colors.white10,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
             Text(
               'SETTLE: ${supplier.name.toUpperCase()}',
               style: const TextStyle(
                 fontWeight: FontWeight.w900,
-                letterSpacing: 2,
+                letterSpacing: 2.5,
                 fontSize: 14,
-                color: Colors.indigoAccent,
+                color: Color(0xFF818CF8),
               ),
             ),
             const SizedBox(height: 12),
-            Text(
-              'Current Debt: ${supplier.balance.toStringAsFixed(2)} ETB',
-              style: const TextStyle(color: Colors.white70),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.account_balance_rounded,
+                    color: Colors.white38,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Current Debt:',
+                    style: TextStyle(
+                      color: Colors.white38,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${supplier.balance.toStringAsFixed(0)} ETB',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 24),
             TextField(
               controller: amountController,
-              keyboardType: TextInputType.number,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              style: const TextStyle(fontWeight: FontWeight.w600),
               decoration: InputDecoration(
                 labelText: 'Payment Amount',
                 prefixText: 'ETB ',
-                prefixIcon: const Icon(Icons.payments_rounded, size: 20),
+                prefixIcon: const Icon(
+                  Icons.payments_rounded,
+                  color: Color(0xFF818CF8),
+                  size: 20,
+                ),
+                labelStyle: const TextStyle(
+                  color: Colors.white38,
+                  fontWeight: FontWeight.w500,
+                ),
                 filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.03),
+                fillColor: Colors.white.withValues(alpha: 0.05),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(20),
                   borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF6366F1),
+                    width: 1.5,
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
-              height: 56,
+              height: 60,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF10B981),
                   foregroundColor: Colors.white,
+                  elevation: 8,
+                  shadowColor: const Color(0xFF10B981).withValues(alpha: 0.4),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                   ),
                 ),
                 onPressed: () async {
@@ -613,17 +715,46 @@ class _SupplierCard extends ConsumerWidget {
                     );
                     return;
                   }
+
+                  if (amount > supplier.balance + 0.01) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Amount exceeds current balance'),
+                      ),
+                    );
+                    return;
+                  }
+
                   await ref
                       .read(supplierRepositoryProvider)
-                      .updateBalance(supplier.id, -amount);
-                  if (context.mounted) Navigator.pop(context);
+                      .updateBalance(supplier.id, amount);
+
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Payment of ${amount.toStringAsFixed(0)} ETB recorded',
+                        ),
+                        backgroundColor: const Color(0xFF10B981),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
                 },
-                child: const Text(
-                  'RECORD PAYMENT',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2,
-                  ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.check_circle_outline_rounded),
+                    SizedBox(width: 12),
+                    Text(
+                      'CONFIRM PAYMENT',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

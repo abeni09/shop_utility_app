@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/dashboard/presentation/dashboard_providers.dart';
 import 'package:shopsync/features/orders/presentation/order_providers.dart';
@@ -19,7 +20,12 @@ class DashboardScreen extends ConsumerWidget {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final dailyLogAsync = ref.watch(dailyLogProvider);
-    final ordersAsync = ref.watch(ordersForDateProvider((date: today, includeVoided: false)));
+    final ordersAsync = ref.watch(
+      ordersForDateProvider((date: today, includeVoided: false)),
+    );
+    final userAsync = ref.watch(backupUserProvider);
+    final cloudNewerAsync = ref.watch(cloudSyncStatusProvider);
+    final localAheadAsync = ref.watch(localAheadProvider);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -28,9 +34,7 @@ class DashboardScreen extends ConsumerWidget {
           // Background Gradient Mesh
           Positioned.fill(
             child: Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFF020617),
-              ),
+              decoration: const BoxDecoration(color: Color(0xFF020617)),
             ),
           ),
           Positioned(
@@ -49,7 +53,7 @@ class DashboardScreen extends ConsumerWidget {
               ),
             ),
           ),
-          
+
           RefreshIndicator(
             onRefresh: () async {
               await ref.read(backupServiceProvider).forceSyncCheck();
@@ -71,6 +75,14 @@ class DashboardScreen extends ConsumerWidget {
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
                       _buildGreeting(),
+                      const SizedBox(height: 24),
+                      _buildCloudSync(
+                        context,
+                        ref,
+                        userAsync,
+                        cloudNewerAsync,
+                        localAheadAsync,
+                      ),
                       const SizedBox(height: 32),
                       _buildMainStats(dailyLogAsync),
                       const SizedBox(height: 40),
@@ -85,7 +97,9 @@ class DashboardScreen extends ConsumerWidget {
                       _buildSectionHeader('QUICK ACTIONS'),
                       const SizedBox(height: 16),
                       _buildQuickActionsGrid(context, ref),
-                      const SizedBox(height: 140), // Extra space for FAB and Bottom Nav
+                      const SizedBox(
+                        height: 140,
+                      ), // Extra space for FAB and Bottom Nav
                     ]),
                   ),
                 ),
@@ -193,6 +207,316 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildCloudSync(
+    BuildContext context,
+    WidgetRef ref,
+    AsyncValue<GoogleSignInAccount?> userAsync,
+    AsyncValue<bool> cloudNewerAsync,
+    AsyncValue<bool> localAheadAsync,
+  ) {
+    return userAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (user) {
+        final isCloudNewer = cloudNewerAsync.value ?? false;
+        final isLocalAhead = localAheadAsync.value ?? false;
+
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                const Color(0xFF6366F1).withValues(alpha: 0.1),
+                const Color(0xFF6366F1).withValues(alpha: 0.05),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: const Color(0xFF6366F1).withValues(alpha: 0.2),
+            ),
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.cloud_done_rounded,
+                      color: Color(0xFF818CF8),
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user != null ? 'CLOUD SYNC ACTIVE' : 'CLOUD BACKUP',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.5,
+                            color: Color(0xFF818CF8),
+                          ),
+                        ),
+                        Text(
+                          user != null
+                              ? user.email
+                              : 'Secure your data with Google Drive',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.7),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (user != null)
+                    _CircleIconButton(
+                      icon: Icons.logout_rounded,
+                      onPressed: () =>
+                          ref.read(backupServiceProvider).signOut(),
+                    ),
+                ],
+              ),
+              if (user == null) ...[
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    onPressed: () => ref.read(backupServiceProvider).signIn(),
+                    icon: const Icon(Icons.login_rounded, size: 18),
+                    label: const Text(
+                      'SIGN IN WITH GOOGLE',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 12,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6366F1),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ),
+              ] else if (isCloudNewer || isLocalAhead) ...[
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    if (isCloudNewer)
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _handleRestore(context, ref),
+                          icon: const Icon(
+                            Icons.cloud_download_rounded,
+                            size: 18,
+                          ),
+                          label: const Text(
+                            'RESTORE',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 11,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orangeAccent,
+                            foregroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (isCloudNewer && isLocalAhead) const SizedBox(width: 12),
+                    if (isLocalAhead)
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _handleBackup(context, ref),
+                          icon: const Icon(
+                            Icons.cloud_upload_rounded,
+                            size: 18,
+                          ),
+                          label: const Text(
+                            'BACKUP NOW',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 11,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF10B981),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ] else ...[
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.check_circle_rounded,
+                      color: Color(0xFF10B981),
+                      size: 14,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'All data is backed up and synchronized',
+                      style: TextStyle(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.8),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _handleBackup(BuildContext context, WidgetRef ref) async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(color: Color(0xFF818CF8)),
+        ),
+      );
+      await ref.read(backupServiceProvider).uploadBackup(forceSignIn: true);
+      if (context.mounted) {
+        Navigator.pop(context);
+        ref.invalidate(localAheadProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Backup successful!'),
+            backgroundColor: Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Backup failed: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleRestore(BuildContext context, WidgetRef ref) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+        ),
+        title: const Text(
+          'RESTORE DATA?',
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 16,
+            letterSpacing: 1.5,
+            color: Colors.orangeAccent,
+          ),
+        ),
+        content: const Text(
+          'This will overwrite your current local data with the version from the cloud. This action cannot be undone.',
+          style: TextStyle(color: Colors.white70, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text(
+              'CANCEL',
+              style: TextStyle(
+                color: Colors.white24,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'RESTORE',
+              style: TextStyle(
+                color: Colors.orangeAccent,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        if (context.mounted) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => const Center(
+              child: CircularProgressIndicator(color: Color(0xFF818CF8)),
+            ),
+          );
+        }
+        await ref.read(backupServiceProvider).restoreLatestBackup();
+        // Force app restart logic usually needed, but here we'll just invalidate everything
+        ref.invalidate(dailyLogProvider);
+        if (context.mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Restore successful! Restarting data...'),
+              backgroundColor: Color(0xFF10B981),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Restore failed: $e'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   Widget _buildSectionHeader(String title) {
     return Row(
       children: [
@@ -225,24 +549,44 @@ class DashboardScreen extends ConsumerWidget {
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         children: [
-          ref.watch(weeklyProfitProvider).when(
+          ref
+              .watch(weeklyProfitProvider)
+              .when(
                 data: (stats) => _InsightCard(
                   label: 'LAST 7 DAYS',
                   value: '${stats['profit']?.toStringAsFixed(0)}',
                   color: const Color(0xFF6366F1),
                 ),
-                loading: () => const _InsightCard(label: 'LAST 7 DAYS', value: '...', color: Colors.grey),
-                error: (_, __) => const _InsightCard(label: 'LAST 7 DAYS', value: 'ERR', color: Colors.redAccent),
+                loading: () => const _InsightCard(
+                  label: 'LAST 7 DAYS',
+                  value: '...',
+                  color: Colors.grey,
+                ),
+                error: (_, __) => const _InsightCard(
+                  label: 'LAST 7 DAYS',
+                  value: 'ERR',
+                  color: Colors.redAccent,
+                ),
               ),
           const SizedBox(width: 16),
-          ref.watch(monthlyProfitProvider).when(
+          ref
+              .watch(monthlyProfitProvider)
+              .when(
                 data: (stats) => _InsightCard(
                   label: 'LAST 30 DAYS',
                   value: '${stats['profit']?.toStringAsFixed(0)}',
                   color: const Color(0xFF10B981),
                 ),
-                loading: () => const _InsightCard(label: 'LAST 30 DAYS', value: '...', color: Colors.grey),
-                error: (_, __) => const _InsightCard(label: 'LAST 30 DAYS', value: 'ERR', color: Colors.redAccent),
+                loading: () => const _InsightCard(
+                  label: 'LAST 30 DAYS',
+                  value: '...',
+                  color: Colors.grey,
+                ),
+                error: (_, __) => const _InsightCard(
+                  label: 'LAST 30 DAYS',
+                  value: 'ERR',
+                  color: Colors.redAccent,
+                ),
               ),
         ],
       ),
@@ -256,7 +600,9 @@ class DashboardScreen extends ConsumerWidget {
           child: ordersAsync.when(
             data: (orders) {
               final total = orders.length;
-              final out = orders.where((o) => o.status == OrderStatus.sold).length;
+              final out = orders
+                  .where((o) => o.status == OrderStatus.sold)
+                  .length;
               return _MiniOpCard(
                 label: 'DELIVERIES',
                 value: '$out/$total',
@@ -265,25 +611,57 @@ class DashboardScreen extends ConsumerWidget {
                 color: const Color(0xFF10B981),
               );
             },
-            loading: () => const _MiniOpCard(label: 'DELIVERIES', value: '...', sublabel: 'Loading', icon: Icons.refresh, color: Colors.grey),
-            error: (_, __) => const _MiniOpCard(label: 'DELIVERIES', value: '!', sublabel: 'Error', icon: Icons.error, color: Colors.redAccent),
+            loading: () => const _MiniOpCard(
+              label: 'DELIVERIES',
+              value: '...',
+              sublabel: 'Loading',
+              icon: Icons.refresh,
+              color: Colors.grey,
+            ),
+            error: (_, __) => const _MiniOpCard(
+              label: 'DELIVERIES',
+              value: '!',
+              sublabel: 'Error',
+              icon: Icons.error,
+              color: Colors.redAccent,
+            ),
           ),
         ),
         const SizedBox(width: 16),
         Expanded(
-          child: ref.watch(walkInAvailabilityProvider(DateTime.now())).when(
+          child: ref
+              .watch(walkInAvailabilityProvider(DateTime.now()))
+              .when(
                 data: (availability) {
-                  final shortCount = availability.values.where((v) => v.walkInAvailable < 0).length;
+                  final shortCount = availability.values
+                      .where((v) => v.walkInAvailable < 0)
+                      .length;
                   return _MiniOpCard(
                     label: 'STOCK STATUS',
                     value: shortCount > 0 ? '$shortCount SHORT' : 'HEALTHY',
-                    sublabel: shortCount > 0 ? 'Urgent Action' : 'All systems go',
+                    sublabel: shortCount > 0
+                        ? 'Urgent Action'
+                        : 'All systems go',
                     icon: Icons.inventory_2_rounded,
-                    color: shortCount > 0 ? Colors.redAccent : const Color(0xFFF59E0B),
+                    color: shortCount > 0
+                        ? Colors.redAccent
+                        : const Color(0xFFF59E0B),
                   );
                 },
-                loading: () => const _MiniOpCard(label: 'STOCK', value: '...', sublabel: 'Checking', icon: Icons.search, color: Colors.grey),
-                error: (_, __) => const _MiniOpCard(label: 'STOCK', value: '!', sublabel: 'Error', icon: Icons.error, color: Colors.redAccent),
+                loading: () => const _MiniOpCard(
+                  label: 'STOCK',
+                  value: '...',
+                  sublabel: 'Checking',
+                  icon: Icons.search,
+                  color: Colors.grey,
+                ),
+                error: (_, __) => const _MiniOpCard(
+                  label: 'STOCK',
+                  value: '!',
+                  sublabel: 'Error',
+                  icon: Icons.error,
+                  color: Colors.redAccent,
+                ),
               ),
         ),
       ],
@@ -333,7 +711,7 @@ class DashboardScreen extends ConsumerWidget {
           icon: Icons.analytics_rounded,
           color: const Color(0xFF818CF8),
           onTap: () {
-             // We can jump to sales tab or open a summary
+            // We can jump to sales tab or open a summary
           },
         ),
       ],
@@ -432,7 +810,11 @@ class _InsightCard extends StatelessWidget {
   final String value;
   final Color color;
 
-  const _InsightCard({required this.label, required this.value, required this.color});
+  const _InsightCard({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -595,7 +977,14 @@ class Position extends StatelessWidget {
   final double? right;
   final Widget child;
 
-  const Position({super.key, this.top, this.bottom, this.left, this.right, required this.child});
+  const Position({
+    super.key,
+    this.top,
+    this.bottom,
+    this.left,
+    this.right,
+    required this.child,
+  });
 
   @override
   Widget build(BuildContext context) {
