@@ -87,25 +87,20 @@ class ShopSyncApp extends ConsumerWidget {
   }
 }
 
-class MainNavigationShell extends ConsumerStatefulWidget {
+class MainNavigationShell extends ConsumerWidget {
   const MainNavigationShell({super.key});
-  @override
-  ConsumerState<MainNavigationShell> createState() =>
-      _MainNavigationShellState();
-}
 
-class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
-  int _selectedIndex = 0;
-  final _screens = [
-    const DashboardScreen(),
-    const OrderScreen(),
-    const SalesScreen(),
-    const ProductListScreen(),
-    const SupplierListScreen(),
+  static const _screens = [
+    DashboardScreen(),
+    OrderScreen(),
+    SalesScreen(),
+    ProductListScreen(),
+    SupplierListScreen(),
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedIndex = ref.watch(bottomNavIndexProvider);
     final width = MediaQuery.of(context).size.width;
     final isMobile = width < 600;
 
@@ -113,29 +108,33 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
       extendBody: true,
       body: Row(
         children: [
-          if (!isMobile) _buildNavigationRail(),
+          if (!isMobile) _buildNavigationRail(context, ref, selectedIndex),
           Expanded(
-            child: IndexedStack(index: _selectedIndex, children: _screens),
+            child: IndexedStack(index: selectedIndex, children: _screens),
           ),
         ],
       ),
-      bottomNavigationBar: isMobile ? _buildBottomNavigationBar() : null,
+      bottomNavigationBar: isMobile
+          ? _buildBottomNavigationBar(context, ref, selectedIndex)
+          : null,
     );
   }
 
-  Widget _buildNavigationRail() {
+  Widget _buildNavigationRail(
+      BuildContext context, WidgetRef ref, int selectedIndex) {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
         border: Border(
-          right: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
+          right: BorderSide(
+              color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
         ),
       ),
       child: NavigationRail(
         backgroundColor: Colors.transparent,
-        selectedIndex: _selectedIndex,
+        selectedIndex: selectedIndex,
         onDestinationSelected: (index) =>
-            setState(() => _selectedIndex = index),
+            ref.read(bottomNavIndexProvider.notifier).state = index,
         labelType: NavigationRailLabelType.all,
         useIndicator: true,
         indicatorColor: const Color(0xFF818CF8).withValues(alpha: 0.2),
@@ -150,17 +149,19 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
           fontWeight: FontWeight.w500,
         ),
         destinations: [
-          _buildRailDestination(Icons.grid_view_rounded, 'Home'),
-          _buildRailDestination(Icons.receipt_long_rounded, 'Orders'),
-          _buildRailDestination(Icons.history_rounded, 'Sales'),
-          _buildRailDestination(Icons.inventory_2_rounded, 'Stock'),
-          _buildRailDestination(Icons.local_shipping_rounded, 'Suppliers'),
+          _buildRailDestination(context, Icons.grid_view_rounded, 'Home'),
+          _buildRailDestination(context, Icons.receipt_long_rounded, 'Orders'),
+          _buildRailDestination(context, Icons.history_rounded, 'Sales'),
+          _buildRailDestination(context, Icons.inventory_2_rounded, 'Stock'),
+          _buildRailDestination(
+              context, Icons.local_shipping_rounded, 'Suppliers'),
         ],
       ),
     );
   }
 
-  NavigationRailDestination _buildRailDestination(IconData icon, String label) {
+  NavigationRailDestination _buildRailDestination(
+      BuildContext context, IconData icon, String label) {
     final colorScheme = Theme.of(context).colorScheme;
     return NavigationRailDestination(
       icon: Icon(icon, color: colorScheme.onSurface.withValues(alpha: 0.4)),
@@ -169,14 +170,16 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
     );
   }
 
-  Widget _buildBottomNavigationBar() {
+  Widget _buildBottomNavigationBar(
+      BuildContext context, WidgetRef ref, int selectedIndex) {
     return Container(
       margin: const EdgeInsets.fromLTRB(24, 0, 24, 24),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(32),
         child: NavigationBarTheme(
           data: NavigationBarThemeData(
-            indicatorColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+            indicatorColor:
+                Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
             labelTextStyle: WidgetStateProperty.resolveWith((states) {
               if (states.contains(WidgetState.selected)) {
                 return TextStyle(
@@ -188,23 +191,27 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
               return TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.4),
               );
             }),
           ),
           child: NavigationBar(
-            backgroundColor: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
+            backgroundColor:
+                Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
             elevation: 0,
             height: 72,
-            selectedIndex: _selectedIndex,
+            selectedIndex: selectedIndex,
             onDestinationSelected: (index) =>
-                setState(() => _selectedIndex = index),
+                ref.read(bottomNavIndexProvider.notifier).state = index,
             destinations: [
-              _buildNavItem(Icons.grid_view_rounded, 'Home'),
-              _buildNavItem(Icons.receipt_long_rounded, 'Orders'),
-              _buildNavItem(Icons.history_rounded, 'Sales'),
-              _buildNavItem(Icons.inventory_2_rounded, 'Stock'),
-              _buildNavItem(Icons.local_shipping_rounded, 'Suppliers'),
+              _buildNavItem(context, Icons.grid_view_rounded, 'Home'),
+              _buildNavItem(context, Icons.receipt_long_rounded, 'Orders'),
+              _buildNavItem(context, Icons.history_rounded, 'Sales'),
+              _buildNavItem(context, Icons.inventory_2_rounded, 'Stock'),
+              _buildNavItem(context, Icons.local_shipping_rounded, 'Suppliers'),
             ],
           ),
         ),
@@ -212,7 +219,8 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
     );
   }
 
-  NavigationDestination _buildNavItem(IconData icon, String label) {
+  NavigationDestination _buildNavItem(
+      BuildContext context, IconData icon, String label) {
     final colorScheme = Theme.of(context).colorScheme;
     return NavigationDestination(
       icon: Icon(icon, color: colorScheme.onSurface.withValues(alpha: 0.4)),

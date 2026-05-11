@@ -176,10 +176,10 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                         );
                       },
                       loading: () => const SizedBox.shrink(),
-                      error: (_, __) => const SizedBox.shrink(),
+                      error: (_, _) => const SizedBox.shrink(),
                     ),
                     loading: () => const SizedBox.shrink(),
-                    error: (_, __) => const SizedBox.shrink(),
+                    error: (_, _) => const SizedBox.shrink(),
                   ),
                 ),
                 productsAsync.when(
@@ -286,7 +286,7 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                         ),
                       ),
                     ),
-                    error: (e, __) => SliverFillRemaining(
+                    error: (e, _) => SliverFillRemaining(
                       child: Center(child: Text('Error: $e')),
                     ),
                   ),
@@ -297,7 +297,7 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                       ),
                     ),
                   ),
-                  error: (e, __) => SliverFillRemaining(
+                  error: (e, _) => SliverFillRemaining(
                     child: Center(child: Text('Error: $e')),
                   ),
                 ),

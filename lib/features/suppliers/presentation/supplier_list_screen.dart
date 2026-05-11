@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shopsync/core/presentation/widgets/theme_toggle_button.dart';
 import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/suppliers/data/supplier_model.dart';
 import 'package:shopsync/features/suppliers/data/supplier_repository.dart';
@@ -351,198 +350,291 @@ class _SupplierCard extends ConsumerWidget {
     final isActive = supplier.isActive;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(32),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withValues(alpha: isActive ? 0.05 : 0.02),
-            Colors.white.withValues(alpha: isActive ? 0.02 : 0.01),
+            Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
+            Theme.of(context).colorScheme.surface.withValues(alpha: 0.4),
           ],
-        ),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: isActive
-              ? Colors.white.withValues(alpha: 0.08)
-              : Colors.white.withValues(alpha: 0.02),
         ),
         boxShadow: [
-          if (isActive)
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+          if (hasBalance && isActive)
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              color: Colors.redAccent.withValues(alpha: 0.05),
+              blurRadius: 30,
+              spreadRadius: 5,
             ),
         ],
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.1),
+          width: 1.5,
+        ),
       ),
-
-      child: Opacity(
-        opacity: isActive ? 1.0 : 0.5,
-        child: Column(
-          children: [
-            ListTile(
-              contentPadding: const EdgeInsets.all(20),
-              leading: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.indigo.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(
-                  isActive
-                      ? Icons.local_shipping_rounded
-                      : Icons.pause_circle_filled_rounded,
-                  color: isActive ? const Color(0xFF818CF8) : Colors.white24,
-                ),
-              ),
-              title: Text(
-                supplier.name,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16,
-                ),
-              ),
-              subtitle: Row(
-                children: [
-                  Text(
-                    supplier.contact ?? 'No contact',
-                    style: const TextStyle(color: Colors.white38, fontSize: 12),
-                  ),
-                  if (supplier.contact != null && supplier.contact!.isNotEmpty) ...[
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () async {
-                        final Uri launchUri = Uri(
-                          scheme: 'tel',
-                          path: supplier.contact,
-                        );
-                        if (await canLaunchUrl(launchUri)) {
-                          await launchUrl(launchUri);
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: isActive
+                ? () => _showSettlementDialog(context, ref, supplier)
+                : null,
+            child: Opacity(
+              opacity: isActive ? 1.0 : 0.6,
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                            color:
+                                (isActive
+                                        ? const Color(0xFF6366F1)
+                                        : Colors.white10)
+                                    .withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color:
+                                  (isActive
+                                          ? const Color(0xFF6366F1)
+                                          : Colors.white10)
+                                      .withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: Icon(
+                            isActive
+                                ? Icons.local_shipping_rounded
+                                : Icons.pause_circle_rounded,
+                            color: isActive
+                                ? const Color(0xFF818CF8)
+                                : Colors.white24,
+                            size: 24,
+                          ),
                         ),
-                        child: Icon(
-                          Icons.phone_rounded,
-                          size: 12,
-                          color: Theme.of(context).colorScheme.primary,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                supplier.name.toUpperCase(),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 14,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Text(
+                                    supplier.contact ?? 'No contact',
+                                    style: const TextStyle(
+                                      color: Colors.white38,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  if (supplier.contact != null &&
+                                      supplier.contact!.isNotEmpty) ...[
+                                    const SizedBox(width: 8),
+                                    GestureDetector(
+                                      onTap: () async {
+                                        final Uri launchUri = Uri(
+                                          scheme: 'tel',
+                                          path: supplier.contact,
+                                        );
+                                        if (await canLaunchUrl(launchUri))
+                                          await launchUrl(launchUri);
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.all(6),
+                                        decoration: BoxDecoration(
+                                          color: const Color(
+                                            0xFF818CF8,
+                                          ).withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.phone_in_talk_rounded,
+                                          size: 14,
+                                          color: Color(0xFF818CF8),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
+                        // Quick actions
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit_rounded, size: 16),
+                                color: Colors.white30,
+                                constraints: const BoxConstraints(),
+                                padding: const EdgeInsets.all(8),
+                                onPressed: () =>
+                                    _showSupplierDialog(context, ref, supplier),
+                              ),
+                              IconButton(
+                                icon: Icon(
+                                  supplier.isVoid
+                                      ? Icons.restore_rounded
+                                      : Icons.delete_sweep_rounded,
+                                  size: 16,
+                                ),
+                                color: supplier.isVoid
+                                    ? Colors.greenAccent
+                                    : Colors.redAccent.withValues(alpha: 0.3),
+                                constraints: const BoxConstraints(),
+                                padding: const EdgeInsets.all(8),
+                                onPressed: () => supplier.isVoid
+                                    ? _showRestoreSupplierDialog(
+                                        context,
+                                        ref,
+                                        supplier,
+                                      )
+                                    : _showVoidSupplierDialog(
+                                        context,
+                                        ref,
+                                        supplier,
+                                      ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Status Toggle
+                        Row(
+                          children: [
+                            Transform.scale(
+                              scale: 0.7,
+                              child: Switch(
+                                value: isActive,
+                                onChanged: (val) async {
+                                  final updated = Supplier()
+                                    ..id = supplier.id
+                                    ..name = supplier.name
+                                    ..contact = supplier.contact
+                                    ..balance = supplier.balance
+                                    ..isActive = val;
+                                  await ref
+                                      .read(supplierRepositoryProvider)
+                                      .saveSupplier(updated);
+                                },
+                                activeThumbColor: const Color(0xFF818CF8),
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
+                            Text(
+                              isActive ? 'ACTIVE' : 'PAUSED',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.5,
+                                color: isActive
+                                    ? const Color(0xFF818CF8)
+                                    : Colors.white24,
+                              ),
+                            ),
+                          ],
+                        ),
+                        // Balance Display
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                (hasBalance
+                                        ? Colors.redAccent
+                                        : Colors.greenAccent)
+                                    .withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color:
+                                  (hasBalance
+                                          ? Colors.redAccent
+                                          : Colors.greenAccent)
+                                      .withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Text(
+                                'BALANCE:',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w900,
+                                  color:
+                                      (hasBalance
+                                              ? Colors.redAccent
+                                              : Colors.greenAccent)
+                                          .withValues(alpha: 0.5),
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '${supplier.balance.toStringAsFixed(0)} ETB',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 16,
+                                  color: hasBalance
+                                      ? Colors.redAccent
+                                      : Colors.greenAccent,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
-                ],
-              ),
-              trailing: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    'BALANCE',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white24,
-                      fontSize: 9,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                  Text(
-                    supplier.balance.toStringAsFixed(0),
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 18,
-                      color: hasBalance ? Colors.redAccent : Colors.greenAccent,
-                    ),
-                  ),
-                ],
-              ),
-              onTap: isActive
-                  ? () => _showSettlementDialog(context, ref, supplier)
-                  : null,
-            ),
-            Divider(
-              height: 1,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.05),
-              indent: 20,
-              endIndent: 20,
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Transform.scale(
-                        scale: 0.7,
-                        child: Switch(
-                          value: isActive,
-                          onChanged: (val) async {
-                            final updated = Supplier()
-                              ..id = supplier.id
-                              ..name = supplier.name
-                              ..contact = supplier.contact
-                              ..balance = supplier.balance
-                              ..isActive = val;
-                            await ref
-                                .read(supplierRepositoryProvider)
-                                .saveSupplier(updated);
-                          },
-                          activeColor: const Color(0xFF818CF8),
-                        ),
-                      ),
-                      Text(
-                        isActive ? 'ACTIVE' : 'INACTIVE',
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1,
-                          color: isActive
-                              ? const Color(0xFF818CF8)
-                              : Colors.white24,
-                        ),
-                      ),
-                    ],
-                  ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.edit_rounded,
-                      size: 20,
-                      color: Colors.white12,
-                    ),
-                    onPressed: () =>
-                        _showSupplierDialog(context, ref, supplier),
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      supplier.isVoid
-                          ? Icons.restore_rounded
-                          : Icons.delete_outline_rounded,
-                      size: 20,
-                      color: supplier.isVoid
-                          ? Colors.greenAccent
-                          : Colors.white12,
-                    ),
-                    onPressed: () => supplier.isVoid
-                        ? _showRestoreDialog(context, ref, supplier)
-                        : _showVoidDialog(context, ref, supplier),
-                  ),
-                ],
+                ),
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  void _showRestoreDialog(BuildContext context, WidgetRef ref, Supplier s) {
+  void _showRestoreSupplierDialog(
+    BuildContext context,
+    WidgetRef ref,
+    Supplier s,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -597,7 +689,11 @@ class _SupplierCard extends ConsumerWidget {
     );
   }
 
-  void _showVoidDialog(BuildContext context, WidgetRef ref, Supplier s) {
+  void _showVoidSupplierDialog(
+    BuildContext context,
+    WidgetRef ref,
+    Supplier s,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -742,15 +838,21 @@ class _SupplierCard extends ConsumerWidget {
                   width: double.infinity,
                   child: TextButton.icon(
                     onPressed: () {
-                      amountController.text = supplier.balance.toStringAsFixed(0);
+                      amountController.text = supplier.balance.toStringAsFixed(
+                        0,
+                      );
                     },
                     icon: const Icon(Icons.auto_fix_high_rounded, size: 18),
                     label: const Text('SETTLE FULL BALANCE'),
                     style: TextButton.styleFrom(
                       foregroundColor: Theme.of(context).colorScheme.primary,
-                      backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.1),
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                     ),
                   ),
                 ),

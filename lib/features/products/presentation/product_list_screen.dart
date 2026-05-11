@@ -7,7 +7,6 @@ import 'package:shopsync/features/products/presentation/daily_stock_providers.da
 import 'package:shopsync/features/products/data/stock_adjustment_model.dart';
 import 'package:shopsync/features/suppliers/presentation/supplier_list_screen.dart';
 
-import 'package:shopsync/core/presentation/widgets/theme_toggle_button.dart';
 import 'package:shopsync/features/dashboard/presentation/ui_providers.dart';
 
 class ProductListScreen extends ConsumerWidget {
@@ -433,118 +432,278 @@ class _ProductCard extends ConsumerWidget {
     final stockAsync = ref.watch(walkInAvailabilityProvider(DateTime.now()));
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(32),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withValues(alpha: isVoid ? 0.02 : 0.05),
-            Colors.white.withValues(alpha: isVoid ? 0.01 : 0.02),
+            Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
+            Theme.of(context).colorScheme.surface.withValues(alpha: 0.4),
           ],
         ),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: isVoid
-              ? Colors.white.withValues(alpha: 0.02)
-              : Colors.white.withValues(alpha: 0.08),
-        ),
         boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
           if (!isVoid)
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+              blurRadius: 30,
+              spreadRadius: -10,
             ),
         ],
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.1),
+          width: 1.5,
+        ),
       ),
-
-      child: Opacity(
-        opacity: isVoid ? 0.5 : 1.0,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: ListTile(
-            contentPadding: const EdgeInsets.all(20),
-            leading: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.indigo.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(
-                isVoid ? Icons.auto_delete_rounded : Icons.inventory_2_rounded,
-                color: isVoid ? Colors.white24 : const Color(0xFF818CF8),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: Stack(
+          children: [
+            // Decorative background icon
+            Positioned(
+              right: -20,
+              top: -20,
+              child: Opacity(
+                opacity: 0.05,
+                child: Icon(
+                  isVoid
+                      ? Icons.auto_delete_rounded
+                      : Icons.inventory_2_rounded,
+                  size: 150,
+                  color: Colors.white,
+                ),
               ),
             ),
-            title: Text(
-              product.name + (isVoid ? ' [VOID]' : ''),
-              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-            ),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Wrap(
-                spacing: 12,
-                runSpacing: 8,
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildPriceTag('COST', product.costPrice, Colors.redAccent),
-                  _buildPriceTag(
-                    'SALE',
-                    product.sellingPrice,
-                    Colors.greenAccent,
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color:
+                              (isVoid ? Colors.grey : const Color(0xFF6366F1))
+                                  .withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color:
+                                (isVoid ? Colors.grey : const Color(0xFF6366F1))
+                                    .withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: Icon(
+                          isVoid
+                              ? Icons.auto_delete_rounded
+                              : Icons.inventory_2_rounded,
+                          color: isVoid
+                              ? Colors.white38
+                              : const Color(0xFF818CF8),
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              product.name.toUpperCase(),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 14,
+                                letterSpacing: 1,
+                                color: isVoid ? Colors.white38 : Colors.white,
+                              ),
+                            ),
+                            if (isVoid)
+                              const Text(
+                                'ARCHIVED / VOID',
+                                style: TextStyle(
+                                  color: Colors.redAccent,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      // Quick actions strip
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (!isVoid)
+                              IconButton(
+                                icon: const Icon(Icons.edit_rounded, size: 18),
+                                color: Colors.white38,
+                                onPressed: () =>
+                                    _showProductDialog(context, ref, product),
+                              ),
+                            if (!isVoid)
+                              IconButton(
+                                icon: const Icon(Icons.tune_rounded, size: 18),
+                                color: const Color(0xFF818CF8),
+                                onPressed: () => _showAdjustmentDialog(
+                                  context,
+                                  ref,
+                                  product,
+                                ),
+                              ),
+                            IconButton(
+                              icon: Icon(
+                                isVoid
+                                    ? Icons.restore_rounded
+                                    : Icons.delete_sweep_rounded,
+                                size: 18,
+                              ),
+                              color: isVoid
+                                  ? Colors.greenAccent
+                                  : Colors.redAccent.withValues(alpha: 0.5),
+                              onPressed: () => isVoid
+                                  ? _showRestoreProductDialog(
+                                      context,
+                                      ref,
+                                      product,
+                                    )
+                                  : _showVoidProductDialog(
+                                      context,
+                                      ref,
+                                      product,
+                                    ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  stockAsync.when(
-                    data: (avail) {
-                      final status = avail[product.id];
-                      final remaining = status?.physicalRemaining ?? 0.0;
-                      return _buildPriceTag(
-                        'STOCK',
-                        remaining,
-                        remaining > 0 ? Colors.blueAccent : Colors.orangeAccent,
-                        isCurrency: false,
-                      );
-                    },
-                    loading: () => const SizedBox(),
-                    error: (_, __) => const SizedBox(),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      _buildModernPriceTag(
+                        context,
+                        'COST',
+                        'ETB ${product.costPrice.toStringAsFixed(0)}',
+                        Colors.redAccent,
+                      ),
+                      const SizedBox(width: 12),
+                      _buildModernPriceTag(
+                        context,
+                        'SALE',
+                        'ETB ${product.sellingPrice.toStringAsFixed(0)}',
+                        Colors.greenAccent,
+                      ),
+                      const Spacer(),
+                      stockAsync.when(
+                        data: (avail) {
+                          final status = avail[product.id];
+                          final remaining = status?.physicalRemaining ?? 0.0;
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: remaining > 0
+                                    ? [
+                                        const Color(0xFF6366F1),
+                                        const Color(0xFF818CF8),
+                                      ]
+                                    : [
+                                        const Color(0xFFF43F5E),
+                                        const Color(0xFFFB7185),
+                                      ],
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color:
+                                      (remaining > 0
+                                              ? const Color(0xFF6366F1)
+                                              : const Color(0xFFF43F5E))
+                                          .withValues(alpha: 0.3),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.analytics_rounded,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '${remaining.toStringAsFixed(1)} IN STOCK',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        loading: () => const SizedBox(),
+                        error: (_, _) => const SizedBox(),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (!isVoid)
-                  IconButton(
-                    icon: const Icon(
-                      Icons.edit_rounded,
-                      color: Colors.white12,
-                      size: 20,
-                    ),
-                    onPressed: () => _showProductDialog(context, ref, product),
-                  ),
-                if (!isVoid)
-                  IconButton(
-                    icon: const Icon(
-                      Icons.tune_rounded,
-                      color: Color(0xFF818CF8),
-                      size: 20,
-                    ),
-                    onPressed: () => _showAdjustmentDialog(context, ref, product),
-                  ),
-                IconButton(
-                  icon: Icon(
-                    isVoid ? Icons.restore_rounded : Icons.delete_sweep_rounded,
-                    color: isVoid ? Colors.greenAccent : Colors.white12,
-                    size: 20,
-                  ),
-                  onPressed: () => isVoid
-                      ? _showRestoreProductDialog(context, ref, product)
-                      : _showVoidProductDialog(context, ref, product),
-                ),
-              ],
-            ),
-          ),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildModernPriceTag(
+    BuildContext context,
+    String label,
+    String value,
+    Color color,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white24,
+            fontSize: 9,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            color: color.withValues(alpha: 0.9),
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
     );
   }
 
@@ -618,45 +777,6 @@ class _ProductCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildPriceTag(
-    String label,
-    double value,
-    Color color, {
-    bool isCurrency = true,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text.rich(
-        TextSpan(
-          children: [
-            TextSpan(
-              text: '$label: ',
-              style: TextStyle(
-                color: color.withValues(alpha: 0.5),
-                fontSize: 10,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            TextSpan(
-              text: isCurrency ? value.toStringAsFixed(0) : value.toStringAsFixed(1),
-              style: TextStyle(
-                color: color,
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ],
-        ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-    );
-  }
-
   void _showAdjustmentDialog(
     BuildContext context,
     WidgetRef ref,
@@ -726,18 +846,20 @@ class _ProductCard extends ConsumerWidget {
               Wrap(
                 spacing: 8,
                 children: ['damage', 'self-consumption', 'correction', 'other']
-                    .map((r) => ChoiceChip(
-                          label: Text(r),
-                          selected: reason == r,
-                          onSelected: (val) {
-                            if (val) setModalState(() => reason = r);
-                          },
-                          selectedColor: const Color(0xFF6366F1),
-                          labelStyle: TextStyle(
-                            color: reason == r ? Colors.white : Colors.white38,
-                            fontSize: 12,
-                          ),
-                        ))
+                    .map(
+                      (r) => ChoiceChip(
+                        label: Text(r),
+                        selected: reason == r,
+                        onSelected: (val) {
+                          if (val) setModalState(() => reason = r);
+                        },
+                        selectedColor: const Color(0xFF6366F1),
+                        labelStyle: TextStyle(
+                          color: reason == r ? Colors.white : Colors.white38,
+                          fontSize: 12,
+                        ),
+                      ),
+                    )
                     .toList(),
               ),
               const SizedBox(height: 32),

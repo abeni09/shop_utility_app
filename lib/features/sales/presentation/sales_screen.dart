@@ -2,12 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:shopsync/features/orders/data/customer_order_model.dart';
-import 'package:shopsync/core/presentation/widgets/theme_toggle_button.dart';
-import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/orders/presentation/order_providers.dart';
 import 'package:shopsync/features/products/data/product_model.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
-import 'package:shopsync/features/orders/presentation/order_screen.dart';
 
 final selectedSalesDateProvider = StateProvider<DateTime>(
   (ref) => DateTime.now(),
@@ -150,7 +147,7 @@ class SalesScreen extends ConsumerWidget {
                             );
                           },
                           loading: () => const SizedBox.shrink(),
-                          error: (_, __) => const SizedBox.shrink(),
+                          error: (_, _) => const SizedBox.shrink(),
                         ),
                         const SizedBox(height: 32),
                         const Text(
@@ -217,7 +214,7 @@ class SalesScreen extends ConsumerWidget {
                                           );
                                         },
                                         loading: () => const SizedBox.shrink(),
-                                        error: (_, __) =>
+                                        error: (_, _) =>
                                             const SizedBox.shrink(),
                                       );
                                     }, childCount: sales.length),
@@ -246,7 +243,7 @@ class SalesScreen extends ConsumerWidget {
                                           },
                                           loading: () =>
                                               const SizedBox.shrink(),
-                                          error: (_, __) =>
+                                          error: (_, _) =>
                                               const SizedBox.shrink(),
                                         ),
                                       );
@@ -261,7 +258,7 @@ class SalesScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  error: (err, __) => SliverFillRemaining(
+                  error: (err, _) => SliverFillRemaining(
                     child: Center(
                       child: Text(
                         'Error: $err',

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shopsync/core/presentation/widgets/theme_toggle_button.dart';
 import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/dashboard/presentation/dashboard_providers.dart';
 import 'package:shopsync/features/orders/presentation/order_providers.dart';
@@ -11,7 +12,6 @@ import 'package:shopsync/features/products/presentation/daily_stock_providers.da
 import 'package:shopsync/features/orders/presentation/requisition_screen.dart';
 import 'package:shopsync/features/sales/presentation/sales_screen.dart';
 import 'package:shopsync/features/dashboard/presentation/ui_providers.dart';
-import 'package:shopsync/core/presentation/widgets/theme_toggle_button.dart';
 import 'dart:ui';
 
 class DashboardScreen extends ConsumerWidget {
@@ -55,7 +55,9 @@ class DashboardScreen extends ConsumerWidget {
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.15),
               ),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
@@ -219,7 +221,7 @@ class DashboardScreen extends ConsumerWidget {
         label: 'NET PROFIT TODAY',
       ),
       loading: () => const _HeroProfitCard(amount: '...', label: 'LOADING...'),
-      error: (_, __) => const _HeroProfitCard(amount: 'ERR', label: 'ERROR'),
+      error: (_, _) => const _HeroProfitCard(amount: 'ERR', label: 'ERROR'),
     );
   }
 
@@ -232,7 +234,7 @@ class DashboardScreen extends ConsumerWidget {
   ) {
     return userAsync.when(
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
       data: (user) {
         final isCloudNewer = cloudNewerAsync.value ?? false;
         final isLocalAhead = localAheadAsync.value ?? false;
@@ -301,7 +303,9 @@ class DashboardScreen extends ConsumerWidget {
                   if (user != null)
                     Container(
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.05),
                         shape: BoxShape.circle,
                       ),
                       child: IconButton(
@@ -587,7 +591,7 @@ class DashboardScreen extends ConsumerWidget {
                   value: '...',
                   color: Colors.grey,
                 ),
-                error: (_, __) => const _InsightCard(
+                error: (_, _) => const _InsightCard(
                   label: 'LAST 7 DAYS',
                   value: 'ERR',
                   color: Colors.redAccent,
@@ -607,7 +611,7 @@ class DashboardScreen extends ConsumerWidget {
                   value: '...',
                   color: Colors.grey,
                 ),
-                error: (_, __) => const _InsightCard(
+                error: (_, _) => const _InsightCard(
                   label: 'LAST 30 DAYS',
                   value: 'ERR',
                   color: Colors.redAccent,
@@ -652,7 +656,7 @@ class DashboardScreen extends ConsumerWidget {
             icon: Icons.refresh,
             color: Colors.grey,
           ),
-          error: (_, __) => const _MiniOpCard(
+          error: (_, _) => const _MiniOpCard(
             label: 'DELIVERIES',
             value: '!',
             sublabel: 'Error',
@@ -684,7 +688,7 @@ class DashboardScreen extends ConsumerWidget {
                 icon: Icons.search,
                 color: Colors.grey,
               ),
-              error: (_, __) => const _MiniOpCard(
+              error: (_, _) => const _MiniOpCard(
                 label: 'STOCK',
                 value: '!',
                 sublabel: 'Error',
@@ -742,9 +746,7 @@ class DashboardScreen extends ConsumerWidget {
           label: 'View History',
           icon: Icons.analytics_rounded,
           color: const Color(0xFF818CF8),
-          onTap: () {
-            // We can jump to sales tab or open a summary
-          },
+          onTap: () => ref.read(bottomNavIndexProvider.notifier).state = 2,
         ),
       ],
     );
