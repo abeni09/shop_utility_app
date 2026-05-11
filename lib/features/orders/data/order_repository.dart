@@ -104,4 +104,18 @@ class OrderRepository {
 
     return query.watch(fireImmediately: true);
   }
+
+  Future<void> resetProductHistory(int productId) async {
+    await isar.writeTxn(() async {
+      final orders = await isar.customerOrders
+          .filter()
+          .productIdEqualTo(productId)
+          .findAll();
+      for (var order in orders) {
+        order.isVoid = true;
+        await isar.customerOrders.put(order);
+      }
+    });
+    await backupService.markLocalChanged();
+  }
 }

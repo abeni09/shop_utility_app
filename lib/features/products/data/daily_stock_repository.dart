@@ -37,4 +37,11 @@ class DailyStockRepository {
         .dateBetween(start, end)
         .findFirst();
   }
+
+  Future<void> resetProductHistory(int productId) async {
+    await isar.writeTxn(() async {
+      await isar.dailyStocks.filter().productIdEqualTo(productId).deleteAll();
+    });
+    await backupService.markLocalChanged();
+  }
 }

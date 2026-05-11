@@ -5,6 +5,7 @@ import 'package:shopsync/features/products/data/daily_stock_model.dart';
 import 'package:shopsync/features/products/presentation/daily_stock_providers.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
 import 'package:shopsync/features/suppliers/presentation/supplier_list_screen.dart';
+import 'package:shopsync/features/orders/presentation/order_providers.dart';
 import 'package:shopsync/features/dashboard/presentation/dashboard_providers.dart';
 
 class DailyReceiveScreen extends ConsumerStatefulWidget {
@@ -123,6 +124,46 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                         productName: product.name,
                         controller: _controllers[product.id]!,
                         requestedAmount: stock?.requestedQuantity ?? 0.0,
+                        onLongPress: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              backgroundColor: const Color(0xFF1E293B),
+                              title: Text('Reset ${product.name}?'),
+                              content: const Text(
+                                  'This will wipe all stock records and void all orders for this product. Use this to fix negative stock issues.'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
+                                  child: const Text('CANCEL'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  style: TextButton.styleFrom(
+                                      foregroundColor: Colors.redAccent),
+                                  child: const Text('RESET HISTORY'),
+                                ),
+                              ],
+                            ),
+                          );
+
+                          if (confirm == true) {
+                            await ref
+                                .read(dailyStockRepositoryProvider)
+                                .resetProductHistory(product.id);
+                            await ref
+                                .read(orderRepositoryProvider)
+                                .resetProductHistory(product.id);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: Text(
+                                        'History reset for ${product.name}')),
+                              );
+                            }
+                          }
+                        },
                       );
                     },
                   ),
@@ -232,11 +273,13 @@ class _StockInputCard extends StatelessWidget {
   final String productName;
   final TextEditingController controller;
   final double requestedAmount;
+  final VoidCallback? onLongPress;
 
   const _StockInputCard({
     required this.productName,
     required this.controller,
     required this.requestedAmount,
+    this.onLongPress,
   });
 
   @override
@@ -254,11 +297,14 @@ class _StockInputCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  productName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
+                GestureDetector(
+                  onLongPress: onLongPress,
+                  child: Text(
+                    productName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
                 if (requestedAmount > 0)
