@@ -217,7 +217,7 @@ class OrderScreen extends ConsumerWidget {
                 ],
               ),
               floatingActionButton: Padding(
-                padding: const EdgeInsets.only(bottom: 100),
+                padding: const EdgeInsets.only(bottom: 120),
                 child: FloatingActionButton.extended(
                   onPressed: () => _onCreateOrder(context, ref),
                   backgroundColor: const Color(0xFF6366F1),

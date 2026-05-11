@@ -591,23 +591,27 @@ class _ProductCard extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
                   Row(
                     children: [
-                      _buildModernPriceTag(
-                        context,
-                        'COST',
-                        'ETB ${product.costPrice.toStringAsFixed(0)}',
-                        Colors.redAccent,
+                      Flexible(
+                        child: _buildModernPriceTag(
+                          context,
+                          'COST',
+                          'ETB ${product.costPrice.toStringAsFixed(0)}',
+                          Colors.redAccent,
+                        ),
                       ),
-                      const SizedBox(width: 12),
-                      _buildModernPriceTag(
-                        context,
-                        'SALE',
-                        'ETB ${product.sellingPrice.toStringAsFixed(0)}',
-                        Colors.greenAccent,
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: _buildModernPriceTag(
+                          context,
+                          'SALE',
+                          'ETB ${product.sellingPrice.toStringAsFixed(0)}',
+                          Colors.greenAccent,
+                        ),
                       ),
-                      const Spacer(),
+                      const SizedBox(width: 8),
                       stockAsync.when(
                         data: (avail) {
                           final status = avail[product.id];

@@ -408,12 +408,15 @@ class DashboardScreen extends ConsumerWidget {
                       size: 14,
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      'All data is backed up and synchronized',
-                      style: TextStyle(
-                        color: const Color(0xFF10B981).withValues(alpha: 0.8),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
+                    Flexible(
+                      child: Text(
+                        'All data is backed up and synchronized',
+                        style: TextStyle(
+                          color: const Color(0xFF10B981).withValues(alpha: 0.8),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -952,32 +955,37 @@ class _MiniOpCard extends StatelessWidget {
           color: colorScheme.onSurface.withValues(alpha: 0.05),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color, size: 24),
-          const Spacer(),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-              color: colorScheme.onSurface,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 12),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: colorScheme.onSurface,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              color: colorScheme.onSurface.withValues(alpha: 0.4),
-              fontWeight: FontWeight.w700,
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                color: colorScheme.onSurface.withValues(alpha: 0.4),
+                fontWeight: FontWeight.w700,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1012,7 +1020,7 @@ class _QuickActionCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(icon, color: color, size: 32),
-            const Spacer(),
+            const Expanded(child: SizedBox()),
             Text(
               label,
               style: TextStyle(
@@ -1020,6 +1028,8 @@ class _QuickActionCard extends StatelessWidget {
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

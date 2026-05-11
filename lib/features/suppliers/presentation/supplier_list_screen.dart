@@ -533,89 +533,98 @@ class _SupplierCard extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         // Status Toggle
-                        Row(
-                          children: [
-                            Transform.scale(
-                              scale: 0.7,
-                              child: Switch(
-                                value: isActive,
-                                onChanged: (val) async {
-                                  final updated = Supplier()
-                                    ..id = supplier.id
-                                    ..name = supplier.name
-                                    ..contact = supplier.contact
-                                    ..balance = supplier.balance
-                                    ..isActive = val;
-                                  await ref
-                                      .read(supplierRepositoryProvider)
-                                      .saveSupplier(updated);
-                                },
-                                activeThumbColor: const Color(0xFF818CF8),
-                                materialTapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap,
+                        Flexible(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Transform.scale(
+                                scale: 0.7,
+                                child: Switch(
+                                  value: isActive,
+                                  onChanged: (val) async {
+                                    final updated = Supplier()
+                                      ..id = supplier.id
+                                      ..name = supplier.name
+                                      ..contact = supplier.contact
+                                      ..balance = supplier.balance
+                                      ..isActive = val;
+                                    await ref
+                                        .read(supplierRepositoryProvider)
+                                        .saveSupplier(updated);
+                                  },
+                                  activeThumbColor: const Color(0xFF818CF8),
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
                               ),
-                            ),
-                            Text(
-                              isActive ? 'ACTIVE' : 'PAUSED',
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1.5,
-                                color: isActive
-                                    ? const Color(0xFF818CF8)
-                                    : Colors.white24,
+                              Flexible(
+                                child: Text(
+                                  isActive ? 'ACTIVE' : 'PAUSED',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.5,
+                                    color: isActive
+                                        ? const Color(0xFF818CF8)
+                                        : Colors.white24,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                        // Balance Display
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
+                            ],
                           ),
-                          decoration: BoxDecoration(
-                            color:
-                                (hasBalance
-                                        ? Colors.redAccent
-                                        : Colors.greenAccent)
-                                    .withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
+                        ),
+                        const SizedBox(width: 8),
+                        // Balance Display
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
                               color:
                                   (hasBalance
                                           ? Colors.redAccent
                                           : Colors.greenAccent)
-                                      .withValues(alpha: 0.2),
+                                      .withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color:
+                                    (hasBalance
+                                            ? Colors.redAccent
+                                            : Colors.greenAccent)
+                                        .withValues(alpha: 0.2),
+                              ),
                             ),
-                          ),
-                          child: Row(
-                            children: [
-                              Text(
-                                'BALANCE:',
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w900,
-                                  color:
-                                      (hasBalance
-                                              ? Colors.redAccent
-                                              : Colors.greenAccent)
-                                          .withValues(alpha: 0.5),
-                                  letterSpacing: 1,
+                            child: Row(
+                              children: [
+                                Text(
+                                  'BALANCE:',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w900,
+                                    color:
+                                        (hasBalance
+                                                ? Colors.redAccent
+                                                : Colors.greenAccent)
+                                            .withValues(alpha: 0.5),
+                                    letterSpacing: 1,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '${supplier.balance.toStringAsFixed(0)} ETB',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 16,
-                                  color: hasBalance
-                                      ? Colors.redAccent
-                                      : Colors.greenAccent,
+                                const SizedBox(width: 8),
+                                Text(
+                                  '${supplier.balance.toStringAsFixed(0)} ETB',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 16,
+                                    color: hasBalance
+                                        ? Colors.redAccent
+                                        : Colors.greenAccent,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ],
