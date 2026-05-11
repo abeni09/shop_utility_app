@@ -26,3 +26,13 @@ final monthlyProfitProvider = FutureProvider<Map<String, double>>((ref) {
   final start = now.subtract(const Duration(days: 30));
   return repository.getProfitForRange(start, now);
 });
+final customDateProfitProvider = FutureProvider.family<Map<String, double>,
+    ({DateTime start, DateTime end})>((ref, range) {
+  final repository = ref.watch(dashboardRepositoryProvider);
+  return repository.getProfitForRange(range.start, range.end);
+});
+final dailyLogsProvider = FutureProvider.family<List<DailyLog>,
+    ({DateTime start, DateTime end})>((ref, range) {
+  final repository = ref.watch(dashboardRepositoryProvider);
+  return repository.getDailyLogsForRange(range.start, range.end);
+});

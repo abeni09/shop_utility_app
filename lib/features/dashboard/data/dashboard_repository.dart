@@ -113,4 +113,14 @@ class DashboardRepository {
 
     return {'sales': totalSales, 'profit': totalProfit};
   }
+
+  Future<List<DailyLog>> getDailyLogsForRange(DateTime start, DateTime end) async {
+    return await isar.dailyLogs
+        .filter()
+        .dateGreaterThan(start.subtract(const Duration(milliseconds: 1)))
+        .and()
+        .dateLessThan(end.add(const Duration(days: 1)))
+        .sortByDate()
+        .findAll();
+  }
 }

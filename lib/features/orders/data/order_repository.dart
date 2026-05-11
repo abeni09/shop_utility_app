@@ -23,12 +23,17 @@ class OrderRepository {
   }
 
   Future<void> saveOrder(CustomerOrder order) async {
-    print('DEBUG: Saving order for ${order.customerName}, amount: ${order.amount}, status: ${order.status}');
+    print(
+        'DEBUG: Saving order for ${order.customerName}, amount: ${order.amount}, status: ${order.status}');
     await isar.writeTxn(() async {
       final id = await isar.customerOrders.put(order);
       print('DEBUG: Order saved with ID: $id');
     });
-    
+
+    if (order.status == OrderStatus.sold && !order.isVoid) {
+      await dashboardRepo.recalculateDailyStats(order.dueDate);
+    }
+
     // Auto-Sync trigger
     await backupService.markLocalChanged();
     backupService.autoBackupIfPossible();

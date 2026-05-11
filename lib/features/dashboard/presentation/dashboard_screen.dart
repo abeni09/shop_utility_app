@@ -12,6 +12,7 @@ import 'package:shopsync/features/products/presentation/daily_stock_providers.da
 import 'package:shopsync/features/orders/presentation/requisition_screen.dart';
 import 'package:shopsync/features/sales/presentation/sales_screen.dart';
 import 'package:shopsync/features/dashboard/presentation/ui_providers.dart';
+import 'package:shopsync/features/dashboard/presentation/financial_report_screen.dart';
 import 'dart:ui';
 
 class DashboardScreen extends ConsumerWidget {
@@ -781,13 +782,47 @@ class _HeroProfitCard extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          Position(
+          Positioned(
             bottom: -20,
             right: -20,
             child: Icon(
               Icons.account_balance_wallet_rounded,
               size: 150,
               color: Colors.white.withValues(alpha: 0.1),
+            ),
+          ),
+          Positioned(
+            top: 24,
+            right: 24,
+            child: GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const FinancialReportScreen()),
+              ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'INSIGHTS',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    SizedBox(width: 4),
+                    Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 10),
+                  ],
+                ),
+              ),
             ),
           ),
           Padding(
