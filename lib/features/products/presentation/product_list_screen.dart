@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/products/data/product_model.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
+import 'package:shopsync/features/products/presentation/daily_stock_providers.dart';
+import 'package:shopsync/features/products/data/stock_adjustment_model.dart';
 import 'package:shopsync/features/suppliers/presentation/supplier_list_screen.dart';
 
 import 'package:shopsync/core/presentation/widgets/theme_toggle_button.dart';
@@ -428,6 +430,7 @@ class _ProductCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isVoid = product.isVoid;
+    final stockAsync = ref.watch(walkInAvailabilityProvider(DateTime.now()));
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -489,6 +492,20 @@ class _ProductCard extends ConsumerWidget {
                     product.sellingPrice,
                     Colors.greenAccent,
                   ),
+                  stockAsync.when(
+                    data: (avail) {
+                      final status = avail[product.id];
+                      final remaining = status?.physicalRemaining ?? 0.0;
+                      return _buildPriceTag(
+                        'STOCK',
+                        remaining,
+                        remaining > 0 ? Colors.blueAccent : Colors.orangeAccent,
+                        isCurrency: false,
+                      );
+                    },
+                    loading: () => const SizedBox(),
+                    error: (_, __) => const SizedBox(),
+                  ),
                 ],
               ),
             ),
@@ -503,6 +520,15 @@ class _ProductCard extends ConsumerWidget {
                       size: 20,
                     ),
                     onPressed: () => _showProductDialog(context, ref, product),
+                  ),
+                if (!isVoid)
+                  IconButton(
+                    icon: const Icon(
+                      Icons.tune_rounded,
+                      color: Color(0xFF818CF8),
+                      size: 20,
+                    ),
+                    onPressed: () => _showAdjustmentDialog(context, ref, product),
                   ),
                 IconButton(
                   icon: Icon(
@@ -592,33 +618,162 @@ class _ProductCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildPriceTag(String label, double price, Color color) {
+  Widget _buildPriceTag(
+    String label,
+    double value,
+    Color color, {
+    bool isCurrency = true,
+  }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '$label ',
-            style: TextStyle(
-              color: color.withValues(alpha: 0.6),
-              fontSize: 9,
-              fontWeight: FontWeight.w900,
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: '$label: ',
+              style: TextStyle(
+                color: color.withValues(alpha: 0.5),
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+              ),
             ),
-          ),
-          Text(
-            price.toStringAsFixed(0),
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
+            TextSpan(
+              text: isCurrency ? value.toStringAsFixed(0) : value.toStringAsFixed(1),
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
             ),
+          ],
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+
+  void _showAdjustmentDialog(
+    BuildContext context,
+    WidgetRef ref,
+    Product product,
+  ) {
+    final amountController = TextEditingController();
+    String reason = 'damage';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF0F172A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 24,
+            right: 24,
+            top: 24,
           ),
-        ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'ADJUST STOCK: ${product.name.toUpperCase()}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2,
+                  fontSize: 14,
+                  color: Color(0xFF818CF8),
+                ),
+              ),
+              const SizedBox(height: 24),
+              TextField(
+                controller: amountController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                  signed: true,
+                ),
+                style: const TextStyle(fontWeight: FontWeight.w600),
+                decoration: InputDecoration(
+                  labelText: 'Adjustment Amount',
+                  helperText: 'Use negative for losses (damage, consumption)',
+                  prefixIcon: const Icon(Icons.add_chart_rounded),
+                  filled: true,
+                  fillColor: Colors.white.withValues(alpha: 0.05),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'REASON',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white24,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: ['damage', 'self-consumption', 'correction', 'other']
+                    .map((r) => ChoiceChip(
+                          label: Text(r),
+                          selected: reason == r,
+                          onSelected: (val) {
+                            if (val) setModalState(() => reason = r);
+                          },
+                          selectedColor: const Color(0xFF6366F1),
+                          labelStyle: TextStyle(
+                            color: reason == r ? Colors.white : Colors.white38,
+                            fontSize: 12,
+                          ),
+                        ))
+                    .toList(),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 60,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6366F1),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  onPressed: () async {
+                    final amount = double.tryParse(amountController.text);
+                    if (amount == null || amount == 0) return;
+
+                    final adj = StockAdjustment()
+                      ..productId = product.id
+                      ..amount = amount
+                      ..reason = reason
+                      ..date = DateTime.now();
+
+                    await ref
+                        .read(stockAdjustmentRepositoryProvider)
+                        .saveAdjustment(adj);
+
+                    if (context.mounted) Navigator.pop(context);
+                  },
+                  child: const Text('SAVE ADJUSTMENT'),
+                ),
+              ),
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
       ),
     );
   }

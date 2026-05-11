@@ -409,6 +409,32 @@ class _SupplierCard extends ConsumerWidget {
                     supplier.contact ?? 'No contact',
                     style: const TextStyle(color: Colors.white38, fontSize: 12),
                   ),
+                  if (supplier.contact != null && supplier.contact!.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () async {
+                        final Uri launchUri = Uri(
+                          scheme: 'tel',
+                          path: supplier.contact,
+                        );
+                        if (await canLaunchUrl(launchUri)) {
+                          await launchUrl(launchUri);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.phone_rounded,
+                          size: 12,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
               trailing: Column(
@@ -709,6 +735,26 @@ class _SupplierCard extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 24),
+            if (supplier.balance != 0)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 24),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: TextButton.icon(
+                    onPressed: () {
+                      amountController.text = supplier.balance.toStringAsFixed(0);
+                    },
+                    icon: const Icon(Icons.auto_fix_high_rounded, size: 18),
+                    label: const Text('SETTLE FULL BALANCE'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Theme.of(context).colorScheme.primary,
+                      backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    ),
+                  ),
+                ),
+              ),
             TextField(
               controller: amountController,
               keyboardType: const TextInputType.numberWithOptions(
@@ -784,7 +830,7 @@ class _SupplierCard extends ConsumerWidget {
 
                   await ref
                       .read(supplierRepositoryProvider)
-                      .updateBalance(supplier.id, amount);
+                      .updateBalance(supplier.id, -amount);
 
                   if (context.mounted) {
                     Navigator.pop(context);
