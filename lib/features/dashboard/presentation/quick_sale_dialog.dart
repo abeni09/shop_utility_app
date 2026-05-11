@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/products/presentation/daily_stock_providers.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
 import 'package:shopsync/features/orders/data/customer_order_model.dart';
@@ -21,7 +20,7 @@ class QuickSaleDialog extends ConsumerStatefulWidget {
 }
 
 class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
-  final Map<int, double> _quantities = {};
+  final Map<int, TextEditingController> _quantityControllers = {};
   final Map<int, bool> _addBag = {};
   final TextEditingController _customerController = TextEditingController(
     text: 'Walk-in',
@@ -31,6 +30,9 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
   @override
   void dispose() {
     _customerController.dispose();
+    for (var controller in _quantityControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -243,7 +245,6 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
     List<dynamic> allBagProducts,
     StockStatus status,
   ) {
-    final quantity = _quantities[product.id] ?? 1.0;
     final hasBag = _addBag[product.id] ?? false;
     final isAnyBag = allBagProducts.any((p) => p.id == product.id);
     final walkInAvailable = status.walkInAvailable;
@@ -418,29 +419,55 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                     _IconButton(
                       icon: Icons.remove_rounded,
                       onTap: () {
-                        if (quantity > 1) {
-                          setState(
-                            () => _quantities[product.id] = quantity - 1,
-                          );
+                        final currentQty =
+                            double.tryParse(
+                              _quantityControllers[product.id]?.text ?? '1',
+                            ) ??
+                            1.0;
+                        if (currentQty > 1) {
+                          setState(() {
+                            _quantityControllers[product.id]?.text =
+                                (currentQty - 1).toStringAsFixed(0);
+                          });
                         }
                       },
                     ),
                     Container(
-                      width: 40,
+                      width: 50,
                       alignment: Alignment.center,
-                      child: Text(
-                        quantity.toStringAsFixed(0),
+                      child: TextField(
+                        controller: _quantityControllers[product.id] ??=
+                            TextEditingController(text: '1'),
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontWeight: FontWeight.w900,
                           fontSize: 16,
                           color: Colors.white,
                         ),
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                          border: InputBorder.none,
+                        ),
+                        onChanged: (val) {
+                          // Force state rebuild if needed, though controller handles text
+                          setState(() {});
+                        },
                       ),
                     ),
                     _IconButton(
                       icon: Icons.add_rounded,
                       onTap: () {
-                        setState(() => _quantities[product.id] = quantity + 1);
+                        final currentQty =
+                            double.tryParse(
+                              _quantityControllers[product.id]?.text ?? '1',
+                            ) ??
+                            1.0;
+                        setState(() {
+                          _quantityControllers[product.id]?.text =
+                              (currentQty + 1).toStringAsFixed(0);
+                        });
                       },
                     ),
                   ],
@@ -492,12 +519,19 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                   child: ElevatedButton(
                     onPressed: isOutOfStock
                         ? null
-                        : () => _processSale(
-                            product,
-                            quantity,
-                            hasBag ? bagProduct : null,
-                            status,
-                          ),
+                        : () {
+                            final qty =
+                                double.tryParse(
+                                  _quantityControllers[product.id]?.text ?? '1',
+                                ) ??
+                                1.0;
+                            _processSale(
+                              product,
+                              qty,
+                              hasBag ? bagProduct : null,
+                              status,
+                            );
+                          },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isOutOfStock
                           ? Colors.white10
@@ -578,7 +612,10 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
               onPressed: () => Navigator.pop(context, false),
               child: const Text(
                 'CANCEL',
-                style: TextStyle(color: Colors.white24, fontWeight: FontWeight.w900),
+                style: TextStyle(
+                  color: Colors.white24,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
             ElevatedButton(
