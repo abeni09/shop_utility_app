@@ -99,27 +99,50 @@ class ProductListScreen extends ConsumerWidget {
                   ),
 
                   productsAsync.when(
-                    data: (products) => products.isEmpty
-                        ? const SliverFillRemaining(
-                            child: Center(
-                              child: Text(
-                                'No products found',
-                                style: TextStyle(color: Colors.white38),
+                    data: (products) {
+                      final width = MediaQuery.of(context).size.width;
+                      final horizontalPadding = width > 1200 ? width * 0.1 : (width > 800 ? 48.0 : 24.0);
+                      final crossAxisCount = width > 1000 ? 3 : (width > 600 ? 2 : 1);
+
+                      final filtered = products
+                          .where((p) => showVoided ? true : !p.isVoid)
+                          .toList();
+
+                      return filtered.isEmpty
+                          ? const SliverFillRemaining(
+                              child: Center(
+                                child: Text(
+                                  'No products found',
+                                  style: TextStyle(color: Colors.white38),
+                                ),
                               ),
-                            ),
-                          )
-                        : SliverPadding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
-                            sliver: SliverList(
-                              delegate: SliverChildBuilderDelegate((
-                                context,
-                                index,
-                              ) {
-                                final product = products[index];
-                                return _ProductCard(product: product);
-                              }, childCount: products.length),
-                            ),
-                          ),
+                            )
+                          : SliverPadding(
+                              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                              sliver: crossAxisCount > 1
+                                  ? SliverGrid(
+                                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: crossAxisCount,
+                                        mainAxisSpacing: 16,
+                                        crossAxisSpacing: 16,
+                                        mainAxisExtent: 180,
+                                      ),
+                                      delegate: SliverChildBuilderDelegate(
+                                        (context, index) => _ProductCard(product: filtered[index]),
+                                        childCount: filtered.length,
+                                      ),
+                                    )
+                                  : SliverList(
+                                      delegate: SliverChildBuilderDelegate(
+                                        (context, index) => Padding(
+                                          padding: const EdgeInsets.only(bottom: 16),
+                                          child: _ProductCard(product: filtered[index]),
+                                        ),
+                                        childCount: filtered.length,
+                                      ),
+                                    ),
+                            );
+                    },
                     loading: () => const SliverFillRemaining(
                       child: Center(
                         child: CircularProgressIndicator(

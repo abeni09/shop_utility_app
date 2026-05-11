@@ -76,94 +76,114 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
   ];
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final isMobile = width < 600;
+
     return Scaffold(
       extendBody: true,
-      body: IndexedStack(index: _selectedIndex, children: _screens),
-      bottomNavigationBar: Container(
-        margin: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(32),
-          child: NavigationBarTheme(
-            data: NavigationBarThemeData(
-              indicatorColor: Theme.of(
-                context,
-              ).colorScheme.primary.withValues(alpha: 0.2),
-              labelTextStyle: WidgetStateProperty.resolveWith((states) {
-                if (states.contains(WidgetState.selected)) {
-                  return const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  );
-                }
+      body: Row(
+        children: [
+          if (!isMobile)
+            _buildNavigationRail(),
+          Expanded(
+            child: IndexedStack(index: _selectedIndex, children: _screens),
+          ),
+        ],
+      ),
+      bottomNavigationBar: isMobile ? _buildBottomNavigationBar() : null,
+    );
+  }
+
+  Widget _buildNavigationRail() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F172A).withValues(alpha: 0.8),
+        border: Border(right: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
+      ),
+      child: NavigationRail(
+        backgroundColor: Colors.transparent,
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: (index) => setState(() => _selectedIndex = index),
+        labelType: NavigationRailLabelType.all,
+        useIndicator: true,
+        indicatorColor: const Color(0xFF818CF8).withValues(alpha: 0.2),
+        selectedLabelTextStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+        unselectedLabelTextStyle: const TextStyle(
+          color: Colors.white38,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+        destinations: [
+          _buildRailDestination(Icons.grid_view_rounded, 'Home'),
+          _buildRailDestination(Icons.receipt_long_rounded, 'Orders'),
+          _buildRailDestination(Icons.history_rounded, 'Sales'),
+          _buildRailDestination(Icons.inventory_2_rounded, 'Stock'),
+          _buildRailDestination(Icons.local_shipping_rounded, 'Suppliers'),
+        ],
+      ),
+    );
+  }
+
+  NavigationRailDestination _buildRailDestination(IconData icon, String label) {
+    return NavigationRailDestination(
+      icon: Icon(icon, color: Colors.white38),
+      selectedIcon: Icon(icon, color: const Color(0xFF818CF8)),
+      label: Text(label),
+    );
+  }
+
+  Widget _buildBottomNavigationBar() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: NavigationBarTheme(
+          data: NavigationBarThemeData(
+            indicatorColor: const Color(0xFF818CF8).withValues(alpha: 0.2),
+            labelTextStyle: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
                 return const TextStyle(
                   fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white38,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
                 );
-              }),
-            ),
-            child: NavigationBar(
-              backgroundColor: const Color(0xFF0F172A).withValues(alpha: 0.8),
-              elevation: 0,
-              height: 72,
-              selectedIndex: _selectedIndex,
-              onDestinationSelected: (index) =>
-                  setState(() => _selectedIndex = index),
-              destinations: [
-                _buildNavItem(
-                  Icons.grid_view_rounded,
-                  Icons.grid_view_rounded,
-                  'Home',
-                  0,
-                ),
-                _buildNavItem(
-                  Icons.receipt_long_rounded,
-                  Icons.receipt_long_rounded,
-                  'Orders',
-                  1,
-                ),
-                _buildNavItem(
-                  Icons.history_rounded,
-                  Icons.history_rounded,
-                  'Sales',
-                  2,
-                ),
-                _buildNavItem(
-                  Icons.inventory_2_rounded,
-                  Icons.inventory_2_rounded,
-                  'Stock',
-                  3,
-                ),
-                _buildNavItem(
-                  Icons.local_shipping_rounded,
-                  Icons.local_shipping_rounded,
-                  'Suppliers',
-                  4,
-                ),
-              ],
-            ),
+              }
+              return const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Colors.white38,
+              );
+            }),
+          ),
+          child: NavigationBar(
+            backgroundColor: const Color(0xFF0F172A).withValues(alpha: 0.8),
+            elevation: 0,
+            height: 72,
+            selectedIndex: _selectedIndex,
+            onDestinationSelected: (index) =>
+                setState(() => _selectedIndex = index),
+            destinations: [
+              _buildNavItem(Icons.grid_view_rounded, 'Home'),
+              _buildNavItem(Icons.receipt_long_rounded, 'Orders'),
+              _buildNavItem(Icons.history_rounded, 'Sales'),
+              _buildNavItem(Icons.inventory_2_rounded, 'Stock'),
+              _buildNavItem(Icons.local_shipping_rounded, 'Suppliers'),
+            ],
           ),
         ),
       ),
     );
   }
 
-  NavigationDestination _buildNavItem(
-    IconData icon,
-    IconData selectedIcon,
-    String label,
-    int index,
-  ) {
+  NavigationDestination _buildNavItem(IconData icon, String label) {
     return NavigationDestination(
       icon: Icon(icon, color: Colors.white38),
-      selectedIcon: Icon(selectedIcon, color: const Color(0xFF818CF8)),
+      selectedIcon: Icon(icon, color: const Color(0xFF818CF8)),
       label: label,
     );
   }

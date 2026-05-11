@@ -113,27 +113,46 @@ class SupplierListScreen extends ConsumerWidget {
                   ),
 
                   suppliersAsync.when(
-                    data: (suppliers) => suppliers.isEmpty
-                        ? const SliverFillRemaining(
-                            child: Center(
-                              child: Text(
-                                'No suppliers found',
-                                style: TextStyle(color: Colors.white38),
+                    data: (suppliers) {
+                      final width = MediaQuery.of(context).size.width;
+                      final horizontalPadding = width > 1200 ? width * 0.1 : (width > 800 ? 48.0 : 24.0);
+                      final crossAxisCount = width > 1000 ? 3 : (width > 600 ? 2 : 1);
+
+                      return suppliers.isEmpty
+                          ? const SliverFillRemaining(
+                              child: Center(
+                                child: Text(
+                                  'No suppliers found',
+                                  style: TextStyle(color: Colors.white38),
+                                ),
                               ),
-                            ),
-                          )
-                        : SliverPadding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
-                            sliver: SliverList(
-                              delegate: SliverChildBuilderDelegate((
-                                context,
-                                index,
-                              ) {
-                                final supplier = suppliers[index];
-                                return _SupplierCard(supplier: supplier);
-                              }, childCount: suppliers.length),
-                            ),
-                          ),
+                            )
+                          : SliverPadding(
+                              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                              sliver: crossAxisCount > 1
+                                  ? SliverGrid(
+                                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: crossAxisCount,
+                                        mainAxisSpacing: 16,
+                                        crossAxisSpacing: 16,
+                                        mainAxisExtent: 240,
+                                      ),
+                                      delegate: SliverChildBuilderDelegate(
+                                        (context, index) => _SupplierCard(supplier: suppliers[index]),
+                                        childCount: suppliers.length,
+                                      ),
+                                    )
+                                  : SliverList(
+                                      delegate: SliverChildBuilderDelegate(
+                                        (context, index) => Padding(
+                                          padding: const EdgeInsets.only(bottom: 16),
+                                          child: _SupplierCard(supplier: suppliers[index]),
+                                        ),
+                                        childCount: suppliers.length,
+                                      ),
+                                    ),
+                            );
+                    },
                     loading: () => const SliverFillRemaining(
                       child: Center(
                         child: CircularProgressIndicator(

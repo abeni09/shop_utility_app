@@ -168,40 +168,72 @@ class SalesScreen extends ConsumerWidget {
                   ),
                 ),
                 salesAsync.when(
-                  data: (sales) => sales.isEmpty
-                      ? const SliverFillRemaining(
-                          child: Center(
-                            child: Text(
-                              'No sales recorded for this date.',
-                              style: TextStyle(color: Colors.white24),
+                  data: (sales) {
+                    final width = MediaQuery.of(context).size.width;
+                    final horizontalPadding = width > 1200 ? width * 0.1 : (width > 800 ? 48.0 : 24.0);
+                    final crossAxisCount = width > 1000 ? 3 : (width > 600 ? 2 : 1);
+
+                    return sales.isEmpty
+                        ? const SliverFillRemaining(
+                            child: Center(
+                              child: Text(
+                                'No sales recorded for this date.',
+                                style: TextStyle(color: Colors.white24),
+                              ),
                             ),
-                          ),
-                        )
-                      : SliverPadding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          sliver: SliverList(
-                            delegate: SliverChildBuilderDelegate((
-                              context,
-                              index,
-                            ) {
-                              final sale = sales[index];
-                              return productsAsync.when(
-                                data: (products) {
-                                  final product = products.firstWhere(
-                                    (p) => p.id == sale.productId,
-                                    orElse: () => Product()..name = 'Unknown',
-                                  );
-                                  return _SaleTile(
-                                    sale: sale,
-                                    productName: product.name,
-                                  );
-                                },
-                                loading: () => const SizedBox.shrink(),
-                                error: (_, __) => const SizedBox.shrink(),
-                              );
-                            }, childCount: sales.length),
-                          ),
-                        ),
+                          )
+                        : SliverPadding(
+                            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                            sliver: crossAxisCount > 1
+                                ? SliverGrid(
+                                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: crossAxisCount,
+                                      mainAxisSpacing: 16,
+                                      crossAxisSpacing: 16,
+                                      mainAxisExtent: 140,
+                                    ),
+                                    delegate: SliverChildBuilderDelegate(
+                                      (context, index) {
+                                        final sale = sales[index];
+                                        return productsAsync.when(
+                                          data: (products) {
+                                            final product = products.firstWhere(
+                                              (p) => p.id == sale.productId,
+                                              orElse: () => Product()..name = 'Unknown',
+                                            );
+                                            return _SaleTile(sale: sale, productName: product.name);
+                                          },
+                                          loading: () => const SizedBox.shrink(),
+                                          error: (_, __) => const SizedBox.shrink(),
+                                        );
+                                      },
+                                      childCount: sales.length,
+                                    ),
+                                  )
+                                : SliverList(
+                                    delegate: SliverChildBuilderDelegate(
+                                      (context, index) {
+                                        final sale = sales[index];
+                                        return Padding(
+                                          padding: const EdgeInsets.only(bottom: 12),
+                                          child: productsAsync.when(
+                                            data: (products) {
+                                              final product = products.firstWhere(
+                                                (p) => p.id == sale.productId,
+                                                orElse: () => Product()..name = 'Unknown',
+                                              );
+                                              return _SaleTile(sale: sale, productName: product.name);
+                                            },
+                                            loading: () => const SizedBox.shrink(),
+                                            error: (_, __) => const SizedBox.shrink(),
+                                          ),
+                                        );
+                                      },
+                                      childCount: sales.length,
+                                    ),
+                                  ),
+                          );
+                  },
                   loading: () => const SliverFillRemaining(
                     child: Center(
                       child: CircularProgressIndicator(

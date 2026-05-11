@@ -17,6 +17,10 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final width = MediaQuery.of(context).size.width;
+    final horizontalPadding = width > 1200 ? width * 0.1 : (width > 800 ? 48.0 : 24.0);
+    final crossAxisCount = width > 1200 ? 4 : (width > 800 ? 3 : 2);
+
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final dailyLogAsync = ref.watch(dailyLogProvider);
@@ -71,7 +75,7 @@ class DashboardScreen extends ConsumerWidget {
               slivers: [
                 _buildSliverAppBar(context),
                 SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
                       _buildGreeting(),
@@ -92,11 +96,11 @@ class DashboardScreen extends ConsumerWidget {
                       const SizedBox(height: 40),
                       _buildSectionHeader('OPERATIONAL OVERVIEW'),
                       const SizedBox(height: 16),
-                      _buildOperationsGrid(ordersAsync, ref),
+                      _buildOperationsGrid(ordersAsync, ref, crossAxisCount),
                       const SizedBox(height: 40),
                       _buildSectionHeader('QUICK ACTIONS'),
                       const SizedBox(height: 16),
-                      _buildQuickActionsGrid(context, ref),
+                      _buildQuickActionsGrid(context, ref, crossAxisCount),
                       const SizedBox(
                         height: 140,
                       ), // Extra space for FAB and Bottom Nav
@@ -593,86 +597,78 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildOperationsGrid(AsyncValue ordersAsync, WidgetRef ref) {
-    return Row(
+  Widget _buildOperationsGrid(AsyncValue ordersAsync, WidgetRef ref, int crossAxisCount) {
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: crossAxisCount,
+      mainAxisSpacing: 16,
+      crossAxisSpacing: 16,
+      childAspectRatio: 1.6,
       children: [
-        Expanded(
-          child: ordersAsync.when(
-            data: (orders) {
-              final total = orders.length;
-              final out = orders
-                  .where((o) => o.status == OrderStatus.sold)
-                  .length;
-              return _MiniOpCard(
-                label: 'DELIVERIES',
-                value: '$out/$total',
-                sublabel: 'Completed',
-                icon: Icons.local_shipping_rounded,
-                color: const Color(0xFF10B981),
-              );
-            },
-            loading: () => const _MiniOpCard(
+        ordersAsync.when(
+          data: (orders) {
+            final total = orders.length;
+            final out = orders.where((o) => o.status == OrderStatus.sold).length;
+            return _MiniOpCard(
               label: 'DELIVERIES',
-              value: '...',
-              sublabel: 'Loading',
-              icon: Icons.refresh,
-              color: Colors.grey,
-            ),
-            error: (_, __) => const _MiniOpCard(
-              label: 'DELIVERIES',
-              value: '!',
-              sublabel: 'Error',
-              icon: Icons.error,
-              color: Colors.redAccent,
-            ),
+              value: '$out/$total',
+              sublabel: 'Completed',
+              icon: Icons.local_shipping_rounded,
+              color: const Color(0xFF10B981),
+            );
+          },
+          loading: () => const _MiniOpCard(
+            label: 'DELIVERIES',
+            value: '...',
+            sublabel: 'Loading',
+            icon: Icons.refresh,
+            color: Colors.grey,
+          ),
+          error: (_, __) => const _MiniOpCard(
+            label: 'DELIVERIES',
+            value: '!',
+            sublabel: 'Error',
+            icon: Icons.error,
+            color: Colors.redAccent,
           ),
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: ref
-              .watch(walkInAvailabilityProvider(DateTime.now()))
-              .when(
-                data: (availability) {
-                  final shortCount = availability.values
-                      .where((v) => v.walkInAvailable < 0)
-                      .length;
-                  return _MiniOpCard(
-                    label: 'STOCK STATUS',
-                    value: shortCount > 0 ? '$shortCount SHORT' : 'HEALTHY',
-                    sublabel: shortCount > 0
-                        ? 'Urgent Action'
-                        : 'All systems go',
-                    icon: Icons.inventory_2_rounded,
-                    color: shortCount > 0
-                        ? Colors.redAccent
-                        : const Color(0xFFF59E0B),
-                  );
-                },
-                loading: () => const _MiniOpCard(
-                  label: 'STOCK',
-                  value: '...',
-                  sublabel: 'Checking',
-                  icon: Icons.search,
-                  color: Colors.grey,
-                ),
-                error: (_, __) => const _MiniOpCard(
-                  label: 'STOCK',
-                  value: '!',
-                  sublabel: 'Error',
-                  icon: Icons.error,
-                  color: Colors.redAccent,
-                ),
-              ),
+        ref.watch(walkInAvailabilityProvider(DateTime.now())).when(
+          data: (availability) {
+            final shortCount =
+                availability.values.where((v) => v.walkInAvailable < 0).length;
+            return _MiniOpCard(
+              label: 'STOCK STATUS',
+              value: shortCount > 0 ? '$shortCount SHORT' : 'HEALTHY',
+              sublabel: shortCount > 0 ? 'Urgent Action' : 'All systems go',
+              icon: Icons.inventory_2_rounded,
+              color: shortCount > 0 ? Colors.redAccent : const Color(0xFFF59E0B),
+            );
+          },
+          loading: () => const _MiniOpCard(
+            label: 'STOCK',
+            value: '...',
+            sublabel: 'Checking',
+            icon: Icons.search,
+            color: Colors.grey,
+          ),
+          error: (_, __) => const _MiniOpCard(
+            label: 'STOCK',
+            value: '!',
+            sublabel: 'Error',
+            icon: Icons.error,
+            color: Colors.redAccent,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildQuickActionsGrid(BuildContext context, WidgetRef ref) {
+  Widget _buildQuickActionsGrid(BuildContext context, WidgetRef ref, int crossAxisCount) {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
+      crossAxisCount: crossAxisCount,
       mainAxisSpacing: 16,
       crossAxisSpacing: 16,
       childAspectRatio: 1.4,

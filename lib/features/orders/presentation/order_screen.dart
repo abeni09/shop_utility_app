@@ -142,6 +142,10 @@ class OrderScreen extends ConsumerWidget {
                   ordersAsync.when(
                     data: (_) {
                       final orders = ref.watch(filteredOrdersProvider);
+                      final width = MediaQuery.of(context).size.width;
+                      final horizontalPadding = width > 1200 ? width * 0.1 : (width > 800 ? 48.0 : 24.0);
+                      final crossAxisCount = width > 1000 ? 3 : (width > 600 ? 2 : 1);
+
                       return orders.isEmpty
                           ? const SliverFillRemaining(
                               child: Center(
@@ -152,18 +156,31 @@ class OrderScreen extends ConsumerWidget {
                               ),
                             )
                           : SliverPadding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: horizontalPadding,
                               ),
-                              sliver: SliverList(
-                                delegate: SliverChildBuilderDelegate((
-                                  context,
-                                  index,
-                                ) {
-                                  final order = orders[index];
-                                  return _OrderCard(order: order);
-                                }, childCount: orders.length),
-                              ),
+                              sliver: crossAxisCount > 1
+                                  ? SliverGrid(
+                                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: crossAxisCount,
+                                        mainAxisSpacing: 16,
+                                        crossAxisSpacing: 16,
+                                        mainAxisExtent: 420,
+                                      ),
+                                      delegate: SliverChildBuilderDelegate(
+                                        (context, index) => _OrderCard(order: orders[index]),
+                                        childCount: orders.length,
+                                      ),
+                                    )
+                                  : SliverList(
+                                      delegate: SliverChildBuilderDelegate(
+                                        (context, index) => Padding(
+                                          padding: const EdgeInsets.only(bottom: 16),
+                                          child: _OrderCard(order: orders[index]),
+                                        ),
+                                        childCount: orders.length,
+                                      ),
+                                    ),
                             );
                     },
                     loading: () => const SliverFillRemaining(
