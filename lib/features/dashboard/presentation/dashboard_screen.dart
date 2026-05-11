@@ -10,6 +10,7 @@ import 'package:shopsync/features/products/presentation/daily_receive_screen.dar
 import 'package:shopsync/features/products/presentation/daily_stock_providers.dart';
 import 'package:shopsync/features/orders/presentation/requisition_screen.dart';
 import 'package:shopsync/features/sales/presentation/sales_screen.dart';
+import 'package:shopsync/features/dashboard/presentation/ui_providers.dart';
 import 'dart:ui';
 
 class DashboardScreen extends ConsumerWidget {
@@ -18,7 +19,9 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final width = MediaQuery.of(context).size.width;
-    final horizontalPadding = width > 1200 ? width * 0.1 : (width > 800 ? 48.0 : 24.0);
+    final horizontalPadding = width > 1200
+        ? width * 0.1
+        : (width > 800 ? 48.0 : 24.0);
     final crossAxisCount = width > 1200 ? 4 : (width > 800 ? 3 : 2);
 
     final now = DateTime.now();
@@ -38,7 +41,9 @@ class DashboardScreen extends ConsumerWidget {
           // Background Gradient Mesh
           Positioned.fill(
             child: Container(
-              decoration: const BoxDecoration(color: Color(0xFF020617)),
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+              ),
             ),
           ),
           Positioned(
@@ -73,12 +78,12 @@ class DashboardScreen extends ConsumerWidget {
                 parent: BouncingScrollPhysics(),
               ),
               slivers: [
-                _buildSliverAppBar(context),
+                _buildSliverAppBar(context, ref),
                 SliverPadding(
                   padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
-                      _buildGreeting(),
+                      _buildGreeting(context),
                       const SizedBox(height: 24),
                       _buildCloudSync(
                         context,
@@ -90,15 +95,15 @@ class DashboardScreen extends ConsumerWidget {
                       const SizedBox(height: 32),
                       _buildMainStats(dailyLogAsync),
                       const SizedBox(height: 40),
-                      _buildSectionHeader('FINANCIAL INSIGHTS'),
+                      _buildSectionHeader('FINANCIAL INSIGHTS', context),
                       const SizedBox(height: 16),
                       _buildInsightsScroll(ref),
                       const SizedBox(height: 40),
-                      _buildSectionHeader('OPERATIONAL OVERVIEW'),
+                      _buildSectionHeader('OPERATIONAL OVERVIEW', context),
                       const SizedBox(height: 16),
                       _buildOperationsGrid(ordersAsync, ref, crossAxisCount),
                       const SizedBox(height: 40),
-                      _buildSectionHeader('QUICK ACTIONS'),
+                      _buildSectionHeader('QUICK ACTIONS', context),
                       const SizedBox(height: 16),
                       _buildQuickActionsGrid(context, ref, crossAxisCount),
                       const SizedBox(
@@ -115,12 +120,17 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSliverAppBar(BuildContext context) {
+  Widget _buildSliverAppBar(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+    final isDark = themeMode == ThemeMode.dark;
+
     return SliverAppBar(
       expandedHeight: 120,
       collapsedHeight: 80,
       pinned: true,
-      backgroundColor: const Color(0xFF020617).withValues(alpha: 0.8),
+      backgroundColor: Theme.of(
+        context,
+      ).scaffoldBackgroundColor.withValues(alpha: 0.8),
       flexibleSpace: FlexibleSpaceBar(
         titlePadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         centerTitle: false,
@@ -130,7 +140,9 @@ class DashboardScreen extends ConsumerWidget {
             fontSize: 22,
             fontWeight: FontWeight.w900,
             letterSpacing: 4,
-            color: Colors.white.withValues(alpha: 0.9),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.9)
+                : const Color(0xFF0F172A).withValues(alpha: 0.9),
           ),
         ),
       ),
@@ -138,15 +150,19 @@ class DashboardScreen extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.only(right: 24),
           child: _CircleIconButton(
-            icon: Icons.notifications_none_rounded,
-            onPressed: () {},
+            icon: isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+            onPressed: () {
+              ref.read(themeModeProvider.notifier).state = isDark
+                  ? ThemeMode.light
+                  : ThemeMode.dark;
+            },
           ),
         ),
       ],
     );
   }
 
-  Widget _buildGreeting() {
+  Widget _buildGreeting(BuildContext context) {
     final hour = DateTime.now().hour;
     String greeting = 'Good Morning';
     IconData icon = Icons.wb_sunny_rounded;
@@ -162,6 +178,8 @@ class DashboardScreen extends ConsumerWidget {
       color = Colors.indigoAccent;
     }
 
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+
     return Row(
       children: [
         Column(
@@ -170,16 +188,16 @@ class DashboardScreen extends ConsumerWidget {
             Text(
               greeting,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.4),
+                color: onSurface.withValues(alpha: 0.4),
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.5,
               ),
             ),
-            const Text(
+            Text(
               'Welcome back!',
               style: TextStyle(
-                color: Colors.white,
+                color: onSurface,
                 fontSize: 28,
                 fontWeight: FontWeight.w900,
                 letterSpacing: -0.5,
@@ -521,7 +539,7 @@ class DashboardScreen extends ConsumerWidget {
     }
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, BuildContext context) {
     return Row(
       children: [
         Container(
@@ -535,11 +553,13 @@ class DashboardScreen extends ConsumerWidget {
         const SizedBox(width: 12),
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             letterSpacing: 2,
             fontSize: 11,
             fontWeight: FontWeight.w900,
-            color: Color(0xFF64748B),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.4),
           ),
         ),
       ],
@@ -597,7 +617,11 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildOperationsGrid(AsyncValue ordersAsync, WidgetRef ref, int crossAxisCount) {
+  Widget _buildOperationsGrid(
+    AsyncValue ordersAsync,
+    WidgetRef ref,
+    int crossAxisCount,
+  ) {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -609,7 +633,9 @@ class DashboardScreen extends ConsumerWidget {
         ordersAsync.when(
           data: (orders) {
             final total = orders.length;
-            final out = orders.where((o) => o.status == OrderStatus.sold).length;
+            final out = orders
+                .where((o) => o.status == OrderStatus.sold)
+                .length;
             return _MiniOpCard(
               label: 'DELIVERIES',
               value: '$out/$total',
@@ -633,38 +659,47 @@ class DashboardScreen extends ConsumerWidget {
             color: Colors.redAccent,
           ),
         ),
-        ref.watch(walkInAvailabilityProvider(DateTime.now())).when(
-          data: (availability) {
-            final shortCount =
-                availability.values.where((v) => v.walkInAvailable < 0).length;
-            return _MiniOpCard(
-              label: 'STOCK STATUS',
-              value: shortCount > 0 ? '$shortCount SHORT' : 'HEALTHY',
-              sublabel: shortCount > 0 ? 'Urgent Action' : 'All systems go',
-              icon: Icons.inventory_2_rounded,
-              color: shortCount > 0 ? Colors.redAccent : const Color(0xFFF59E0B),
-            );
-          },
-          loading: () => const _MiniOpCard(
-            label: 'STOCK',
-            value: '...',
-            sublabel: 'Checking',
-            icon: Icons.search,
-            color: Colors.grey,
-          ),
-          error: (_, __) => const _MiniOpCard(
-            label: 'STOCK',
-            value: '!',
-            sublabel: 'Error',
-            icon: Icons.error,
-            color: Colors.redAccent,
-          ),
-        ),
+        ref
+            .watch(walkInAvailabilityProvider(DateTime.now()))
+            .when(
+              data: (availability) {
+                final shortCount = availability.values
+                    .where((v) => v.walkInAvailable < 0)
+                    .length;
+                return _MiniOpCard(
+                  label: 'STOCK STATUS',
+                  value: shortCount > 0 ? '$shortCount SHORT' : 'HEALTHY',
+                  sublabel: shortCount > 0 ? 'Urgent Action' : 'All systems go',
+                  icon: Icons.inventory_2_rounded,
+                  color: shortCount > 0
+                      ? Colors.redAccent
+                      : const Color(0xFFF59E0B),
+                );
+              },
+              loading: () => const _MiniOpCard(
+                label: 'STOCK',
+                value: '...',
+                sublabel: 'Checking',
+                icon: Icons.search,
+                color: Colors.grey,
+              ),
+              error: (_, __) => const _MiniOpCard(
+                label: 'STOCK',
+                value: '!',
+                sublabel: 'Error',
+                icon: Icons.error,
+                color: Colors.redAccent,
+              ),
+            ),
       ],
     );
   }
 
-  Widget _buildQuickActionsGrid(BuildContext context, WidgetRef ref, int crossAxisCount) {
+  Widget _buildQuickActionsGrid(
+    BuildContext context,
+    WidgetRef ref,
+    int crossAxisCount,
+  ) {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -814,13 +849,16 @@ class _InsightCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       width: 160,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B).withValues(alpha: 0.5),
+        color: colorScheme.surfaceContainer.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(
+          color: colorScheme.onSurface.withValues(alpha: 0.05),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -828,7 +866,7 @@ class _InsightCard extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.3),
+              color: colorScheme.onSurface.withValues(alpha: 0.3),
               fontSize: 9,
               fontWeight: FontWeight.w800,
               letterSpacing: 1,
@@ -866,12 +904,15 @@ class _MiniOpCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B).withValues(alpha: 0.5),
+        color: colorScheme.surfaceContainer.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(
+          color: colorScheme.onSurface.withValues(alpha: 0.05),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -880,10 +921,10 @@ class _MiniOpCard extends StatelessWidget {
           const Spacer(),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,
-              color: Colors.white,
+              color: colorScheme.onSurface,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -892,7 +933,7 @@ class _MiniOpCard extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 10,
-              color: Colors.white.withValues(alpha: 0.4),
+              color: colorScheme.onSurface.withValues(alpha: 0.4),
               fontWeight: FontWeight.w700,
             ),
             maxLines: 1,
@@ -936,8 +977,8 @@ class _QuickActionCard extends StatelessWidget {
             const Spacer(),
             Text(
               label,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
               ),
@@ -959,11 +1000,15 @@ class _CircleIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
         shape: BoxShape.circle,
       ),
       child: IconButton(
-        icon: Icon(icon, color: const Color(0xFF818CF8), size: 20),
+        icon: Icon(
+          icon,
+          color: Theme.of(context).colorScheme.primary,
+          size: 20,
+        ),
         onPressed: onPressed,
       ),
     );
