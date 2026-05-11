@@ -60,93 +60,107 @@ class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
     );
     final suppliersAsync = ref.watch(suppliersProvider);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
-      body: productsAsync.when(
-        data: (products) => ordersAsync.when(
-          data: (orders) {
-            // Calculate base needs
-            final Map<int, double> preOrderTotals = {};
-            for (var order in orders) {
-              if (order.status == OrderStatus.pending && !order.isVoid) {
-                preOrderTotals[order.productId] =
-                    (preOrderTotals[order.productId] ?? 0.0) + order.amount;
-              }
-            }
-
-            final activeProducts = products.where((p) => !p.isVoid).toList();
-            final items = activeProducts.map((p) {
-              final preOrder = preOrderTotals[p.id] ?? 0.0;
-              final suggested = preOrder;
-
-              if (!_controllers.containsKey(p.id)) {
-                _controllers[p.id] = TextEditingController(
-                  text: suggested > 0 ? suggested.toStringAsFixed(1) : '',
-                );
-              }
-
-              return RequisitionItem(
-                product: p,
-                orderAmount: preOrder,
-                bufferAmount: 0,
-              );
-            }).toList();
-
-            return Stack(
-              children: [
-                CustomScrollView(
-                  slivers: [
-                    _buildAppBar(),
-                    _buildHeader(),
-                    _buildSupplierGroups(items, suppliersAsync.value ?? []),
-                    const SliverToBoxAdapter(child: SizedBox(height: 120)),
-                  ],
-                ),
-                _buildPlaceOrderButton(activeProducts),
-              ],
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, stack) => Center(child: Text('Error: $err')),
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0F172A), Color(0xFF020617)],
         ),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error: $err')),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -100,
+            right: -50,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF6366F1).withValues(alpha: 0.05),
+              ),
+            ),
+          ),
+          Scaffold(
+            backgroundColor: Colors.transparent,
+            body: productsAsync.when(
+              data: (products) => ordersAsync.when(
+                data: (orders) {
+                  // Calculate base needs
+                  final Map<int, double> preOrderTotals = {};
+                  for (var order in orders) {
+                    if (order.status == OrderStatus.pending && !order.isVoid) {
+                      preOrderTotals[order.productId] =
+                          (preOrderTotals[order.productId] ?? 0.0) +
+                          order.amount;
+                    }
+                  }
+
+                  final activeProducts =
+                      products.where((p) => !p.isVoid).toList();
+                  final items = activeProducts.map((p) {
+                    final preOrder = preOrderTotals[p.id] ?? 0.0;
+                    final suggested = preOrder;
+
+                    if (!_controllers.containsKey(p.id)) {
+                      _controllers[p.id] = TextEditingController(
+                        text: suggested > 0 ? suggested.toStringAsFixed(1) : '',
+                      );
+                    }
+
+                    return RequisitionItem(
+                      product: p,
+                      orderAmount: preOrder,
+                      bufferAmount: 0,
+                    );
+                  }).toList();
+
+                  return Stack(
+                    children: [
+                      CustomScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        slivers: [
+                          _buildAppBar(),
+                          _buildHeader(),
+                          _buildSupplierGroups(
+                            items,
+                            suppliersAsync.value ?? [],
+                          ),
+                          const SliverToBoxAdapter(
+                            child: SizedBox(height: 120),
+                          ),
+                        ],
+                      ),
+                      _buildPlaceOrderButton(activeProducts),
+                    ],
+                  );
+                },
+                loading: () => const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF6366F1)),
+                ),
+                error: (err, stack) => Center(child: Text('Error: $err')),
+              ),
+              loading: () => const Center(
+                child: CircularProgressIndicator(color: Color(0xFF6366F1)),
+              ),
+              error: (err, stack) => Center(child: Text('Error: $err')),
+            ),
+          ),
+        ],
       ),
     );
+
   }
 
   Widget _buildAppBar() {
-    return SliverAppBar(
-      expandedHeight: 120,
-      floating: false,
-      pinned: true,
-      backgroundColor: const Color(0xFF0F172A),
-      flexibleSpace: FlexibleSpaceBar(
-        title: const Text(
-          'NIGHTLY REQUISITION',
-          style: TextStyle(
-            fontWeight: FontWeight.w900,
-            fontSize: 14,
-            letterSpacing: 2,
-            color: Color(0xFF38BDF8),
-          ),
-        ),
-        centerTitle: true,
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                const Color(0xFF1E293B),
-                const Color(0xFF0F172A).withValues(alpha: 0),
-              ],
-            ),
-          ),
-        ),
-      ),
+    return SliverAppBar.large(
+      backgroundColor: Colors.transparent,
+      title: const Text('NIGHTLY REQUISITION'),
+      centerTitle: true,
     );
   }
+
 
   Widget _buildHeader() {
     final isToday = _selectedDate.day == DateTime.now().day;
@@ -197,39 +211,31 @@ class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
                     }
                   },
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B),
-                      borderRadius: BorderRadius.circular(16),
+                      color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isTomorrow
-                            ? const Color(0xFF818CF8).withValues(alpha: 0.3)
-                            : Colors.white.withValues(alpha: 0.1),
+                        color: const Color(0xFF6366F1).withValues(alpha: 0.2),
                       ),
                     ),
                     child: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.calendar_month_rounded,
                           size: 16,
-                          color: isTomorrow
-                              ? const Color(0xFF818CF8)
-                              : Colors.amberAccent,
+                          color: Color(0xFF818CF8),
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          isToday
-                              ? 'TODAY'
-                              : isTomorrow
-                                  ? 'TOMORROW'
-                                  : DateFormat('MMM dd').format(_selectedDate),
-                          style: TextStyle(
+                          DateFormat('MMM dd').format(_selectedDate),
+                          style: const TextStyle(
+                            color: Color(0xFF818CF8),
                             fontWeight: FontWeight.w900,
-                            fontSize: 12,
-                            color: isTomorrow
-                                ? const Color(0xFF818CF8)
-                                : Colors.white,
+                            fontSize: 13,
                           ),
                         ),
                       ],
@@ -290,13 +296,28 @@ class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
   }
 
   Widget _buildRequisitionCard(RequisitionItem item) {
+    final controller = _controllers[item.product.id];
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withValues(alpha: 0.05),
+            Colors.white.withValues(alpha: 0.02),
+          ],
+        ),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -307,52 +328,72 @@ class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
                 Text(
                   item.product.name.toUpperCase(),
                   style: const TextStyle(
-                    fontSize: 16,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: 1,
+                    fontSize: 15,
+                    letterSpacing: 0.5,
                   ),
                 ),
-                const SizedBox(height: 4),
-                if (item.orderAmount > 0) ...[
-                  Text(
-                    'Pre-orders: ${item.orderAmount.toStringAsFixed(0)}',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.5),
-                      fontSize: 13,
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'Orders: ${item.orderAmount.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          color: Color(0xFF10B981),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                     ),
-                  ),
-                ] else
-                  Text(
-                    'No pre-orders',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      fontSize: 12,
+                    const SizedBox(width: 8),
+                    Text(
+                      'Cost: ${item.product.costPrice.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        color: Colors.white24,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
+                  ],
+                ),
               ],
             ),
           ),
-          const SizedBox(width: 16),
           SizedBox(
             width: 80,
             child: TextField(
-              controller: _controllers[item.product.id],
-              keyboardType: TextInputType.number,
+              controller: controller,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+              style: const TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+                color: Color(0xFF818CF8),
+              ),
               decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.black.withValues(alpha: 0.2),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
                 hintText: '0',
                 hintStyle: const TextStyle(color: Colors.white10),
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                filled: true,
-                fillColor: const Color(0xFF38BDF8).withValues(alpha: 0.1),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(
-                    color: Color(0xFF38BDF8),
-                    width: 1,
-                  ),
-                ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide(

@@ -65,6 +65,17 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F172A).withValues(alpha: 0.95),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.5),
+              blurRadius: 40,
+              offset: const Offset(0, -10),
+            ),
+          ],
+        ),
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -85,15 +96,27 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
               controller: _customerController,
               decoration: InputDecoration(
                 hintText: 'Customer Name (Optional)',
-                prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
+                prefixIcon: const Icon(
+                  Icons.person_outline_rounded,
+                  size: 20,
+                  color: Color(0xFF818CF8),
+                ),
                 filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.03),
+                fillColor: Colors.white.withValues(alpha: 0.05),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(20),
                   borderSide: BorderSide.none,
                 ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: const BorderSide(color: Color(0xFF6366F1)),
+                ),
               ),
-              style: const TextStyle(fontSize: 14),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 24),
             Row(
@@ -103,7 +126,7 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                   'QUICK SALE',
                   style: TextStyle(
                     fontWeight: FontWeight.w900,
-                    letterSpacing: 2,
+                    letterSpacing: 2.5,
                     fontSize: 14,
                     color: Color(0xFF818CF8),
                   ),
@@ -111,12 +134,15 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                 if (bagProducts.length > 1)
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
+                      horizontal: 14,
+                      vertical: 2,
                     ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<int>(
@@ -124,12 +150,12 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                         dropdownColor: const Color(0xFF1E293B),
                         icon: const Icon(
                           Icons.arrow_drop_down_rounded,
-                          color: Colors.white38,
+                          color: Color(0xFF818CF8),
                         ),
                         style: const TextStyle(
-                          color: Colors.white70,
+                          color: Colors.white,
                           fontSize: 11,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w900,
                         ),
                         onChanged: (val) =>
                             setState(() => _selectedBagId = val),

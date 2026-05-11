@@ -28,144 +28,179 @@ class OrderScreen extends ConsumerWidget {
           colors: [Color(0xFF0F172A), Color(0xFF020617)],
         ),
       ),
-      child: RefreshIndicator(
-        onRefresh: () async {
-          await ref.read(backupServiceProvider).forceSyncCheck();
-          ref.invalidate(cloudSyncStatusProvider);
-          ref.invalidate(localAheadProvider);
-          ref.invalidate(ordersProvider);
-        },
-        backgroundColor: const Color(0xFF1E293B),
-        color: const Color(0xFF818CF8),
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          body: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
+      child: Stack(
+        children: [
+          // Background Decorative Blobs
+          Positioned(
+            top: -100,
+            right: -50,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF6366F1).withValues(alpha: 0.05),
+              ),
             ),
-            slivers: [
-              SliverAppBar.large(
-                backgroundColor: Colors.transparent,
-                title: Text(
-                  'ORDERS: ${DateFormat('MMM dd').format(selectedDate).toUpperCase()}',
+          ),
+          Positioned(
+            bottom: 100,
+            left: -80,
+            child: Container(
+              width: 250,
+              height: 250,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF10B981).withValues(alpha: 0.05),
+              ),
+            ),
+          ),
+          RefreshIndicator(
+            onRefresh: () async {
+              await ref.read(backupServiceProvider).forceSyncCheck();
+              ref.invalidate(cloudSyncStatusProvider);
+              ref.invalidate(localAheadProvider);
+              ref.invalidate(ordersProvider);
+            },
+            backgroundColor: const Color(0xFF1E293B),
+            color: const Color(0xFF818CF8),
+            child: Scaffold(
+              backgroundColor: Colors.transparent,
+              body: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
                 ),
-                actions: [
-                  Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      color: showVoided
-                          ? const Color(0xFF818CF8).withValues(alpha: 0.2)
-                          : Colors.white.withValues(alpha: 0.05),
-                      shape: BoxShape.circle,
+                slivers: [
+                  SliverAppBar.large(
+                    backgroundColor: Colors.transparent,
+                    title: Text(
+                      'ORDERS: ${DateFormat('MMM dd').format(selectedDate).toUpperCase()}',
                     ),
-                    child: IconButton(
-                      icon: Icon(
-                        showVoided
-                            ? Icons.visibility_rounded
-                            : Icons.visibility_off_rounded,
-                        color: showVoided
-                            ? const Color(0xFF818CF8)
-                            : Colors.white24,
+                    actions: [
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          color: showVoided
+                              ? const Color(0xFF818CF8).withValues(alpha: 0.2)
+                              : Colors.white.withValues(alpha: 0.05),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: Icon(
+                            showVoided
+                                ? Icons.visibility_rounded
+                                : Icons.visibility_off_rounded,
+                            color: showVoided
+                                ? const Color(0xFF818CF8)
+                                : Colors.white24,
+                          ),
+                          onPressed: () =>
+                              ref
+                                      .read(showVoidedOrdersProvider.notifier)
+                                      .state =
+                                  !showVoided,
+                          tooltip: 'Show Voided Orders',
+                        ),
                       ),
-                      onPressed: () =>
-                          ref.read(showVoidedOrdersProvider.notifier).state =
-                              !showVoided,
-                      tooltip: 'Show Voided Orders',
+                      Container(
+                        margin: const EdgeInsets.only(right: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.calendar_month_rounded,
+                            color: Color(0xFF818CF8),
+                          ),
+                          onPressed: () async {
+                            final date = await showDatePicker(
+                              context: context,
+                              initialDate: selectedDate,
+                              firstDate: DateTime.now().subtract(
+                                const Duration(days: 365),
+                              ),
+                              lastDate: DateTime.now().add(
+                                const Duration(days: 365),
+                              ),
+                            );
+                            if (date != null) {
+                              ref.read(selectedDateProvider.notifier).state =
+                                  date;
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                      child: _buildFilterBar(context, ref),
                     ),
                   ),
-                  Container(
-                    margin: const EdgeInsets.only(right: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
-                      shape: BoxShape.circle,
+                  ordersAsync.when(
+                    data: (_) {
+                      final orders = ref.watch(filteredOrdersProvider);
+                      return orders.isEmpty
+                          ? const SliverFillRemaining(
+                              child: Center(
+                                child: Text(
+                                  'No matching orders',
+                                  style: TextStyle(color: Colors.white38),
+                                ),
+                              ),
+                            )
+                          : SliverPadding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                              ),
+                              sliver: SliverList(
+                                delegate: SliverChildBuilderDelegate((
+                                  context,
+                                  index,
+                                ) {
+                                  final order = orders[index];
+                                  return _OrderCard(order: order);
+                                }, childCount: orders.length),
+                              ),
+                            );
+                    },
+                    loading: () => const SliverFillRemaining(
+                      child: Center(child: CircularProgressIndicator()),
                     ),
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.calendar_month_rounded,
-                        color: Color(0xFF818CF8),
+                    error: (err, stack) => SliverFillRemaining(
+                      child: Center(
+                        child: Text(
+                          'Error: $err',
+                          style: const TextStyle(color: Colors.redAccent),
+                        ),
                       ),
-                      onPressed: () async {
-                        final date = await showDatePicker(
-                          context: context,
-                          initialDate: selectedDate,
-                          firstDate: DateTime.now().subtract(
-                            const Duration(days: 365),
-                          ),
-                          lastDate: DateTime.now().add(
-                            const Duration(days: 365),
-                          ),
-                        );
-                        if (date != null) {
-                          ref.read(selectedDateProvider.notifier).state = date;
-                        }
-                      },
                     ),
                   ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 120)),
                 ],
               ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-                  child: _buildFilterBar(context, ref),
-                ),
-              ),
-              ordersAsync.when(
-                data: (_) {
-                  final orders = ref.watch(filteredOrdersProvider);
-                  return orders.isEmpty
-                      ? const SliverFillRemaining(
-                          child: Center(
-                            child: Text(
-                              'No matching orders',
-                              style: TextStyle(color: Colors.white38),
-                            ),
-                          ),
-                        )
-                      : SliverPadding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          sliver: SliverList(
-                            delegate: SliverChildBuilderDelegate((
-                              context,
-                              index,
-                            ) {
-                              final order = orders[index];
-                              return _OrderCard(order: order);
-                            }, childCount: orders.length),
-                          ),
-                        );
-                },
-                loading: () => const SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                error: (err, stack) => SliverFillRemaining(
-                  child: Center(
-                    child: Text(
-                      'Error: $err',
-                      style: const TextStyle(color: Colors.redAccent),
+              floatingActionButton: Padding(
+                padding: const EdgeInsets.only(bottom: 100),
+                child: FloatingActionButton.extended(
+                  onPressed: () => _onCreateOrder(context, ref),
+                  backgroundColor: const Color(0xFF6366F1),
+                  foregroundColor: Colors.white,
+                  elevation: 8,
+                  icon: const Icon(Icons.add_shopping_cart_rounded),
+                  label: const Text(
+                    'NEW ORDER',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
                     ),
                   ),
                 ),
               ),
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
-            ],
-          ),
-          floatingActionButton: Padding(
-            padding: const EdgeInsets.only(bottom: 80),
-            child: FloatingActionButton.extended(
-              onPressed: () => _onCreateOrder(context, ref),
-              backgroundColor: const Color(0xFF6366F1),
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.add_shopping_cart_rounded),
-              label: const Text(
-                'NEW ORDER',
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.2,
-                ),
-              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -308,7 +343,7 @@ void _showOrderDialog(
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    backgroundColor: const Color(0xFF1E293B),
+    backgroundColor: const Color(0xFF0F172A).withValues(alpha: 0.98),
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
     ),
@@ -329,9 +364,9 @@ void _showOrderDialog(
                 existing == null ? 'NEW CUSTOMER ORDER' : 'EDIT CUSTOMER ORDER',
                 style: const TextStyle(
                   fontWeight: FontWeight.w900,
-                  letterSpacing: 2,
+                  letterSpacing: 2.5,
                   fontSize: 14,
-                  color: Colors.indigoAccent,
+                  color: Color(0xFF818CF8),
                 ),
               ),
               const SizedBox(height: 24),
@@ -453,111 +488,118 @@ void _showOrderDialog(
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  onPressed: isSaving ? null : () async {
-                    if (customerController.text.trim().isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Please enter customer name'),
-                        ),
-                      );
-                      return;
-                    }
-                    final amount = double.tryParse(amountController.text);
-                    final advance =
-                        double.tryParse(advanceController.text) ?? 0;
-                    if (amount == null || amount <= 0) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Please enter a valid amount'),
-                        ),
-                      );
-                      return;
-                    }
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          if (customerController.text.trim().isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Please enter customer name'),
+                              ),
+                            );
+                            return;
+                          }
+                          final amount = double.tryParse(amountController.text);
+                          final advance =
+                              double.tryParse(advanceController.text) ?? 0;
+                          if (amount == null || amount <= 0) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Please enter a valid amount'),
+                              ),
+                            );
+                            return;
+                          }
 
-                    if (selectedProductId == null) return;
-                    final product = products.firstWhere(
-                      (p) => p.id == selectedProductId,
-                    );
+                          if (selectedProductId == null) return;
+                          final product = products.firstWhere(
+                            (p) => p.id == selectedProductId,
+                          );
 
-                    final total = amount * product.sellingPrice;
-                    if (advance > total) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Advance cannot exceed total price'),
-                        ),
-                      );
-                      return;
-                    }
+                          final total = amount * product.sellingPrice;
+                          if (advance > total) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Advance cannot exceed total price',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
 
-                    final order = existing ?? CustomerOrder();
-                    order.productId = selectedProductId!;
-                    order.customerName = customerController.text.trim();
-                    order.phoneNumber = phoneController.text.trim().isEmpty
-                        ? null
-                        : phoneController.text.trim();
-                    order.amount =
-                        double.tryParse(amountController.text) ?? 1.0;
-                    order.advancePayment = advance;
-                    order.paymentMethod = selectedPayment;
-                    order.dueDate = selectedDate;
-                    order.sellingPriceAtTime = product.sellingPrice;
-                    order.costPriceAtTime = product.costPrice;
-                    // If new order, status is pending
-                    if (existing == null) {
-                      order.status = OrderStatus.pending;
-                    }
+                          final order = existing ?? CustomerOrder();
+                          order.productId = selectedProductId!;
+                          order.customerName = customerController.text.trim();
+                          order.phoneNumber =
+                              phoneController.text.trim().isEmpty
+                              ? null
+                              : phoneController.text.trim();
+                          order.amount =
+                              double.tryParse(amountController.text) ?? 1.0;
+                          order.advancePayment = advance;
+                          order.paymentMethod = selectedPayment;
+                          order.dueDate = selectedDate;
+                          order.sellingPriceAtTime = product.sellingPrice;
+                          order.costPriceAtTime = product.costPrice;
+                          // If new order, status is pending
+                          if (existing == null) {
+                            order.status = OrderStatus.pending;
+                          }
 
-                    setState(() => isSaving = true);
-                    try {
-                      await orderRepo.saveOrder(order);
-                    } catch (e) {
-                      if (context.mounted) {
-                        setState(() => isSaving = false);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Error: $e')),
-                        );
-                      }
-                      return;
-                    }
+                          setState(() => isSaving = true);
+                          try {
+                            await orderRepo.saveOrder(order);
+                          } catch (e) {
+                            if (context.mounted) {
+                              setState(() => isSaving = false);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error: $e')),
+                              );
+                            }
+                            return;
+                          }
 
-                    if (context.mounted && Navigator.canPop(context)) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          backgroundColor: const Color(0xFF10B981),
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          content: Text(
-                            existing == null
-                                ? 'Order created successfully!'
-                                : 'Order updated successfully!',
-                            style: const TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                      );
-                    }
-                  },
+                          if (context.mounted && Navigator.canPop(context)) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: const Color(0xFF10B981),
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                content: Text(
+                                  existing == null
+                                      ? 'Order created successfully!'
+                                      : 'Order updated successfully!',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+                        },
                   child: isSaving
                       ? const SizedBox(
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(
-                            strokeWidth: 2,
+                            strokeWidth: 3,
                             color: Colors.white,
                           ),
                         )
                       : Text(
                           existing == null ? 'SAVE ORDER' : 'UPDATE ORDER',
                           style: const TextStyle(
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w900,
                             letterSpacing: 1.2,
                           ),
                         ),
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -569,14 +611,19 @@ void _showOrderDialog(
 InputDecoration _fieldDecoration(String label, IconData icon) {
   return InputDecoration(
     labelText: label,
-    prefixIcon: Icon(icon, size: 20),
+    prefixIcon: Icon(icon, color: const Color(0xFF818CF8), size: 20),
+    labelStyle: const TextStyle(color: Colors.white38, fontWeight: FontWeight.w500),
     filled: true,
-    fillColor: Colors.white.withValues(alpha: 0.03),
+    fillColor: Colors.white.withValues(alpha: 0.05),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(20),
       borderSide: BorderSide.none,
     ),
-    labelStyle: const TextStyle(fontSize: 14, color: Colors.white38),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(20),
+      borderSide: const BorderSide(color: Color(0xFF6366F1), width: 1.5),
+    ),
   );
 }
 
@@ -599,9 +646,12 @@ class _OrderCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final availabilityAsync = ref.watch(walkInAvailabilityProvider(order.dueDate));
+    final availabilityAsync = ref.watch(
+      walkInAvailabilityProvider(order.dueDate),
+    );
     final availability = availabilityAsync.asData?.value ?? {};
-    final status = availability[order.productId] ??
+    final status =
+        availability[order.productId] ??
         (
           walkInAvailable: 0.0,
           physicalRemaining: 0.0,
@@ -627,13 +677,21 @@ class _OrderCard extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withValues(alpha: 0.04),
+            Colors.white.withValues(alpha: 0.01),
+          ],
+        ),
         borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -809,7 +867,9 @@ class _OrderCard extends ConsumerWidget {
                           Text(
                             'STK: ${status.physicalRemaining.toStringAsFixed(0)} (AVL: ${status.walkInAvailable.toStringAsFixed(0)})',
                             style: TextStyle(
-                              color: status.physicalRemaining < order.amount ? Colors.redAccent : Colors.greenAccent.withValues(alpha: 0.5),
+                              color: status.physicalRemaining < order.amount
+                                  ? Colors.redAccent
+                                  : Colors.greenAccent.withValues(alpha: 0.5),
                               fontSize: 9,
                               fontWeight: FontWeight.w800,
                             ),
@@ -937,41 +997,67 @@ class _OrderCard extends ConsumerWidget {
                           onTap: () async {
                             if (status.walkInAvailable < 0) {
                               String title = 'Stock Shortfall';
-                              String message = 'Fulfilling this order will exacerbate a stock shortfall for this product.';
+                              String message =
+                                  'Fulfilling this order will exacerbate a stock shortfall for this product.';
                               Color titleColor = Colors.redAccent;
 
                               if (status.physicalRemaining >= 0) {
                                 title = 'Dipping into Pre-orders';
-                                message = 'Fulfilling this will use stock that is technically reserved for other pre-orders (likely walk-in sales have already used some stock).';
+                                message =
+                                    'Fulfilling this will use stock that is technically reserved for other pre-orders (likely walk-in sales have already used some stock).';
                                 titleColor = Colors.orangeAccent;
                               } else {
                                 title = 'Physical Shortfall';
-                                message = 'You do not have enough physical stock to fulfill this order! You are short by ${status.physicalRemaining.abs().toStringAsFixed(1)} units.';
+                                message =
+                                    'You do not have enough physical stock to fulfill this order! You are short by ${status.physicalRemaining.abs().toStringAsFixed(1)} units.';
                               }
 
                               final proceed = await showDialog<bool>(
                                 context: context,
                                 builder: (context) => AlertDialog(
                                   backgroundColor: const Color(0xFF1E293B),
-                                  title: Text(title, style: TextStyle(fontWeight: FontWeight.w900, color: titleColor)),
+                                  title: Text(
+                                    title,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      color: titleColor,
+                                    ),
+                                  ),
                                   content: Text(message),
                                   actions: [
                                     TextButton(
-                                      onPressed: () => Navigator.canPop(context) ? Navigator.pop(context, false) : null,
-                                      child: const Text('CANCEL', style: TextStyle(color: Colors.white38)),
+                                      onPressed: () => Navigator.canPop(context)
+                                          ? Navigator.pop(context, false)
+                                          : null,
+                                      child: const Text(
+                                        'CANCEL',
+                                        style: TextStyle(color: Colors.white38),
+                                      ),
                                     ),
                                     ElevatedButton(
-                                      onPressed: () => Navigator.canPop(context) ? Navigator.pop(context, true) : null,
-                                      style: ElevatedButton.styleFrom(backgroundColor: titleColor, foregroundColor: Colors.black),
-                                      child: const Text('PROCEED', style: TextStyle(fontWeight: FontWeight.w900)),
+                                      onPressed: () => Navigator.canPop(context)
+                                          ? Navigator.pop(context, true)
+                                          : null,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: titleColor,
+                                        foregroundColor: Colors.black,
+                                      ),
+                                      child: const Text(
+                                        'PROCEED',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 ),
                               );
                               if (proceed != true) return;
                             }
-                            
-                            ref.read(orderRepositoryProvider).updateOrderStatus(order.id, OrderStatus.sold);
+
+                            ref
+                                .read(orderRepositoryProvider)
+                                .updateOrderStatus(order.id, OrderStatus.sold);
                           },
                         ),
                       const Spacer(),
@@ -1047,13 +1133,15 @@ class _OrderCard extends ConsumerWidget {
         content: const Text('Bring this order back?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.canPop(context) ? Navigator.pop(context) : null,
+            onPressed: () =>
+                Navigator.canPop(context) ? Navigator.pop(context) : null,
             child: const Text('NO'),
           ),
           TextButton(
             onPressed: () async {
               await ref.read(orderRepositoryProvider).unvoidOrder(order.id);
-              if (context.mounted && Navigator.canPop(context)) Navigator.pop(context);
+              if (context.mounted && Navigator.canPop(context))
+                Navigator.pop(context);
             },
             child: const Text(
               'YES, RESTORE',
@@ -1082,13 +1170,15 @@ class _OrderCard extends ConsumerWidget {
         content: const Text('This will hide it from the main list.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.canPop(context) ? Navigator.pop(context) : null,
+            onPressed: () =>
+                Navigator.canPop(context) ? Navigator.pop(context) : null,
             child: const Text('CANCEL'),
           ),
           TextButton(
             onPressed: () async {
               await ref.read(orderRepositoryProvider).voidOrder(order.id);
-              if (context.mounted && Navigator.canPop(context)) Navigator.pop(context);
+              if (context.mounted && Navigator.canPop(context))
+                Navigator.pop(context);
             },
             child: const Text(
               'VOID',

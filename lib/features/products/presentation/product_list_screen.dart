@@ -23,102 +23,125 @@ class ProductListScreen extends ConsumerWidget {
           colors: [Color(0xFF0F172A), Color(0xFF020617)],
         ),
       ),
-      child: RefreshIndicator(
-        onRefresh: () async {
-          await ref.read(backupServiceProvider).forceSyncCheck();
-          ref.invalidate(cloudSyncStatusProvider);
-          ref.invalidate(localAheadProvider);
-        },
-        backgroundColor: const Color(0xFF1E293B),
-        color: const Color(0xFF818CF8),
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          body: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -50,
+            left: -50,
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF6366F1).withValues(alpha: 0.05),
+              ),
             ),
-            slivers: [
-              SliverAppBar.large(
-                backgroundColor: Colors.transparent,
-                title: const Text('INVENTORY'),
-                actions: [
-                  Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      color: showVoided
-                          ? const Color(0xFF818CF8).withValues(alpha: 0.2)
-                          : Colors.white.withValues(alpha: 0.05),
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: Icon(
-                        showVoided
-                            ? Icons.visibility_rounded
-                            : Icons.visibility_off_rounded,
-                        color: showVoided
-                            ? const Color(0xFF818CF8)
-                            : Colors.white24,
+          ),
+          RefreshIndicator(
+            onRefresh: () async {
+              await ref.read(backupServiceProvider).forceSyncCheck();
+              ref.invalidate(cloudSyncStatusProvider);
+              ref.invalidate(localAheadProvider);
+            },
+            backgroundColor: const Color(0xFF1E293B),
+            color: const Color(0xFF818CF8),
+            child: Scaffold(
+              backgroundColor: Colors.transparent,
+              body: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
+                slivers: [
+                  SliverAppBar.large(
+                    backgroundColor: Colors.transparent,
+                    title: const Text('INVENTORY'),
+                    actions: [
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          color: showVoided
+                              ? const Color(0xFF818CF8).withValues(alpha: 0.2)
+                              : Colors.white.withValues(alpha: 0.05),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: Icon(
+                            showVoided
+                                ? Icons.visibility_rounded
+                                : Icons.visibility_off_rounded,
+                            color: showVoided
+                                ? const Color(0xFF818CF8)
+                                : Colors.white24,
+                          ),
+                          onPressed: () =>
+                              ref
+                                      .read(showVoidedProductsProvider.notifier)
+                                      .state =
+                                  !showVoided,
+                          tooltip: 'Show Voided Products',
+                        ),
                       ),
-                      onPressed: () =>
-                          ref.read(showVoidedProductsProvider.notifier).state =
-                              !showVoided,
-                      tooltip: 'Show Voided Products',
+                      Container(
+                        margin: const EdgeInsets.only(right: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.add_rounded,
+                            color: Color(0xFF818CF8),
+                          ),
+                          onPressed: () => _showProductDialog(context, ref),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  productsAsync.when(
+                    data: (products) => products.isEmpty
+                        ? const SliverFillRemaining(
+                            child: Center(
+                              child: Text(
+                                'No products found',
+                                style: TextStyle(color: Colors.white38),
+                              ),
+                            ),
+                          )
+                        : SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            sliver: SliverList(
+                              delegate: SliverChildBuilderDelegate((
+                                context,
+                                index,
+                              ) {
+                                final product = products[index];
+                                return _ProductCard(product: product);
+                              }, childCount: products.length),
+                            ),
+                          ),
+                    loading: () => const SliverFillRemaining(
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF6366F1),
+                        ),
+                      ),
+                    ),
+                    error: (err, stack) => SliverFillRemaining(
+                      child: Center(
+                        child: Text(
+                          'Error: $err',
+                          style: const TextStyle(color: Colors.redAccent),
+                        ),
+                      ),
                     ),
                   ),
-                  Container(
-                    margin: const EdgeInsets.only(right: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.add_rounded,
-                        color: Color(0xFF818CF8),
-                      ),
-                      onPressed: () => _showProductDialog(context, ref),
-                    ),
-                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 120)),
                 ],
               ),
-              productsAsync.when(
-                data: (products) => products.isEmpty
-                    ? const SliverFillRemaining(
-                        child: Center(
-                          child: Text(
-                            'No products found',
-                            style: TextStyle(color: Colors.white38),
-                          ),
-                        ),
-                      )
-                    : SliverPadding(
-                        padding: const EdgeInsets.all(16),
-                        sliver: SliverList(
-                          delegate: SliverChildBuilderDelegate((
-                            context,
-                            index,
-                          ) {
-                            final product = products[index];
-                            return _ProductCard(product: product);
-                          }, childCount: products.length),
-                        ),
-                      ),
-                loading: () => const SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                error: (err, stack) => SliverFillRemaining(
-                  child: Center(
-                    child: Text(
-                      'Error: $err',
-                      style: const TextStyle(color: Colors.redAccent),
-                    ),
-                  ),
-                ),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -149,7 +172,8 @@ void _showProductDialog(
     final existingSupplier = (ref.read(suppliersProvider).value ?? [])
         .where((s) => s.id == existing!.supplierId)
         .firstOrNull;
-    if (existingSupplier != null && !suppliers.any((s) => s.id == existingSupplier.id)) {
+    if (existingSupplier != null &&
+        !suppliers.any((s) => s.id == existingSupplier.id)) {
       suppliers.add(existingSupplier);
     }
   }
@@ -157,7 +181,7 @@ void _showProductDialog(
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    backgroundColor: const Color(0xFF1E293B),
+    backgroundColor: const Color(0xFF0F172A).withValues(alpha: 0.98),
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
     ),
@@ -178,9 +202,9 @@ void _showProductDialog(
                 existing == null ? 'NEW PRODUCT' : 'EDIT PRODUCT',
                 style: const TextStyle(
                   fontWeight: FontWeight.w900,
-                  letterSpacing: 2,
+                  letterSpacing: 2.5,
                   fontSize: 14,
-                  color: Colors.indigoAccent,
+                  color: Color(0xFF818CF8),
                 ),
               ),
               const SizedBox(height: 24),
@@ -252,6 +276,8 @@ void _showProductDialog(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF6366F1),
                     foregroundColor: Colors.white,
+                    elevation: 8,
+                    shadowColor: const Color(0xFF6366F1).withValues(alpha: 0.5),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -324,19 +350,26 @@ Widget _buildTextField(
   return TextField(
     controller: controller,
     keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+    style: const TextStyle(fontWeight: FontWeight.w600),
     decoration: InputDecoration(
       labelText: label,
-      prefixIcon: Icon(icon, size: 20),
+      prefixIcon: Icon(icon, color: const Color(0xFF818CF8), size: 20),
+      labelStyle: const TextStyle(color: Colors.white38, fontWeight: FontWeight.w500),
       filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.03),
+      fillColor: Colors.white.withValues(alpha: 0.05),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         borderSide: BorderSide.none,
       ),
-      labelStyle: const TextStyle(fontSize: 14, color: Colors.white38),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: const BorderSide(color: Color(0xFF6366F1), width: 1.5),
+      ),
     ),
   );
 }
+
 
 class _ProductCard extends ConsumerWidget {
   final Product product;
@@ -349,16 +382,30 @@ class _ProductCard extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: isVoid
-            ? Colors.white.withValues(alpha: 0.01)
-            : Colors.white.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withValues(alpha: isVoid ? 0.02 : 0.05),
+            Colors.white.withValues(alpha: isVoid ? 0.01 : 0.02),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(28),
         border: Border.all(
           color: isVoid
               ? Colors.white.withValues(alpha: 0.02)
-              : Colors.white.withValues(alpha: 0.05),
+              : Colors.white.withValues(alpha: 0.08),
         ),
+        boxShadow: [
+          if (!isVoid)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+        ],
       ),
+
       child: Opacity(
         opacity: isVoid ? 0.5 : 1.0,
         child: ClipRRect(
