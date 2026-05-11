@@ -520,7 +520,7 @@ void _showOrderDialog(
                       return;
                     }
 
-                    if (context.mounted) {
+                    if (context.mounted && Navigator.canPop(context)) {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -941,11 +941,11 @@ class _OrderCard extends ConsumerWidget {
                                   content: Text(message),
                                   actions: [
                                     TextButton(
-                                      onPressed: () => Navigator.pop(context, false),
+                                      onPressed: () => Navigator.canPop(context) ? Navigator.pop(context, false) : null,
                                       child: const Text('CANCEL', style: TextStyle(color: Colors.white38)),
                                     ),
                                     ElevatedButton(
-                                      onPressed: () => Navigator.pop(context, true),
+                                      onPressed: () => Navigator.canPop(context) ? Navigator.pop(context, true) : null,
                                       style: ElevatedButton.styleFrom(backgroundColor: titleColor, foregroundColor: Colors.black),
                                       child: const Text('PROCEED', style: TextStyle(fontWeight: FontWeight.w900)),
                                     ),
@@ -1031,13 +1031,13 @@ class _OrderCard extends ConsumerWidget {
         content: const Text('Bring this order back?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.canPop(context) ? Navigator.pop(context) : null,
             child: const Text('NO'),
           ),
           TextButton(
             onPressed: () async {
               await ref.read(orderRepositoryProvider).unvoidOrder(order.id);
-              if (context.mounted) Navigator.pop(context);
+              if (context.mounted && Navigator.canPop(context)) Navigator.pop(context);
             },
             child: const Text(
               'YES, RESTORE',
@@ -1066,13 +1066,13 @@ class _OrderCard extends ConsumerWidget {
         content: const Text('This will hide it from the main list.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.canPop(context) ? Navigator.pop(context) : null,
             child: const Text('CANCEL'),
           ),
           TextButton(
             onPressed: () async {
               await ref.read(orderRepositoryProvider).voidOrder(order.id);
-              if (context.mounted) Navigator.pop(context);
+              if (context.mounted && Navigator.canPop(context)) Navigator.pop(context);
             },
             child: const Text(
               'VOID',

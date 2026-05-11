@@ -1006,14 +1006,14 @@ class DashboardScreen extends ConsumerWidget {
                             ),
                             actions: [
                               TextButton(
-                                onPressed: () => Navigator.pop(context, false),
+                                onPressed: () => Navigator.canPop(context) ? Navigator.pop(context, false) : null,
                                 child: const Text('CANCEL'),
                               ),
                               TextButton(
                                 style: TextButton.styleFrom(
                                   foregroundColor: Colors.redAccent,
                                 ),
-                                onPressed: () => Navigator.pop(context, true),
+                                onPressed: () => Navigator.canPop(context) ? Navigator.pop(context, true) : null,
                                 child: const Text('RESTORE'),
                               ),
                             ],
@@ -1045,7 +1045,7 @@ class DashboardScreen extends ConsumerWidget {
                                   ),
                                   actions: [
                                     TextButton(
-                                      onPressed: () => Navigator.pop(context),
+                                      onPressed: () => Navigator.canPop(context) ? Navigator.pop(context) : null,
                                       child: const Text('OK'),
                                     ),
                                   ],

@@ -201,7 +201,9 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                             backgroundColor: Color(0xFF10B981),
                           ),
                         );
-                        Navigator.pop(context);
+                        if (mounted && Navigator.canPop(context)) {
+                          Navigator.pop(context);
+                        }
                       },
                       child: const Text(
                         'SAVE DAILY STOCK',

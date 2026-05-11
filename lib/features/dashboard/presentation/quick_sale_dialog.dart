@@ -560,7 +560,9 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
       await ref.read(orderRepositoryProvider).saveOrder(bagOrder);
     }
 
-    if (mounted) Navigator.pop(context);
+    if (mounted && Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
