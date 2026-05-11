@@ -77,7 +77,7 @@ class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
             final activeProducts = products.where((p) => !p.isVoid).toList();
             final items = activeProducts.map((p) {
               final preOrder = preOrderTotals[p.id] ?? 0.0;
-              final suggested = preOrder + (preOrder * 0.1);
+              final suggested = preOrder;
 
               if (!_controllers.containsKey(p.id)) {
                 _controllers[p.id] = TextEditingController(
@@ -88,7 +88,7 @@ class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
               return RequisitionItem(
                 product: p,
                 orderAmount: preOrder,
-                bufferAmount: preOrder * 0.1,
+                bufferAmount: 0,
               );
             }).toList();
 
@@ -319,13 +319,6 @@ class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.5),
                       fontSize: 13,
-                    ),
-                  ),
-                  Text(
-                    'Buffer (10%): +${item.bufferAmount.toStringAsFixed(1)}',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.3),
-                      fontSize: 11,
                     ),
                   ),
                 ] else
