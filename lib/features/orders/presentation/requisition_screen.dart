@@ -80,6 +80,7 @@ class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
           ),
           Scaffold(
             backgroundColor: Colors.transparent,
+            resizeToAvoidBottomInset: false,
             body: productsAsync.when(
               data: (products) => ordersAsync.when(
                 data: (orders) {

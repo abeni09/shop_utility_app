@@ -51,6 +51,7 @@ class SalesScreen extends ConsumerWidget {
           ),
           Scaffold(
             backgroundColor: Colors.transparent,
+            resizeToAvoidBottomInset: false,
             body: CustomScrollView(
               physics: const BouncingScrollPhysics(),
               slivers: [

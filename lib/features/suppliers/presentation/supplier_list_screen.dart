@@ -57,6 +57,7 @@ class SupplierListScreen extends ConsumerWidget {
             color: Theme.of(context).colorScheme.primary,
             child: Scaffold(
               backgroundColor: Colors.transparent,
+              resizeToAvoidBottomInset: false,
               body: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics(),
@@ -438,12 +439,15 @@ class _SupplierCard extends ConsumerWidget {
                               const SizedBox(height: 4),
                               Row(
                                 children: [
-                                  Text(
-                                    supplier.contact ?? 'No contact',
-                                    style: const TextStyle(
-                                      color: Colors.white38,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
+                                  Flexible(
+                                    child: Text(
+                                      supplier.contact ?? 'No contact',
+                                      style: const TextStyle(
+                                        color: Colors.white38,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                   if (supplier.contact != null &&
@@ -598,29 +602,32 @@ class _SupplierCard extends ConsumerWidget {
                               ),
                             ),
                             child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
                                   'BALANCE:',
                                   style: TextStyle(
                                     fontSize: 9,
                                     fontWeight: FontWeight.w900,
-                                    color:
-                                        (hasBalance
-                                                ? Colors.redAccent
-                                                : Colors.greenAccent)
-                                            .withValues(alpha: 0.5),
+                                    color: (hasBalance
+                                            ? Colors.redAccent
+                                            : Colors.greenAccent)
+                                        .withValues(alpha: 0.5),
                                     letterSpacing: 1,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                Text(
-                                  '${supplier.balance.toStringAsFixed(0)} ETB',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 16,
-                                    color: hasBalance
-                                        ? Colors.redAccent
-                                        : Colors.greenAccent,
+                                Flexible(
+                                  child: Text(
+                                    '${supplier.balance.toStringAsFixed(0)} ETB',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 16,
+                                      color: hasBalance
+                                          ? Colors.redAccent
+                                          : Colors.greenAccent,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                               ],

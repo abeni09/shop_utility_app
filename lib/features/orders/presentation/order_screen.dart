@@ -67,6 +67,7 @@ class OrderScreen extends ConsumerWidget {
             color: Theme.of(context).colorScheme.primary,
             child: Scaffold(
               backgroundColor: Colors.transparent,
+              resizeToAvoidBottomInset: false,
               body: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics(),

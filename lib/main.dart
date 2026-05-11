@@ -120,7 +120,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             if (didPop) return;
             final now = DateTime.now();
             final maxDuration = const Duration(seconds: 2);
-            final isWarningTarget = _lastPressed == null ||
+            final isWarningTarget =
+                _lastPressed == null ||
                 now.difference(_lastPressed!) > maxDuration;
 
             if (isWarningTarget) {
@@ -149,6 +150,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           },
           child: Scaffold(
             extendBody: true,
+            resizeToAvoidBottomInset: true,
             body: Row(
               children: [
                 if (!isMobile)
@@ -168,13 +170,17 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   }
 
   Widget _buildNavigationRail(
-      BuildContext context, WidgetRef ref, int selectedIndex) {
+    BuildContext context,
+    WidgetRef ref,
+    int selectedIndex,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
         border: Border(
           right: BorderSide(
-              color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.05),
+          ),
         ),
       ),
       child: NavigationRail(
@@ -201,14 +207,20 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           _buildRailDestination(context, Icons.history_rounded, 'Sales'),
           _buildRailDestination(context, Icons.inventory_2_rounded, 'Stock'),
           _buildRailDestination(
-              context, Icons.local_shipping_rounded, 'Suppliers'),
+            context,
+            Icons.local_shipping_rounded,
+            'Suppliers',
+          ),
         ],
       ),
     );
   }
 
   NavigationRailDestination _buildRailDestination(
-      BuildContext context, IconData icon, String label) {
+    BuildContext context,
+    IconData icon,
+    String label,
+  ) {
     final colorScheme = Theme.of(context).colorScheme;
     return NavigationRailDestination(
       icon: Icon(icon, color: colorScheme.onSurface.withValues(alpha: 0.4)),
@@ -218,15 +230,19 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   }
 
   Widget _buildBottomNavigationBar(
-      BuildContext context, WidgetRef ref, int selectedIndex) {
+    BuildContext context,
+    WidgetRef ref,
+    int selectedIndex,
+  ) {
     return Container(
       margin: const EdgeInsets.fromLTRB(24, 0, 24, 24),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(32),
         child: NavigationBarTheme(
           data: NavigationBarThemeData(
-            indicatorColor:
-                Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+            indicatorColor: Theme.of(
+              context,
+            ).colorScheme.primary.withValues(alpha: 0.2),
             labelTextStyle: WidgetStateProperty.resolveWith((states) {
               if (states.contains(WidgetState.selected)) {
                 return TextStyle(
@@ -238,16 +254,16 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
               return TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withValues(alpha: 0.4),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.4),
               );
             }),
           ),
           child: NavigationBar(
-            backgroundColor:
-                Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.surface.withValues(alpha: 0.8),
             elevation: 0,
             height: 72,
             selectedIndex: selectedIndex,
@@ -267,12 +283,15 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   }
 
   NavigationDestination _buildNavItem(
-      BuildContext context, IconData icon, String label) {
+    BuildContext context,
+    IconData icon,
+    String label,
+  ) {
     final colorScheme = Theme.of(context).colorScheme;
     return NavigationDestination(
       icon: Icon(icon, color: colorScheme.onSurface.withValues(alpha: 0.4)),
       selectedIcon: Icon(icon, color: colorScheme.primary),
-      label: label,
+      label: '',
     );
   }
 }
