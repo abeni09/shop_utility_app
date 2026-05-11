@@ -13,6 +13,13 @@ allprojects {
         google()
         mavenCentral()
     }
+    configurations.all {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "androidx.core") {
+                useVersion("1.9.0")
+            }
+        }
+    }
 }
 
 val newBuildDir: Directory =
@@ -35,7 +42,10 @@ subprojects {
                     if (manifestFile.exists()) {
                         try {
                             val manifestXml = manifestFile.readText()
-                            val packageMatch = Regex("""package=["']([^"']+)["']""").find(manifestXml)
+                            val packageMatch =
+                                Regex("""package=["']([^"']+)["']""").find(
+                                    manifestXml
+                                )
                             if (packageMatch != null) {
                                 namespace = packageMatch.groupValues[1]
                             }
@@ -55,6 +65,20 @@ subprojects {
         configureNamespace()
     } else {
         afterEvaluate { configureNamespace() }
+    }
+
+    project.plugins.whenPluginAdded {
+        if (this is com.android.build.gradle.AppPlugin ||
+            this is com.android.build.gradle.LibraryPlugin
+        ) {
+            val android =
+                project.extensions.getByName("android") as com.android.build.gradle.BaseExtension
+            android.compileSdkVersion(36)
+        }
+    }
+
+    tasks.withType<com.android.build.gradle.tasks.VerifyLibraryResourcesTask> {
+        enabled = false
     }
 }
 

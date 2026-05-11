@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shopsync/core/utils/database_service.dart';
@@ -87,8 +88,15 @@ class ShopSyncApp extends ConsumerWidget {
   }
 }
 
-class MainNavigationShell extends ConsumerWidget {
+class MainNavigationShell extends StatefulWidget {
   const MainNavigationShell({super.key});
+
+  @override
+  State<MainNavigationShell> createState() => _MainNavigationShellState();
+}
+
+class _MainNavigationShellState extends State<MainNavigationShell> {
+  DateTime? _lastPressed;
 
   static const _screens = [
     DashboardScreen(),
@@ -99,24 +107,63 @@ class MainNavigationShell extends ConsumerWidget {
   ];
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final selectedIndex = ref.watch(bottomNavIndexProvider);
-    final width = MediaQuery.of(context).size.width;
-    final isMobile = width < 600;
+  Widget build(BuildContext context) {
+    return Consumer(
+      builder: (context, ref, child) {
+        final selectedIndex = ref.watch(bottomNavIndexProvider);
+        final width = MediaQuery.of(context).size.width;
+        final isMobile = width < 600;
 
-    return Scaffold(
-      extendBody: true,
-      body: Row(
-        children: [
-          if (!isMobile) _buildNavigationRail(context, ref, selectedIndex),
-          Expanded(
-            child: IndexedStack(index: selectedIndex, children: _screens),
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            final now = DateTime.now();
+            final maxDuration = const Duration(seconds: 2);
+            final isWarningTarget = _lastPressed == null ||
+                now.difference(_lastPressed!) > maxDuration;
+
+            if (isWarningTarget) {
+              _lastPressed = now;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text(
+                    'PRESS BACK AGAIN TO EXIT',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.5,
+                      fontSize: 10,
+                    ),
+                  ),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  behavior: SnackBarBehavior.floating,
+                  duration: maxDuration,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              );
+            } else {
+              SystemChannels.platform.invokeMethod('SystemNavigator.pop');
+            }
+          },
+          child: Scaffold(
+            extendBody: true,
+            body: Row(
+              children: [
+                if (!isMobile)
+                  _buildNavigationRail(context, ref, selectedIndex),
+                Expanded(
+                  child: IndexedStack(index: selectedIndex, children: _screens),
+                ),
+              ],
+            ),
+            bottomNavigationBar: isMobile
+                ? _buildBottomNavigationBar(context, ref, selectedIndex)
+                : null,
           ),
-        ],
-      ),
-      bottomNavigationBar: isMobile
-          ? _buildBottomNavigationBar(context, ref, selectedIndex)
-          : null,
+        );
+      },
     );
   }
 
