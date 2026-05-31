@@ -231,7 +231,7 @@ class _ReceivingReportScreenState extends ConsumerState<ReceivingReportScreen> {
               final productId = groupedItems.keys.elementAt(index);
               final productItems = groupedItems[productId]!;
               final productName = productItems.first.productName;
-              final isCollapsed = _collapsedProducts[productId] ?? false;
+              final isCollapsed = _collapsedProducts[productId] ?? true;
 
               final groupTotalUnits = productItems.fold<double>(0, (sum, i) => sum + i.quantity);
               final groupTotalCost = productItems.fold<double>(0, (sum, i) => sum + i.totalCost);

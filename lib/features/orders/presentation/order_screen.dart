@@ -194,7 +194,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                                 (p) => p.id == productId,
                                 orElse: () => Product()..name = 'Unknown Product',
                               );
-                              final isCollapsed = _collapsedProducts[productId] ?? false;
+                              final isCollapsed = _collapsedProducts[productId] ?? true;
 
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
