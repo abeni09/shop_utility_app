@@ -687,15 +687,19 @@ Widget _buildSummaryCard(
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              label,
-              style: TextStyle(
-                color: color.withValues(alpha: 0.6),
-                fontWeight: FontWeight.w900,
-                fontSize: 10,
-                letterSpacing: 1.5,
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: color.withValues(alpha: 0.6),
+                  fontWeight: FontWeight.w900,
+                  fontSize: 10,
+                  letterSpacing: 1.5,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
+            const SizedBox(width: 4),
             Icon(icon, color: color.withValues(alpha: 0.3), size: 16),
           ],
         ),
