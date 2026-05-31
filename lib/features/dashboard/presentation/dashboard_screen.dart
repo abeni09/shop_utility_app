@@ -13,6 +13,7 @@ import 'package:shopsync/features/orders/presentation/requisition_screen.dart';
 import 'package:shopsync/features/sales/presentation/sales_screen.dart';
 import 'package:shopsync/features/dashboard/presentation/ui_providers.dart';
 import 'package:shopsync/features/dashboard/presentation/financial_report_screen.dart';
+import 'package:shopsync/features/products/presentation/receiving_report_screen.dart';
 import 'dart:ui';
 
 class DashboardScreen extends ConsumerWidget {
@@ -751,6 +752,15 @@ class DashboardScreen extends ConsumerWidget {
           icon: Icons.analytics_rounded,
           color: const Color(0xFF818CF8),
           onTap: () => ref.read(bottomNavIndexProvider.notifier).state = 2,
+        ),
+        _QuickActionCard(
+          label: 'Receiving Report',
+          icon: Icons.receipt_long_rounded,
+          color: const Color(0xFF10B981),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ReceivingReportScreen()),
+          ),
         ),
       ],
     );

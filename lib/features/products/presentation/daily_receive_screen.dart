@@ -95,6 +95,7 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                                 date.month,
                                 date.day,
                               );
+                              _controllers.clear();
                             });
                           }
                         },

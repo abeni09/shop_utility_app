@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:shopsync/features/dashboard/data/daily_log_model.dart';
 import 'package:shopsync/features/dashboard/presentation/dashboard_providers.dart';
 import 'package:shopsync/features/suppliers/presentation/supplier_list_screen.dart';
+import 'package:shopsync/features/products/presentation/receiving_report_screen.dart';
 import 'dart:ui';
 
 class FinancialReportScreen extends ConsumerStatefulWidget {
@@ -34,6 +35,17 @@ class _FinancialReportScreenState extends ConsumerState<FinancialReportScreen> {
         title: const Text('FINANCIAL INSIGHTS'),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.receipt_long_rounded, color: Color(0xFF10B981)),
+            tooltip: 'Receiving Report',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ReceivingReportScreen()),
+            ),
+          ),
+          const SizedBox(width: 16),
+        ],
         flexibleSpace: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),

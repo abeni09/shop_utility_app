@@ -8,12 +8,14 @@ import 'package:shopsync/features/orders/data/addon_repository.dart';
 import 'package:shopsync/main.dart';
 
 import 'package:shopsync/features/dashboard/presentation/dashboard_providers.dart';
+import 'package:shopsync/features/suppliers/presentation/supplier_list_screen.dart';
 
 final orderRepositoryProvider = Provider<OrderRepository>((ref) {
   final dbService = ref.watch(databaseServiceProvider);
   final dashboardRepo = ref.watch(dashboardRepositoryProvider);
   final backupService = ref.watch(backupServiceProvider);
-  return OrderRepository(dbService.isar, dashboardRepo, backupService);
+  final supplierRepo = ref.watch(supplierRepositoryProvider);
+  return OrderRepository(dbService.isar, dashboardRepo, backupService, supplierRepo);
 });
 
 final addonRepositoryProvider = Provider<AddonRepository>((ref) {

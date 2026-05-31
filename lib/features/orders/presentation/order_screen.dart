@@ -152,56 +152,134 @@ class OrderScreen extends ConsumerWidget {
                   ordersAsync.when(
                     data: (_) {
                       final orders = ref.watch(filteredOrdersProvider);
+                      final products = ref.watch(productsProvider).value ?? [];
                       final width = MediaQuery.of(context).size.width;
                       final horizontalPadding = width > 1200
                           ? width * 0.1
                           : (width > 800 ? 48.0 : 24.0);
-                      final crossAxisCount = width > 1000
-                          ? 3
-                          : (width > 600 ? 2 : 1);
+                      final crossAxisCount = width > 1000 ? 3 : (width > 600 ? 2 : 1);
 
-                      return orders.isEmpty
-                          ? const SliverFillRemaining(
-                              child: Center(
-                                child: Text(
-                                  'No matching orders',
-                                  style: TextStyle(color: Colors.white38),
-                                ),
-                              ),
-                            )
-                          : SliverPadding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: horizontalPadding,
-                              ),
-                              sliver: crossAxisCount > 1
-                                  ? SliverGrid(
-                                      gridDelegate:
-                                          SliverGridDelegateWithFixedCrossAxisCount(
+                      if (orders.isEmpty) {
+                        return const SliverFillRemaining(
+                          child: Center(
+                            child: Text(
+                              'No matching orders',
+                              style: TextStyle(color: Colors.white38),
+                            ),
+                          ),
+                        );
+                      }
+
+                      // Group orders by product
+                      final Map<int, List<CustomerOrder>> groupedOrders = {};
+                      for (var order in orders) {
+                        groupedOrders.putIfAbsent(order.productId, () => []).add(order);
+                      }
+
+                      return SliverPadding(
+                        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final productId = groupedOrders.keys.elementAt(index);
+                              final productOrders = groupedOrders[productId]!;
+                              final product = products.firstWhere(
+                                (p) => p.id == productId,
+                                orElse: () => Product()..name = 'Unknown Product',
+                              );
+
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Product Header Section
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                                    margin: const EdgeInsets.only(top: 16, bottom: 12),
+                                    decoration: BoxDecoration(
+                                      border: Border(
+                                        bottom: BorderSide(
+                                          color: Colors.white.withValues(alpha: 0.05),
+                                          width: 1,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.inventory_2_rounded,
+                                            color: Color(0xFF818CF8),
+                                            size: 14,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Text(
+                                          product.name.toUpperCase(),
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: 1.5,
+                                            color: Colors.white70,
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(
+                                              color: const Color(0xFF6366F1).withValues(alpha: 0.2),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            '${productOrders.length} ${productOrders.length == 1 ? "ORDER" : "ORDERS"}',
+                                            style: const TextStyle(
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.w900,
+                                              color: Color(0xFF818CF8),
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  // Grid/List of Orders for this product
+                                  crossAxisCount > 1
+                                      ? GridView.builder(
+                                          shrinkWrap: true,
+                                          physics: const NeverScrollableScrollPhysics(),
+                                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                                             crossAxisCount: crossAxisCount,
                                             mainAxisSpacing: 16,
                                             crossAxisSpacing: 16,
                                             mainAxisExtent: 420,
                                           ),
-                                      delegate: SliverChildBuilderDelegate(
-                                        (context, index) =>
-                                            _OrderCard(order: orders[index]),
-                                        childCount: orders.length,
-                                      ),
-                                    )
-                                  : SliverList(
-                                      delegate: SliverChildBuilderDelegate(
-                                        (context, index) => Padding(
-                                          padding: const EdgeInsets.only(
-                                            bottom: 16,
-                                          ),
-                                          child: _OrderCard(
-                                            order: orders[index],
+                                          itemCount: productOrders.length,
+                                          itemBuilder: (context, idx) => _OrderCard(order: productOrders[idx]),
+                                        )
+                                      : ListView.builder(
+                                          shrinkWrap: true,
+                                          physics: const NeverScrollableScrollPhysics(),
+                                          itemCount: productOrders.length,
+                                          itemBuilder: (context, idx) => Padding(
+                                            padding: const EdgeInsets.only(bottom: 16),
+                                            child: _OrderCard(order: productOrders[idx]),
                                           ),
                                         ),
-                                        childCount: orders.length,
-                                      ),
-                                    ),
-                            );
+                                ],
+                              );
+                            },
+                            childCount: groupedOrders.length,
+                          ),
+                        ),
+                      );
                     },
                     loading: () => const SliverFillRemaining(
                       child: Center(child: CircularProgressIndicator()),

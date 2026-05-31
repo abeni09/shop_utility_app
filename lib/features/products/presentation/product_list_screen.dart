@@ -14,7 +14,7 @@ class ProductListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final productsAsync = ref.watch(productsProvider);
+    final productsAsync = ref.watch(sortedProductsProvider);
     final showVoided = ref.watch(showVoidedProductsProvider);
 
     return Container(
@@ -57,6 +57,23 @@ class ProductListScreen extends ConsumerWidget {
                     backgroundColor: Colors.transparent,
                     title: const Text('INVENTORY'),
                     actions: [
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.05),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.sort_rounded,
+                            color: Color(0xFF6366F1),
+                          ),
+                          onPressed: () => _showSortOptions(context, ref),
+                          tooltip: 'Sort Products',
+                        ),
+                      ),
                       Container(
                         margin: const EdgeInsets.only(right: 8),
                         decoration: BoxDecoration(
@@ -190,8 +207,71 @@ class ProductListScreen extends ConsumerWidget {
     );
   }
 
-  void _onAddProduct(BuildContext context, WidgetRef ref) {
-    _showProductDialog(context, ref);
+  void _showSortOptions(BuildContext context, WidgetRef ref) {
+    final currentSort = ref.read(productSortTypeProvider);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF0F172A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  'SORT PRODUCTS BY',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                    letterSpacing: 2.0,
+                    color: Color(0xFF818CF8),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              _sortTile(context, ref, 'Recently Added', ProductSortType.newest, currentSort),
+              _sortTile(context, ref, 'Oldest First', ProductSortType.oldest, currentSort),
+              _sortTile(context, ref, 'Name (A - Z)', ProductSortType.nameAsc, currentSort),
+              _sortTile(context, ref, 'Name (Z - A)', ProductSortType.nameDesc, currentSort),
+              _sortTile(context, ref, 'Price (Low to High)', ProductSortType.priceAsc, currentSort),
+              _sortTile(context, ref, 'Price (High to Low)', ProductSortType.priceDesc, currentSort),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _sortTile(
+    BuildContext context,
+    WidgetRef ref,
+    String title,
+    ProductSortType type,
+    ProductSortType current,
+  ) {
+    final isSelected = type == current;
+    return ListTile(
+      title: Text(
+        title,
+        style: TextStyle(
+          color: isSelected ? const Color(0xFF818CF8) : Colors.white70,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+      trailing: isSelected
+          ? const Icon(Icons.check_circle_rounded, color: Color(0xFF818CF8))
+          : null,
+      onTap: () {
+        ref.read(productSortTypeProvider.notifier).state = type;
+        Navigator.pop(context);
+      },
+    );
   }
 }
 
