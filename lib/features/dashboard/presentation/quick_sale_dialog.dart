@@ -49,7 +49,6 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
     final today = DateTime(now.year, now.month, now.day);
     final products = ref.watch(productsProvider).value ?? [];
     final availabilityAsync = ref.watch(walkInAvailabilityProvider(today));
-    final availability = availabilityAsync.asData?.value ?? {};
     final addons = ref.watch(addonsProvider).value ?? [];
 
     // Filter products
@@ -130,7 +129,7 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<int>(
-              value: _selectedAddonId,
+              initialValue: _selectedAddonId,
               dropdownColor: const Color(0xFF1E293B),
               isExpanded: true,
               style: const TextStyle(color: Colors.white, fontSize: 13),
@@ -529,7 +528,7 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '${walkInAvailable.toStringAsFixed(0)}',
+                    walkInAvailable.toStringAsFixed(0),
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
@@ -735,6 +734,8 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
     dynamic bagProduct,
     StockStatus status,
   ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
     if (quantity > status.walkInAvailable) {
       String message =
           'You are attempting to sell $quantity ${product.name}, but only ${status.walkInAvailable} are currently available for walk-in.';
@@ -848,11 +849,11 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
       await ref.read(orderRepositoryProvider).saveOrder(bagOrder);
     }
 
-    if (mounted && Navigator.canPop(context)) {
-      Navigator.pop(context);
+    if (navigator.canPop()) {
+      navigator.pop();
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       SnackBar(
         backgroundColor: const Color(0xFF10B981),
         behavior: SnackBarBehavior.floating,

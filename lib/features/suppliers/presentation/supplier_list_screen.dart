@@ -9,6 +9,7 @@ import 'package:shopsync/features/dashboard/presentation/ui_providers.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:shopsync/core/utils/receipt_share_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 
@@ -1195,7 +1196,7 @@ class _SupplierCard extends ConsumerWidget {
                                     size: 48,
                                     color: Colors.white24,
                                   ),
-                                  const SizedBox(height: 16),
+                                  SizedBox(height: 16),
                                   Text(
                                     'NO SETTLEMENTS RECORDED YET',
                                     style: TextStyle(
@@ -1260,7 +1261,7 @@ class _SupplierCard extends ConsumerWidget {
                                           ],
                                         ),
                                       ),
-                                      if (settlement.imagePath != null)
+                                      if (settlement.imagePath != null) ...[
                                         GestureDetector(
                                           onTap: () {
                                             _viewReceiptPhoto(context, settlement.imagePath!);
@@ -1281,6 +1282,21 @@ class _SupplierCard extends ConsumerWidget {
                                             ),
                                           ),
                                         ),
+                                        const SizedBox(width: 8),
+                                      ],
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.share_rounded,
+                                          color: Colors.white30,
+                                          size: 18,
+                                        ),
+                                        onPressed: () {
+                                          ReceiptShareService.shareSettlementReceipt(
+                                            settlement: settlement,
+                                            supplier: supplier,
+                                          );
+                                        },
+                                      ),
                                     ],
                                   ),
                                 );

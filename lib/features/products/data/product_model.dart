@@ -17,4 +17,6 @@ class Product {
   DateTime? lastUpdated;
 
   bool isVoid = false;
+
+  int minStockThreshold = 5;
 }

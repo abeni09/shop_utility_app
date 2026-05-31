@@ -8,12 +8,14 @@ import 'package:shopsync/features/orders/presentation/order_providers.dart';
 import 'package:shopsync/features/orders/data/customer_order_model.dart';
 import 'package:shopsync/features/dashboard/presentation/quick_sale_dialog.dart';
 import 'package:shopsync/features/products/presentation/daily_receive_screen.dart';
+import 'package:shopsync/features/products/presentation/receiving_report_screen.dart';
 import 'package:shopsync/features/products/presentation/daily_stock_providers.dart';
 import 'package:shopsync/features/orders/presentation/requisition_screen.dart';
-import 'package:shopsync/features/sales/presentation/sales_screen.dart';
 import 'package:shopsync/features/dashboard/presentation/ui_providers.dart';
 import 'package:shopsync/features/dashboard/presentation/financial_report_screen.dart';
-import 'package:shopsync/features/products/presentation/receiving_report_screen.dart';
+import 'package:shopsync/features/dashboard/presentation/financial_chart_widget.dart';
+import 'package:shopsync/features/dashboard/presentation/low_stock_widget.dart';
+import 'package:shopsync/features/backup/presentation/sync_manager_dialog.dart';
 import 'dart:ui';
 
 class DashboardScreen extends ConsumerWidget {
@@ -99,10 +101,14 @@ class DashboardScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 32),
                       _buildMainStats(dailyLogAsync),
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 24),
+                      const FinancialWeeklyChart(),
+                      const SizedBox(height: 32),
                       _buildSectionHeader('FINANCIAL INSIGHTS', context),
                       const SizedBox(height: 16),
                       _buildInsightsScroll(ref),
+                      const SizedBox(height: 40),
+                      const LowStockAlertWidget(),
                       const SizedBox(height: 40),
                       _buildSectionHeader('OPERATIONAL OVERVIEW', context),
                       const SizedBox(height: 16),
@@ -241,189 +247,197 @@ class DashboardScreen extends ConsumerWidget {
         final isCloudNewer = cloudNewerAsync.value ?? false;
         final isLocalAhead = localAheadAsync.value ?? false;
 
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                const Color(0xFF6366F1).withValues(alpha: 0.1),
-                const Color(0xFF6366F1).withValues(alpha: 0.05),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-              color: const Color(0xFF6366F1).withValues(alpha: 0.2),
-            ),
-          ),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.cloud_done_rounded,
-                      color: Color(0xFF818CF8),
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          user != null ? 'CLOUD SYNC ACTIVE' : 'CLOUD BACKUP',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.5,
-                            color: Color(0xFF818CF8),
-                          ),
-                        ),
-                        Text(
-                          user != null
-                              ? user.email
-                              : 'Secure your data with Google Drive',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.7),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (user != null)
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.05),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.logout_rounded, size: 20),
-                        color: Theme.of(context).colorScheme.primary,
-                        onPressed: () =>
-                            ref.read(backupServiceProvider).signOut(),
-                      ),
-                    ),
+        return GestureDetector(
+          onTap: () {
+            showDialog(
+              context: context,
+              builder: (context) => const SyncManagerDialog(),
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFF6366F1).withValues(alpha: 0.1),
+                  const Color(0xFF6366F1).withValues(alpha: 0.05),
                 ],
               ),
-              if (user == null) ...[
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton.icon(
-                    onPressed: () => ref.read(backupServiceProvider).signIn(),
-                    icon: const Icon(Icons.login_rounded, size: 18),
-                    label: const Text(
-                      'SIGN IN WITH GOOGLE',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 12,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: const Color(0xFF6366F1).withValues(alpha: 0.2),
+              ),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.cloud_done_rounded,
+                        color: Color(0xFF818CF8),
+                        size: 20,
                       ),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6366F1),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user != null ? 'CLOUD SYNC ACTIVE' : 'CLOUD BACKUP',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.5,
+                              color: Color(0xFF818CF8),
+                            ),
+                          ),
+                          Text(
+                            user != null
+                                ? user.email
+                                : 'Secure your data with Google Drive',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.7),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (user != null)
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.05),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.logout_rounded, size: 20),
+                          color: Theme.of(context).colorScheme.primary,
+                          onPressed: () =>
+                              ref.read(backupServiceProvider).signOut(),
+                        ),
+                      ),
+                  ],
+                ),
+                if (user == null) ...[
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      onPressed: () => ref.read(backupServiceProvider).signIn(),
+                      icon: const Icon(Icons.login_rounded, size: 18),
+                      label: const Text(
+                        'SIGN IN WITH GOOGLE',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6366F1),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ] else if (isCloudNewer || isLocalAhead) ...[
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    if (isCloudNewer)
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () => _handleRestore(context, ref),
-                          icon: const Icon(
-                            Icons.cloud_download_rounded,
-                            size: 18,
-                          ),
-                          label: const Text(
-                            'RESTORE',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 11,
+                ] else if (isCloudNewer || isLocalAhead) ...[
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      if (isCloudNewer)
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => _handleRestore(context, ref),
+                            icon: const Icon(
+                              Icons.cloud_download_rounded,
+                              size: 18,
                             ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.orangeAccent,
-                            foregroundColor: Colors.black,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                            label: const Text(
+                              'RESTORE',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 11,
+                              ),
                             ),
-                          ),
-                        ),
-                      ),
-                    if (isCloudNewer && isLocalAhead) const SizedBox(width: 12),
-                    if (isLocalAhead)
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () => _handleBackup(context, ref),
-                          icon: const Icon(
-                            Icons.cloud_upload_rounded,
-                            size: 18,
-                          ),
-                          label: const Text(
-                            'BACKUP NOW',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 11,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF10B981),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orangeAccent,
+                              foregroundColor: Colors.black,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                  ],
-                ),
-              ] else ...[
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.check_circle_rounded,
-                      color: Color(0xFF10B981),
-                      size: 14,
-                    ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        'All data is backed up and synchronized',
-                        style: TextStyle(
-                          color: const Color(0xFF10B981).withValues(alpha: 0.8),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
+                      if (isCloudNewer && isLocalAhead) const SizedBox(width: 12),
+                      if (isLocalAhead)
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => _handleBackup(context, ref),
+                            icon: const Icon(
+                              Icons.cloud_upload_rounded,
+                              size: 18,
+                            ),
+                            label: const Text(
+                              'BACKUP NOW',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 11,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF10B981),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                          ),
                         ),
-                        overflow: TextOverflow.ellipsis,
+                    ],
+                  ),
+                ] else ...[
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.check_circle_rounded,
+                        color: Color(0xFF10B981),
+                        size: 14,
                       ),
-                    ),
-                  ],
-                ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          'All data is backed up and synchronized',
+                          style: TextStyle(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.8),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         );
       },

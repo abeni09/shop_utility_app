@@ -4,12 +4,14 @@ import 'package:intl/intl.dart';
 import 'package:shopsync/features/products/data/daily_stock_model.dart';
 import 'package:shopsync/features/products/presentation/daily_stock_providers.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
+import 'package:shopsync/features/products/data/product_model.dart';
 import 'package:shopsync/features/suppliers/presentation/supplier_list_screen.dart';
 import 'package:shopsync/features/orders/presentation/order_providers.dart';
 import 'package:shopsync/features/dashboard/presentation/dashboard_providers.dart';
 
 class DailyReceiveScreen extends ConsumerStatefulWidget {
-  const DailyReceiveScreen({super.key});
+  final int? preselectedProductId;
+  const DailyReceiveScreen({super.key, this.preselectedProductId});
 
   @override
   ConsumerState<DailyReceiveScreen> createState() => _DailyReceiveScreenState();
@@ -23,6 +25,8 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
     DateTime.now().day,
   );
 
+  DateTime? _loadedDate;
+
   @override
   void dispose() {
     for (var controller in _controllers.values) {
@@ -33,6 +37,13 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loadedDate != _selectedDate) {
+      for (var controller in _controllers.values) {
+        controller.dispose();
+      }
+      _controllers.clear();
+      _loadedDate = _selectedDate;
+    }
     final productsAsync = ref.watch(productsProvider);
     final stockAsync = ref.watch(dailyStockProvider(_selectedDate));
 
@@ -186,101 +197,113 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                 ),
                 productsAsync.when(
                   data: (products) => stockAsync.when(
-                    data: (stocks) => SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate((context, index) {
-                          final product = products[index];
-                          final stock = stocks
-                              .where((s) => s.productId == product.id)
-                              .firstOrNull;
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: _StockInputCard(
-                              productName: product.name,
-                              controller: _controllers[product.id]!,
-                              requestedAmount: stock?.requestedQuantity ?? 0.0,
-                              onLongPress: () async {
-                                final confirm = await showDialog<bool>(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    backgroundColor: const Color(0xFF0F172A),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(28),
-                                      side: BorderSide(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.05,
-                                        ),
-                                      ),
-                                    ),
-                                    title: Text(
-                                      'RESET ${product.name.toUpperCase()}?',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 16,
-                                        letterSpacing: 1,
-                                        color: Colors.redAccent,
-                                      ),
-                                    ),
-                                    content: const Text(
-                                      'This will wipe all stock records and void all orders for this product. Use this to fix negative stock issues.',
-                                      style: TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(context, false),
-                                        child: const Text(
-                                          'CANCEL',
-                                          style: TextStyle(
-                                            color: Colors.white24,
-                                            fontWeight: FontWeight.w900,
+                    data: (stocks) {
+                      final displayProducts = List<Product>.from(products);
+                      if (widget.preselectedProductId != null) {
+                        final idx = displayProducts.indexWhere((p) => p.id == widget.preselectedProductId);
+                        if (idx != -1) {
+                          final p = displayProducts.removeAt(idx);
+                          displayProducts.insert(0, p);
+                        }
+                      }
+                      return SliverPadding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate((context, index) {
+                            final product = displayProducts[index];
+                            final stock = stocks
+                                .where((s) => s.productId == product.id)
+                                .firstOrNull;
+                            final isPreselected = product.id == widget.preselectedProductId;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: _StockInputCard(
+                                productName: product.name,
+                                controller: _controllers[product.id]!,
+                                requestedAmount: stock?.requestedQuantity ?? 0.0,
+                                isHighlight: isPreselected,
+                                onLongPress: () async {
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      backgroundColor: const Color(0xFF0F172A),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(28),
+                                        side: BorderSide(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.05,
                                           ),
                                         ),
                                       ),
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(context, true),
-                                        style: TextButton.styleFrom(
-                                          foregroundColor: Colors.redAccent,
-                                        ),
-                                        child: const Text(
-                                          'RESET HISTORY',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w900,
-                                          ),
+                                      title: Text(
+                                        'RESET ${product.name.toUpperCase()}?',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 16,
+                                          letterSpacing: 1,
+                                          color: Colors.redAccent,
                                         ),
                                       ),
-                                    ],
-                                  ),
-                                );
+                                      content: const Text(
+                                        'This will wipe all stock records and void all orders for this product. Use this to fix negative stock issues.',
+                                        style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, false),
+                                          child: const Text(
+                                            'CANCEL',
+                                            style: TextStyle(
+                                              color: Colors.white24,
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                          ),
+                                        ),
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, true),
+                                          style: TextButton.styleFrom(
+                                            foregroundColor: Colors.redAccent,
+                                          ),
+                                          child: const Text(
+                                            'RESET HISTORY',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
 
-                                if (confirm == true) {
-                                  await ref
-                                      .read(dailyStockRepositoryProvider)
-                                      .resetProductHistory(product.id);
-                                  await ref
-                                      .read(orderRepositoryProvider)
-                                      .resetProductHistory(product.id);
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'History reset for ${product.name}',
+                                  if (confirm == true) {
+                                    await ref
+                                        .read(dailyStockRepositoryProvider)
+                                        .resetProductHistory(product.id);
+                                    await ref
+                                        .read(orderRepositoryProvider)
+                                        .resetProductHistory(product.id);
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'History reset for ${product.name}',
+                                          ),
                                         ),
-                                      ),
-                                    );
+                                      );
+                                    }
                                   }
-                                }
-                              },
-                            ),
-                          );
-                        }, childCount: products.length),
-                      ),
-                    ),
+                                },
+                              ),
+                            );
+                          }, childCount: displayProducts.length),
+                        ),
+                      );
+                    },
                     loading: () => const SliverFillRemaining(
                       child: Center(
                         child: CircularProgressIndicator(
@@ -322,6 +345,8 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                           ),
                         ),
                         onPressed: () async {
+                          final messenger = ScaffoldMessenger.of(context);
+                          final navigator = Navigator.of(context);
                           final repo = ref.read(dailyStockRepositoryProvider);
                           final supplierRepo = ref.read(
                             supplierRepositoryProvider,
@@ -335,7 +360,7 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                             final amount = double.tryParse(text) ?? 0;
 
                             if (amount < 0) {
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              messenger.showSnackBar(
                                 SnackBar(
                                   content: Text('Invalid amount for ${p.name}'),
                                   backgroundColor: Colors.redAccent,
@@ -372,7 +397,7 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                           );
 
                           if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          messenger.showSnackBar(
                             const SnackBar(
                               content: Text(
                                 'Stock levels and supplier balances updated!',
@@ -381,8 +406,8 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                               behavior: SnackBarBehavior.floating,
                             ),
                           );
-                          if (mounted && Navigator.canPop(context)) {
-                            Navigator.pop(context);
+                          if (navigator.canPop()) {
+                            navigator.pop();
                           }
                         },
                         child: const Text(
@@ -411,12 +436,14 @@ class _StockInputCard extends StatelessWidget {
   final TextEditingController controller;
   final double requestedAmount;
   final VoidCallback? onLongPress;
+  final bool isHighlight;
 
   const _StockInputCard({
     required this.productName,
     required this.controller,
     required this.requestedAmount,
     this.onLongPress,
+    this.isHighlight = false,
   });
 
   @override
@@ -427,17 +454,29 @@ class _StockInputCard extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
-            Colors.white.withValues(alpha: 0.02),
-          ],
+          colors: isHighlight
+              ? [
+                  const Color(0xFF6366F1).withValues(alpha: 0.15),
+                  const Color(0xFF818CF8).withValues(alpha: 0.05),
+                ]
+              : [
+                  Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                  Colors.white.withValues(alpha: 0.02),
+                ],
         ),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05)),
+        border: Border.all(
+          color: isHighlight
+              ? const Color(0xFF818CF8).withValues(alpha: 0.6)
+              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+          width: isHighlight ? 1.5 : 1.0,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
+            color: isHighlight
+                ? const Color(0xFF6366F1).withValues(alpha: 0.2)
+                : Colors.black.withValues(alpha: 0.1),
+            blurRadius: isHighlight ? 12 : 8,
             offset: const Offset(0, 4),
           ),
         ],

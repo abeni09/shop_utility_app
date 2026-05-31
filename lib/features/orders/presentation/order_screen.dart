@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:shopsync/core/presentation/widgets/theme_toggle_button.dart';
 import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/orders/data/customer_order_model.dart';
 import 'package:shopsync/features/orders/data/addon_model.dart';
@@ -538,7 +537,7 @@ void _showOrderDialog(
                     ),
                     const SizedBox(height: 24),
                     DropdownButtonFormField<int>(
-                      value: selectedProductId,
+                      initialValue: selectedProductId,
                       dropdownColor: const Color(0xFF1E293B),
                       items: products
                           .map(
@@ -592,7 +591,7 @@ void _showOrderDialog(
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<PaymentMethod>(
-                      value: selectedPayment,
+                      initialValue: selectedPayment,
                       isExpanded: true,
                       dropdownColor: const Color(0xFF1E293B),
                       items: PaymentMethod.values
@@ -616,7 +615,7 @@ void _showOrderDialog(
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<int>(
-                      value: selectedAddonId,
+                      initialValue: selectedAddonId,
                       dropdownColor: const Color(0xFF1E293B),
                       isExpanded: true,
                       items: [
@@ -1666,8 +1665,9 @@ class _OrderCard extends ConsumerWidget {
           TextButton(
             onPressed: () async {
               await ref.read(orderRepositoryProvider).unvoidOrder(order.id);
-              if (context.mounted && Navigator.canPop(context))
+              if (context.mounted && Navigator.canPop(context)) {
                 Navigator.pop(context);
+              }
             },
             child: const Text(
               'YES, RESTORE',
@@ -1723,8 +1723,9 @@ class _OrderCard extends ConsumerWidget {
           TextButton(
             onPressed: () async {
               await ref.read(orderRepositoryProvider).voidOrder(order.id);
-              if (context.mounted && Navigator.canPop(context))
+              if (context.mounted && Navigator.canPop(context)) {
                 Navigator.pop(context);
+              }
             },
             child: const Text(
               'VOID ORDER',

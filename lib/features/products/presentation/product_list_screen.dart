@@ -287,6 +287,9 @@ void _showProductDialog(
   final saleController = TextEditingController(
     text: existing?.sellingPrice.toStringAsFixed(0),
   );
+  final minStockController = TextEditingController(
+    text: (existing?.minStockThreshold ?? 5).toString(),
+  );
   int? selectedSupplierId = existing?.supplierId;
   var suppliers = ref.read(suppliersProvider).value ?? [];
   // Only show active and non-void suppliers
@@ -363,6 +366,14 @@ void _showProductDialog(
                 ],
               ),
               const SizedBox(height: 16),
+              _buildTextField(
+                minStockController,
+                'Min Stock Threshold (Alert Limit)',
+                Icons.warning_amber_rounded,
+                context,
+                isNumber: true,
+              ),
+              const SizedBox(height: 16),
               const Text(
                 'SUPPLIER (OPTIONAL)',
                 style: TextStyle(
@@ -374,7 +385,7 @@ void _showProductDialog(
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<int?>(
-                value: selectedSupplierId,
+                initialValue: selectedSupplierId,
                 dropdownColor: const Color(0xFF1E293B),
                 decoration: InputDecoration(
                   filled: true,
@@ -438,11 +449,13 @@ void _showProductDialog(
                       return;
                     }
 
+                    final threshold = int.tryParse(minStockController.text) ?? 5;
                     final product = existing ?? Product();
                     product.name = nameController.text.trim();
                     product.costPrice = cost;
                     product.sellingPrice = sale;
                     product.supplierId = selectedSupplierId;
+                    product.minStockThreshold = threshold;
 
                     await ref
                         .read(productRepositoryProvider)

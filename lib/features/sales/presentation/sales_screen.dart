@@ -9,6 +9,7 @@ import 'package:shopsync/features/products/data/stock_adjustment_model.dart';
 import 'package:shopsync/features/products/presentation/daily_stock_providers.dart';
 import 'package:shopsync/main.dart';
 import 'package:isar/isar.dart';
+import 'package:shopsync/core/utils/receipt_share_service.dart';
 
 final selectedSalesDateProvider = StateProvider<DateTime>(
   (ref) => DateTime.now(),
@@ -163,7 +164,7 @@ class SalesScreen extends ConsumerWidget {
                                   );
                                   return _buildSummaryCard(
                                     'REVENUE',
-                                    '${totalRevenue.toStringAsFixed(0)}',
+                                    totalRevenue.toStringAsFixed(0),
                                     const Color(0xFF10B981),
                                     Icons.payments_rounded,
                                   );
@@ -174,7 +175,7 @@ class SalesScreen extends ConsumerWidget {
                                   Colors.grey,
                                   Icons.payments_rounded,
                                 ),
-                                error: (_, __) => _buildSummaryCard(
+                                error: (_, _) => _buildSummaryCard(
                                   'REVENUE',
                                   'ERR',
                                   Colors.redAccent,
@@ -211,7 +212,7 @@ class SalesScreen extends ConsumerWidget {
                                             totalProfitFromSales - totalLoss;
                                         return _buildSummaryCard(
                                           'NET PROFIT',
-                                          '${netProfit.toStringAsFixed(0)}',
+                                          netProfit.toStringAsFixed(0),
                                           const Color(0xFF818CF8),
                                           Icons.trending_up_rounded,
                                         );
@@ -222,7 +223,7 @@ class SalesScreen extends ConsumerWidget {
                                         Colors.grey,
                                         Icons.trending_up_rounded,
                                       ),
-                                      error: (_, __) => _buildSummaryCard(
+                                      error: (_, _) => _buildSummaryCard(
                                         'NET PROFIT',
                                         'ERR',
                                         Colors.redAccent,
@@ -235,7 +236,7 @@ class SalesScreen extends ConsumerWidget {
                                       Colors.grey,
                                       Icons.trending_up_rounded,
                                     ),
-                                    error: (_, __) => _buildSummaryCard(
+                                    error: (_, _) => _buildSummaryCard(
                                       'NET PROFIT',
                                       'ERR',
                                       Colors.redAccent,
@@ -249,7 +250,7 @@ class SalesScreen extends ConsumerWidget {
                                   Colors.grey,
                                   Icons.trending_up_rounded,
                                 ),
-                                error: (_, __) => _buildSummaryCard(
+                                error: (_, _) => _buildSummaryCard(
                                   'NET PROFIT',
                                   'ERR',
                                   Colors.redAccent,
@@ -271,7 +272,7 @@ class SalesScreen extends ConsumerWidget {
                                     }
                                     return _buildSummaryCard(
                                       'LOSSES',
-                                      '${totalLoss.toStringAsFixed(0)}',
+                                      totalLoss.toStringAsFixed(0),
                                       const Color(0xFFEF4444),
                                       Icons.trending_down_rounded,
                                     );
@@ -282,7 +283,7 @@ class SalesScreen extends ConsumerWidget {
                                     Colors.grey,
                                     Icons.trending_down_rounded,
                                   ),
-                                  error: (_, __) => _buildSummaryCard(
+                                  error: (_, _) => _buildSummaryCard(
                                     'LOSSES',
                                     'ERR',
                                     Colors.redAccent,
@@ -295,7 +296,7 @@ class SalesScreen extends ConsumerWidget {
                                   Colors.grey,
                                   Icons.trending_down_rounded,
                                 ),
-                                error: (_, __) => _buildSummaryCard(
+                                error: (_, _) => _buildSummaryCard(
                                   'LOSSES',
                                   'ERR',
                                   Colors.redAccent,
@@ -496,7 +497,7 @@ class SalesScreen extends ConsumerWidget {
                                           );
                                         },
                                         loading: () => const SizedBox.shrink(),
-                                        error: (_, __) =>
+                                        error: (_, _) =>
                                             const SizedBox.shrink(),
                                       );
                                     }, childCount: adjustments.length),
@@ -526,7 +527,7 @@ class SalesScreen extends ConsumerWidget {
                                           },
                                           loading: () =>
                                               const SizedBox.shrink(),
-                                          error: (_, __) =>
+                                          error: (_, _) =>
                                               const SizedBox.shrink(),
                                         ),
                                       );
@@ -632,6 +633,51 @@ class _SaleTile extends ConsumerWidget {
 
   const _SaleTile({required this.sale, required this.productName});
 
+  void _showShareMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF0F172A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'SHARE RECEIPT',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                letterSpacing: 2.0,
+                fontSize: 12,
+                color: Color(0xFF818CF8),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.text_fields_rounded, color: Colors.white70),
+              title: const Text('Share as Text Message', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                ReceiptShareService.shareTextReceipt(order: sale, productName: productName);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.picture_as_pdf_rounded, color: Colors.white70),
+              title: const Text('Share as PDF Document', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                ReceiptShareService.sharePdfReceipt(order: sale, productName: productName);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final revenue = sale.amount * sale.sellingPriceAtTime;
@@ -678,7 +724,7 @@ class _SaleTile extends ConsumerWidget {
               ),
               TextButton(
                 onPressed: () async {
-                  await ref.read(orderRepositoryProvider).voidOrder(sale.id!);
+                  await ref.read(orderRepositoryProvider).voidOrder(sale.id);
                   if (context.mounted) Navigator.pop(context);
                 },
                 child: const Text(
@@ -772,6 +818,16 @@ class _SaleTile extends ConsumerWidget {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(
+                Icons.share_rounded,
+                color: Colors.white30,
+                size: 18,
+              ),
+              tooltip: 'Share Receipt',
+              onPressed: () => _showShareMenu(context),
             ),
           ],
         ),

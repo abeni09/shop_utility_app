@@ -158,7 +158,6 @@ class OrderRepository {
     if (oldOrder == null) return;
     
     final oldStatus = oldOrder.status;
-    final oldIsVoid = oldOrder.isVoid;
     final oldAddonCost = oldOrder.addonCost;
     final oldAddonAmount = oldOrder.addonAmount;
     final oldProductId = oldOrder.productId;

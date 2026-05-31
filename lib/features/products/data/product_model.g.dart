@@ -32,18 +32,23 @@ const ProductSchema = CollectionSchema(
       name: r'lastUpdated',
       type: IsarType.dateTime,
     ),
-    r'name': PropertySchema(
+    r'minStockThreshold': PropertySchema(
       id: 3,
+      name: r'minStockThreshold',
+      type: IsarType.long,
+    ),
+    r'name': PropertySchema(
+      id: 4,
       name: r'name',
       type: IsarType.string,
     ),
     r'sellingPrice': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'sellingPrice',
       type: IsarType.double,
     ),
     r'supplierId': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'supplierId',
       type: IsarType.long,
     )
@@ -95,9 +100,10 @@ void _productSerialize(
   writer.writeDouble(offsets[0], object.costPrice);
   writer.writeBool(offsets[1], object.isVoid);
   writer.writeDateTime(offsets[2], object.lastUpdated);
-  writer.writeString(offsets[3], object.name);
-  writer.writeDouble(offsets[4], object.sellingPrice);
-  writer.writeLong(offsets[5], object.supplierId);
+  writer.writeLong(offsets[3], object.minStockThreshold);
+  writer.writeString(offsets[4], object.name);
+  writer.writeDouble(offsets[5], object.sellingPrice);
+  writer.writeLong(offsets[6], object.supplierId);
 }
 
 Product _productDeserialize(
@@ -111,9 +117,10 @@ Product _productDeserialize(
   object.id = id;
   object.isVoid = reader.readBool(offsets[1]);
   object.lastUpdated = reader.readDateTimeOrNull(offsets[2]);
-  object.name = reader.readString(offsets[3]);
-  object.sellingPrice = reader.readDouble(offsets[4]);
-  object.supplierId = reader.readLongOrNull(offsets[5]);
+  object.minStockThreshold = reader.readLong(offsets[3]);
+  object.name = reader.readString(offsets[4]);
+  object.sellingPrice = reader.readDouble(offsets[5]);
+  object.supplierId = reader.readLongOrNull(offsets[6]);
   return object;
 }
 
@@ -131,10 +138,12 @@ P _productDeserializeProp<P>(
     case 2:
       return (reader.readDateTimeOrNull(offset)) as P;
     case 3:
-      return (reader.readString(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 4:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 5:
+      return (reader.readDouble(offset)) as P;
+    case 6:
       return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -521,6 +530,62 @@ extension ProductQueryFilter
     });
   }
 
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      minStockThresholdEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'minStockThreshold',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      minStockThresholdGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'minStockThreshold',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      minStockThresholdLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'minStockThreshold',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      minStockThresholdBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'minStockThreshold',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<Product, Product, QAfterFilterCondition> nameEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -826,6 +891,18 @@ extension ProductQuerySortBy on QueryBuilder<Product, Product, QSortBy> {
     });
   }
 
+  QueryBuilder<Product, Product, QAfterSortBy> sortByMinStockThreshold() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'minStockThreshold', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> sortByMinStockThresholdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'minStockThreshold', Sort.desc);
+    });
+  }
+
   QueryBuilder<Product, Product, QAfterSortBy> sortByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -913,6 +990,18 @@ extension ProductQuerySortThenBy
     });
   }
 
+  QueryBuilder<Product, Product, QAfterSortBy> thenByMinStockThreshold() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'minStockThreshold', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> thenByMinStockThresholdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'minStockThreshold', Sort.desc);
+    });
+  }
+
   QueryBuilder<Product, Product, QAfterSortBy> thenByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -970,6 +1059,12 @@ extension ProductQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Product, Product, QDistinct> distinctByMinStockThreshold() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'minStockThreshold');
+    });
+  }
+
   QueryBuilder<Product, Product, QDistinct> distinctByName(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -1013,6 +1108,12 @@ extension ProductQueryProperty
   QueryBuilder<Product, DateTime?, QQueryOperations> lastUpdatedProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'lastUpdated');
+    });
+  }
+
+  QueryBuilder<Product, int, QQueryOperations> minStockThresholdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'minStockThreshold');
     });
   }
 
