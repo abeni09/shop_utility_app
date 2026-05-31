@@ -179,6 +179,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> with SingleTickerProv
                   ],
                 ),
 
+                if (_tabController.index == 0) ...[
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -647,16 +648,17 @@ class _SalesScreenState extends ConsumerState<SalesScreen> with SingleTickerProv
                 ),
 
                 const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                ] else ...[  // ANALYSIS tab
+                  SliverFillRemaining(
+                    hasScrollBody: true,
+                    child: _SalesAnalysisTab(
+                      selectedDate: selectedDate,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
-          // Analysis tab overlay
-          if (_tabController.index == 1)
-            Positioned.fill(
-              child: _SalesAnalysisTab(
-                selectedDate: selectedDate,
-              ),
-            ),
         ],
       ),
     );
@@ -1347,15 +1349,11 @@ class _SalesAnalysisTabState extends ConsumerState<_SalesAnalysisTab> {
     final allTimeAsync = ref.watch(allTimeSalesProvider);
     final dailyAsync = ref.watch(dailySalesProvider);
 
-    return Container(
-      color: Theme.of(context).scaffoldBackgroundColor,
-      child: Column(
-        children: [
-          // Top spacer to match SliverAppBar.large height
-          SizedBox(height: MediaQuery.of(context).padding.top + 160),
-          // Toggle Row
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+    return Column(
+      children: [
+        // Toggle Row
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
             child: Row(
               children: [
                 const Text(
@@ -1455,10 +1453,9 @@ class _SalesAnalysisTabState extends ConsumerState<_SalesAnalysisTab> {
               error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: Colors.redAccent))),
             ),
           ),
-          const SizedBox(height: 100),
+          const SizedBox(height: 24),
         ],
-      ),
-    );
+      );
   }
 
   bool _isSameDay(DateTime a, DateTime b) =>
