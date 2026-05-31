@@ -6,6 +6,8 @@ import 'package:shopsync/features/products/presentation/product_providers.dart';
 import 'package:shopsync/features/products/presentation/daily_stock_providers.dart';
 import 'package:shopsync/features/products/data/stock_adjustment_model.dart';
 import 'package:shopsync/features/suppliers/presentation/supplier_list_screen.dart';
+import 'package:shopsync/features/orders/data/customer_order_model.dart';
+import 'package:shopsync/features/orders/presentation/order_providers.dart';
 
 import 'package:shopsync/features/dashboard/presentation/ui_providers.dart';
 
@@ -102,6 +104,23 @@ class ProductListScreen extends ConsumerWidget {
                                       .state =
                                   !showVoided,
                           tooltip: 'Show Voided Products',
+                        ),
+                      ),
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.05),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.auto_awesome_rounded,
+                            color: Color(0xFF10B981),
+                          ),
+                          onPressed: () => _showSafetyStockRecommender(context, ref),
+                          tooltip: 'Smart Safety Stock Recommender',
                         ),
                       ),
                       Container(
@@ -273,6 +292,18 @@ class ProductListScreen extends ConsumerWidget {
       },
     );
   }
+}
+
+void _showSafetyStockRecommender(BuildContext context, WidgetRef ref) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: const Color(0xFF0F172A).withValues(alpha: 0.98),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+    ),
+    builder: (context) => _SafetyStockRecommenderBody(ref: ref),
+  );
 }
 
 void _showProductDialog(
@@ -998,3 +1029,439 @@ class _ProductCard extends ConsumerWidget {
     );
   }
 }
+
+class _SafetyStockRecommenderBody extends ConsumerStatefulWidget {
+  final WidgetRef ref;
+  const _SafetyStockRecommenderBody({required this.ref});
+
+  @override
+  ConsumerState<_SafetyStockRecommenderBody> createState() =>
+      _SafetyStockRecommenderBodyState();
+}
+
+class _SafetyStockRecommenderBodyState
+    extends ConsumerState<_SafetyStockRecommenderBody> {
+  double _leadTimeDays = 3.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final productsAsync = ref.watch(productsProvider);
+    final allOrdersAsync = ref.watch(allOrdersProvider);
+    final availabilityAsync =
+        ref.watch(walkInAvailabilityProvider(DateTime.now()));
+
+    return Container(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        left: 24,
+        right: 24,
+        top: 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.white10,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome_rounded,
+                  color: Color(0xFF10B981), size: 22),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'SMART SAFETY STOCK',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2.0,
+                    fontSize: 13,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Recommendations are based on 14-day sales velocity × supplier lead time.',
+            style: TextStyle(color: Colors.white38, fontSize: 11),
+          ),
+          const SizedBox(height: 20),
+          // Lead time slider
+          Row(
+            children: [
+              const Icon(Icons.local_shipping_outlined,
+                  color: Colors.white30, size: 16),
+              const SizedBox(width: 8),
+              const Text(
+                'LEAD TIME:',
+                style: TextStyle(
+                    color: Colors.white30,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.0),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${_leadTimeDays.toStringAsFixed(0)} days',
+                style: const TextStyle(
+                    color: Color(0xFF10B981),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12),
+              ),
+            ],
+          ),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: const Color(0xFF10B981),
+              inactiveTrackColor: Colors.white10,
+              thumbColor: const Color(0xFF10B981),
+              overlayColor:
+                  const Color(0xFF10B981).withValues(alpha: 0.1),
+              trackHeight: 3,
+            ),
+            child: Slider(
+              value: _leadTimeDays,
+              min: 1,
+              max: 14,
+              divisions: 13,
+              onChanged: (v) => setState(() => _leadTimeDays = v),
+            ),
+          ),
+          const SizedBox(height: 8),
+          productsAsync.when(
+            data: (products) => allOrdersAsync.when(
+              data: (orders) => availabilityAsync.when(
+                data: (availability) {
+                  final cutoff =
+                      DateTime.now().subtract(const Duration(days: 14));
+                  final activeProducts =
+                      products.where((p) => !p.isVoid).toList();
+
+                  // Compute velocity per product over last 14 days
+                  final Map<int, double> velocity = {};
+                  for (final o in orders) {
+                    if (o.status != OrderStatus.sold) continue;
+                    final saleDate =
+                        o.fulfilledAt ?? o.dueDate;
+                    if (saleDate.isAfter(cutoff)) {
+                      velocity[o.productId] =
+                          (velocity[o.productId] ?? 0.0) + o.amount;
+                    }
+                  }
+
+                  final List<_SafetyStockEntry> entries = [];
+                  for (final p in activeProducts) {
+                    final dailyVelocity =
+                        (velocity[p.id] ?? 0.0) / 14.0;
+                    final recommended =
+                        (dailyVelocity * _leadTimeDays).ceil().clamp(1, 9999);
+                    entries.add(_SafetyStockEntry(
+                      product: p,
+                      currentThreshold: p.minStockThreshold,
+                      recommendedThreshold: recommended,
+                      dailyVelocity: dailyVelocity,
+                      currentStock:
+                          availability[p.id]?.walkInAvailable ?? 0.0,
+                    ));
+                  }
+
+                  // Sort: products needing biggest change first
+                  entries.sort((a, b) =>
+                      (b.recommendedThreshold - b.currentThreshold)
+                          .abs()
+                          .compareTo((a.recommendedThreshold -
+                                  a.currentThreshold)
+                              .abs()));
+
+                  if (entries.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: Text('No active products.',
+                            style: TextStyle(color: Colors.white24)),
+                      ),
+                    );
+                  }
+
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxHeight:
+                              MediaQuery.of(context).size.height * 0.42,
+                        ),
+                        child: ListView.separated(
+                          shrinkWrap: true,
+                          itemCount: entries.length,
+                          separatorBuilder: (_, __) => Divider(
+                            color: Colors.white.withValues(alpha: 0.05),
+                            height: 16,
+                          ),
+                          itemBuilder: (context, index) {
+                            final e = entries[index];
+                            final diff = e.recommendedThreshold -
+                                e.currentThreshold;
+                            final isIncrease = diff > 0;
+                            final isDecrease = diff < 0;
+                            final isOk = diff == 0;
+                            final changeColor = isIncrease
+                                ? const Color(0xFFF59E0B)
+                                : isDecrease
+                                    ? const Color(0xFF818CF8)
+                                    : const Color(0xFF10B981);
+
+                            return Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        e.product.name,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                          color: Colors.white,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        'Velocity: ${e.dailyVelocity.toStringAsFixed(1)}/day  •  Stock: ${e.currentStock.toStringAsFixed(0)}',
+                                        style: const TextStyle(
+                                            color: Colors.white30,
+                                            fontSize: 11),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.end,
+                                  children: [
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          '${e.currentThreshold}',
+                                          style: const TextStyle(
+                                              color: Colors.white38,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Icon(
+                                          isIncrease
+                                              ? Icons.arrow_forward_rounded
+                                              : isDecrease
+                                                  ? Icons.arrow_back_rounded
+                                                  : Icons.check_rounded,
+                                          size: 14,
+                                          color: changeColor,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          '${e.recommendedThreshold}',
+                                          style: TextStyle(
+                                            color: changeColor,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Text(
+                                      isOk
+                                          ? 'Optimal'
+                                          : isIncrease
+                                              ? '+$diff (increase)'
+                                              : '$diff (decrease)',
+                                      style: TextStyle(
+                                          color:
+                                              changeColor.withValues(alpha: 0.7),
+                                          fontSize: 10),
+                                    ),
+                                  ],
+                                ),
+                                if (!isOk) ...[
+                                  const SizedBox(width: 12),
+                                  GestureDetector(
+                                    onTap: () async {
+                                      final updated = Product()
+                                        ..id = e.product.id
+                                        ..name = e.product.name
+                                        ..sellingPrice =
+                                            e.product.sellingPrice
+                                        ..costPrice = e.product.costPrice
+                                        ..minStockThreshold =
+                                            e.recommendedThreshold
+                                        ..supplierId = e.product.supplierId
+                                        ..isVoid = e.product.isVoid;
+                                      await ref
+                                          .read(productRepositoryProvider)
+                                          .saveProduct(updated);
+                                      ref.invalidate(productsProvider);
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                                context)
+                                            .showSnackBar(SnackBar(
+                                          content: Text(
+                                            '✓ ${e.product.name} threshold updated to ${e.recommendedThreshold}',
+                                          ),
+                                          backgroundColor:
+                                              const Color(0xFF10B981),
+                                          duration: const Duration(
+                                              seconds: 2),
+                                        ));
+                                      }
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: changeColor
+                                            .withValues(alpha: 0.12),
+                                        borderRadius:
+                                            BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: changeColor
+                                              .withValues(alpha: 0.3),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'APPLY',
+                                        style: TextStyle(
+                                          color: changeColor,
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 9,
+                                          letterSpacing: 1.0,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF10B981),
+                            foregroundColor: Colors.white,
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          icon: const Icon(Icons.bolt_rounded, size: 16),
+                          label: const Text(
+                            'APPLY ALL RECOMMENDATIONS',
+                            style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.0),
+                          ),
+                          onPressed: () async {
+                            final toApply =
+                                entries.where((e) => e.recommendedThreshold != e.currentThreshold).toList();
+                            for (final e in toApply) {
+                              final updated = Product()
+                                ..id = e.product.id
+                                ..name = e.product.name
+                                ..sellingPrice = e.product.sellingPrice
+                                ..costPrice = e.product.costPrice
+                                ..minStockThreshold =
+                                    e.recommendedThreshold
+                                ..supplierId = e.product.supplierId
+                                ..isVoid = e.product.isVoid;
+                              await ref
+                                  .read(productRepositoryProvider)
+                                  .saveProduct(updated);
+                            }
+                            ref.invalidate(productsProvider);
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    '✓ Updated ${toApply.length} product thresholds.',
+                                  ),
+                                  backgroundColor: const Color(0xFF10B981),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                    ],
+                  );
+                },
+                loading: () => const Padding(
+                  padding: EdgeInsets.all(24.0),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                        color: Color(0xFF10B981)),
+                  ),
+                ),
+                error: (e, _) => const SizedBox.shrink(),
+              ),
+              loading: () => const Padding(
+                padding: EdgeInsets.all(24.0),
+                child: Center(
+                  child:
+                      CircularProgressIndicator(color: Color(0xFF10B981)),
+                ),
+              ),
+              error: (e, _) => const SizedBox.shrink(),
+            ),
+            loading: () => const Padding(
+              padding: EdgeInsets.all(24.0),
+              child: Center(
+                child:
+                    CircularProgressIndicator(color: Color(0xFF10B981)),
+              ),
+            ),
+            error: (e, _) => const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SafetyStockEntry {
+  final Product product;
+  final int currentThreshold;
+  final int recommendedThreshold;
+  final double dailyVelocity;
+  final double currentStock;
+
+  _SafetyStockEntry({
+    required this.product,
+    required this.currentThreshold,
+    required this.recommendedThreshold,
+    required this.dailyVelocity,
+    required this.currentStock,
+  });
+}
+

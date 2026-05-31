@@ -15,7 +15,7 @@ allprojects {
     }
     configurations.all {
         resolutionStrategy.eachDependency {
-            if (requested.group == "androidx.core") {
+            if (requested.group == "androidx.core" && requested.name != "core-viewtree") {
                 useVersion("1.13.1")
             }
         }

@@ -27,6 +27,15 @@ final dailySalesProvider = StreamProvider<List<CustomerOrder>>((ref) {
   });
 });
 
+final allTimeSalesProvider = StreamProvider<List<CustomerOrder>>((ref) {
+  final repository = ref.watch(orderRepositoryProvider);
+  return repository.isar.customerOrders
+      .filter()
+      .statusEqualTo(OrderStatus.sold)
+      .isVoidEqualTo(false)
+      .watch(fireImmediately: true);
+});
+
 final dailyAdjustmentsProvider = StreamProvider<List<StockAdjustment>>((ref) {
   final date = ref.watch(selectedSalesDateProvider);
   final startOfDay = DateTime(date.year, date.month, date.day);
@@ -42,11 +51,33 @@ final dailyAdjustmentsProvider = StreamProvider<List<StockAdjustment>>((ref) {
       .watch(fireImmediately: true);
 });
 
-class SalesScreen extends ConsumerWidget {
+class SalesScreen extends ConsumerStatefulWidget {
   const SalesScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SalesScreen> createState() => _SalesScreenState();
+}
+
+class _SalesScreenState extends ConsumerState<SalesScreen> with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final selectedDate = ref.watch(selectedSalesDateProvider);
     final salesAsync = ref.watch(dailySalesProvider);
     final adjustmentsAsync = ref.watch(dailyAdjustmentsProvider);
@@ -82,6 +113,22 @@ class SalesScreen extends ConsumerWidget {
                 SliverAppBar.large(
                   backgroundColor: Colors.transparent,
                   title: const Text('SALES HISTORY'),
+                  bottom: TabBar(
+                    controller: _tabController,
+                    indicatorColor: const Color(0xFF6366F1),
+                    indicatorWeight: 2.5,
+                    labelColor: const Color(0xFF818CF8),
+                    unselectedLabelColor: Colors.white30,
+                    labelStyle: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 11,
+                      letterSpacing: 1.5,
+                    ),
+                    tabs: const [
+                      Tab(text: 'LOGS'),
+                      Tab(text: 'ANALYSIS'),
+                    ],
+                  ),
                   actions: [
                     Container(
                       margin: const EdgeInsets.only(right: 8),
@@ -603,6 +650,13 @@ class SalesScreen extends ConsumerWidget {
               ],
             ),
           ),
+          // Analysis tab overlay
+          if (_tabController.index == 1)
+            Positioned.fill(
+              child: _SalesAnalysisTab(
+                selectedDate: selectedDate,
+              ),
+            ),
         ],
       ),
     );
@@ -1268,4 +1322,327 @@ void _showRecordLossDialog(BuildContext context, WidgetRef ref) {
       );
     },
   );
+}
+
+// ─── Analysis Tab ──────────────────────────────────────────────────────────────
+
+class _SalesAnalysisTab extends ConsumerStatefulWidget {
+  final DateTime selectedDate;
+  const _SalesAnalysisTab({required this.selectedDate});
+
+  @override
+  ConsumerState<_SalesAnalysisTab> createState() => _SalesAnalysisTabState();
+}
+
+class _SalesAnalysisTabState extends ConsumerState<_SalesAnalysisTab> {
+  bool _showAllTime = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final productsAsync = ref.watch(productsProvider);
+    final allTimeAsync = ref.watch(allTimeSalesProvider);
+    final dailyAsync = ref.watch(dailySalesProvider);
+
+    return Container(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: Column(
+        children: [
+          // Top spacer to match SliverAppBar.large height
+          SizedBox(height: MediaQuery.of(context).padding.top + 160),
+          // Toggle Row
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+            child: Row(
+              children: [
+                const Text(
+                  'PROFITABILITY',
+                  style: TextStyle(
+                    color: Colors.white24,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2.0,
+                    fontSize: 10,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _toggleChip('TODAY', !_showAllTime, () => setState(() => _showAllTime = false)),
+                      _toggleChip('ALL TIME', _showAllTime, () => setState(() => _showAllTime = true)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Content
+          Expanded(
+            child: productsAsync.when(
+              data: (products) {
+                final salesAsync = _showAllTime ? allTimeAsync : dailyAsync;
+                return salesAsync.when(
+                  data: (orders) {
+                    // Build per-product profitability data
+                    final Map<int, _ProductProfitData> profitMap = {};
+                    for (final o in orders) {
+                      if (_showAllTime || _isSameDay(o.fulfilledAt ?? o.dueDate, widget.selectedDate)) {
+                        profitMap.putIfAbsent(o.productId, () => _ProductProfitData());
+                        final data = profitMap[o.productId]!;
+                        data.revenue += o.amount * o.sellingPriceAtTime;
+                        data.cogs += o.amount * o.costPriceAtTime;
+                        data.unitsSold += o.amount;
+                      }
+                    }
+
+                    // Merge with product info and compute margin
+                    final List<_ProductMarginEntry> entries = [];
+                    for (final p in products) {
+                      if (p.isVoid) continue;
+                      final data = profitMap[p.id];
+                      if (data == null || data.unitsSold == 0) continue;
+                      final grossProfit = data.revenue - data.cogs;
+                      final margin = data.revenue > 0 ? (grossProfit / data.revenue) * 100 : 0.0;
+                      entries.add(_ProductMarginEntry(
+                        product: p,
+                        revenue: data.revenue,
+                        grossProfit: grossProfit,
+                        marginPct: margin,
+                        unitsSold: data.unitsSold,
+                      ));
+                    }
+
+                    // Sort by gross profit descending
+                    entries.sort((a, b) => b.grossProfit.compareTo(a.grossProfit));
+
+                    if (entries.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          'No sales data to analyze.',
+                          style: TextStyle(color: Colors.white24),
+                        ),
+                      );
+                    }
+
+                    final maxRevenue = entries.fold(0.0, (m, e) => m > e.revenue ? m : e.revenue);
+
+                    return ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      itemCount: entries.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        return _ProductMarginTile(
+                          entry: entries[index],
+                          rank: index + 1,
+                          maxRevenue: maxRevenue,
+                        );
+                      },
+                    );
+                  },
+                  loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF6366F1))),
+                  error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: Colors.redAccent))),
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF6366F1))),
+              error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: Colors.redAccent))),
+            ),
+          ),
+          const SizedBox(height: 100),
+        ],
+      ),
+    );
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  Widget _toggleChip(String label, bool active, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: active ? const Color(0xFF6366F1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: active ? Colors.white : Colors.white30,
+            fontWeight: FontWeight.w900,
+            fontSize: 10,
+            letterSpacing: 1.0,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProductProfitData {
+  double revenue = 0.0;
+  double cogs = 0.0;
+  double unitsSold = 0.0;
+}
+
+class _ProductMarginEntry {
+  final Product product;
+  final double revenue;
+  final double grossProfit;
+  final double marginPct;
+  final double unitsSold;
+  _ProductMarginEntry({
+    required this.product,
+    required this.revenue,
+    required this.grossProfit,
+    required this.marginPct,
+    required this.unitsSold,
+  });
+}
+
+class _ProductMarginTile extends StatelessWidget {
+  final _ProductMarginEntry entry;
+  final int rank;
+  final double maxRevenue;
+
+  const _ProductMarginTile({
+    required this.entry,
+    required this.rank,
+    required this.maxRevenue,
+  });
+
+  Color get _marginColor {
+    if (entry.marginPct >= 30) return const Color(0xFF10B981);
+    if (entry.marginPct >= 15) return const Color(0xFFF59E0B);
+    return const Color(0xFFEF4444);
+  }
+
+  String get _marginLabel {
+    if (entry.marginPct >= 30) return 'HIGH';
+    if (entry.marginPct >= 15) return 'MED';
+    return 'LOW';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final barFraction = maxRevenue > 0 ? (entry.revenue / maxRevenue).clamp(0.0, 1.0) : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withValues(alpha: 0.04),
+            Colors.white.withValues(alpha: 0.02),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: _marginColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '#$rank',
+                  style: TextStyle(
+                    color: _marginColor,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 10,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  entry.product.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: Colors.white,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: _marginColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$_marginLabel ${entry.marginPct.toStringAsFixed(1)}%',
+                  style: TextStyle(
+                    color: _marginColor,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 10,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Revenue bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: barFraction,
+              minHeight: 5,
+              backgroundColor: Colors.white.withValues(alpha: 0.05),
+              valueColor: AlwaysStoppedAnimation<Color>(_marginColor.withValues(alpha: 0.7)),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _statChip(Icons.payments_rounded, 'ETB ${entry.revenue.toStringAsFixed(0)}', Colors.white54, 'Revenue'),
+              const SizedBox(width: 12),
+              _statChip(Icons.trending_up_rounded, 'ETB ${entry.grossProfit.toStringAsFixed(0)}', const Color(0xFF10B981), 'Profit'),
+              const SizedBox(width: 12),
+              _statChip(Icons.shopping_basket_rounded, '${entry.unitsSold.toStringAsFixed(0)} units', Colors.white38, 'Sold'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statChip(IconData icon, String value, Color color, String tooltip) {
+    return Tooltip(
+      message: tooltip,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: color),
+          const SizedBox(width: 4),
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w700,
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

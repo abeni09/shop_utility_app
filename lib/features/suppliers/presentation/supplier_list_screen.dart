@@ -12,6 +12,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shopsync/core/utils/receipt_share_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:pdf/pdf.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:shopsync/features/products/presentation/daily_stock_providers.dart';
+import 'package:shopsync/features/products/presentation/product_providers.dart';
+import 'package:shopsync/features/products/data/product_model.dart';
 
 final supplierRepositoryProvider = Provider<SupplierRepository>((ref) {
   final dbService = ref.watch(databaseServiceProvider);
@@ -544,6 +550,15 @@ class _SupplierCard extends ConsumerWidget {
                                 padding: const EdgeInsets.all(8),
                                 onPressed: () =>
                                     _showSettlementHistory(context, ref, supplier),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.description_rounded, size: 16),
+                                color: isActive ? const Color(0xFF818CF8) : Colors.white12,
+                                constraints: const BoxConstraints(),
+                                padding: const EdgeInsets.all(8),
+                                onPressed: isActive
+                                    ? () => _showPurchaseOrderDialog(context, ref, supplier)
+                                    : null,
                               ),
                               IconButton(
                                 icon: const Icon(Icons.edit_rounded, size: 16),
@@ -1347,6 +1362,639 @@ class _SupplierCard extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showPurchaseOrderDialog(
+    BuildContext context,
+    WidgetRef ref,
+    Supplier supplier,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF0F172A).withValues(alpha: 0.98),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      builder: (context) => Consumer(
+        builder: (context, ref, child) {
+          final productsAsync = ref.watch(productsProvider);
+          final availabilityAsync = ref.watch(walkInAvailabilityProvider(DateTime.now()));
+
+          return productsAsync.when(
+            data: (products) => availabilityAsync.when(
+              data: (availability) {
+                final supplierProducts = products.where((p) {
+                  if (p.isVoid || p.supplierId != supplier.id) return false;
+                  final status = availability[p.id];
+                  if (status == null) return false;
+                  return status.walkInAvailable < p.minStockThreshold;
+                }).toList();
+
+                if (supplierProducts.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.check_circle_outline_rounded,
+                          color: Color(0xFF10B981),
+                          size: 48,
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'ALL ITEMS FULLY STOCKED',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.5,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'No products from ${supplier.name} are currently below their minimum threshold.',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white38,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white10,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('CLOSE'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return _PurchaseOrderDialogBody(
+                  supplier: supplier,
+                  products: supplierProducts,
+                  availability: availability,
+                  ref: ref,
+                );
+              },
+              loading: () => const SizedBox(
+                height: 200,
+                child: Center(
+                  child: CircularProgressIndicator(color: Color(0xFF6366F1)),
+                ),
+              ),
+              error: (err, _) => Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Text('Error loading availability: $err', style: const TextStyle(color: Colors.redAccent)),
+              ),
+            ),
+            loading: () => const SizedBox(
+              height: 200,
+              child: Center(
+                child: CircularProgressIndicator(color: Color(0xFF6366F1)),
+              ),
+            ),
+            error: (err, _) => Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Text('Error loading products: $err', style: const TextStyle(color: Colors.redAccent)),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _PurchaseOrderDialogBody extends StatefulWidget {
+  final Supplier supplier;
+  final List<Product> products;
+  final Map<int, StockStatus> availability;
+  final WidgetRef ref;
+
+  const _PurchaseOrderDialogBody({
+    required this.supplier,
+    required this.products,
+    required this.availability,
+    required this.ref,
+  });
+
+  @override
+  State<_PurchaseOrderDialogBody> createState() => _PurchaseOrderDialogBodyState();
+}
+
+class _PurchaseOrderDialogBodyState extends State<_PurchaseOrderDialogBody> {
+  final Map<int, double> _orderQuantities = {};
+  final Map<int, TextEditingController> _controllers = {};
+  bool _isGenerating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    for (var p in widget.products) {
+      final status = widget.availability[p.id];
+      final currentStock = status?.walkInAvailable ?? 0.0;
+      final defaultQty = (p.minStockThreshold * 2 - currentStock).clamp(1.0, 999.0);
+      _orderQuantities[p.id] = defaultQty;
+      _controllers[p.id] = TextEditingController(text: defaultQty.toStringAsFixed(0));
+    }
+  }
+
+  @override
+  void dispose() {
+    for (var controller in _controllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  double get _totalEstimatedCost {
+    double total = 0.0;
+    for (var p in widget.products) {
+      final qty = _orderQuantities[p.id] ?? 0.0;
+      total += qty * p.costPrice;
+    }
+    return total;
+  }
+
+  int get _totalItemsCount {
+    int count = 0;
+    for (var qty in _orderQuantities.values) {
+      if (qty > 0) count++;
+    }
+    return count;
+  }
+
+  Future<void> _generateAndSharePDF() async {
+    setState(() {
+      _isGenerating = true;
+    });
+
+    try {
+      final pdf = pw.Document();
+
+      pdf.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.a4,
+          build: (pw.Context context) {
+            return pw.Padding(
+              padding: const pw.EdgeInsets.all(32),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            'SHOPSYNC',
+                            style: pw.TextStyle(
+                              fontSize: 24,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.indigo,
+                            ),
+                          ),
+                          pw.Text(
+                            'Supplier Purchase Order',
+                            style: const pw.TextStyle(
+                              fontSize: 12,
+                              color: PdfColors.grey700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.end,
+                        children: [
+                          pw.Text(
+                            'Date: ${DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())}',
+                            style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+                          ),
+                          pw.Text(
+                            'PO Number: PO-${DateTime.now().millisecondsSinceEpoch.toString().substring(6)}',
+                            style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  pw.Divider(thickness: 1, color: PdfColors.grey300),
+                  pw.SizedBox(height: 20),
+
+                  pw.Text('TO SUPPLIER:', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
+                  pw.SizedBox(height: 4),
+                  pw.Text(widget.supplier.name.toUpperCase(), style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                  if (widget.supplier.contact != null && widget.supplier.contact!.isNotEmpty)
+                    pw.Text('Phone: ${widget.supplier.contact}', style: const pw.TextStyle(fontSize: 10)),
+                  if (widget.supplier.account != null && widget.supplier.account!.isNotEmpty)
+                    pw.Text('Account Details: ${widget.supplier.account}', style: const pw.TextStyle(fontSize: 10)),
+                  pw.SizedBox(height: 24),
+
+                  pw.TableHelper.fromTextArray(
+                    border: pw.TableBorder.all(
+                      color: PdfColors.grey300,
+                      width: 0.5,
+                    ),
+                    headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+                    headerDecoration: const pw.BoxDecoration(color: PdfColors.indigo),
+                    cellAlignment: pw.Alignment.centerLeft,
+                    headerAlignment: pw.Alignment.centerLeft,
+                    columnWidths: {
+                      0: const pw.FlexColumnWidth(3),
+                      1: const pw.FixedColumnWidth(80),
+                      2: const pw.FixedColumnWidth(80),
+                      3: const pw.FixedColumnWidth(80),
+                      4: const pw.FixedColumnWidth(90),
+                    },
+                    headers: ['Product Item', 'Unit Cost', 'Current Stock', 'Order Qty', 'Total Cost'],
+                    data: widget.products.where((p) => (_orderQuantities[p.id] ?? 0) > 0).map((p) {
+                      final qty = _orderQuantities[p.id] ?? 0.0;
+                      final status = widget.availability[p.id];
+                      final currentStock = status?.walkInAvailable ?? 0.0;
+                      final total = qty * p.costPrice;
+                      return [
+                        p.name,
+                        'ETB ${p.costPrice.toStringAsFixed(0)}',
+                        currentStock.toStringAsFixed(0),
+                        qty.toStringAsFixed(0),
+                        'ETB ${total.toStringAsFixed(0)}',
+                      ];
+                    }).toList(),
+                  ),
+                  pw.SizedBox(height: 20),
+
+                  pw.Align(
+                    alignment: pw.Alignment.centerRight,
+                    child: pw.Container(
+                      width: 200,
+                      padding: const pw.EdgeInsets.all(8),
+                      decoration: pw.BoxDecoration(
+                        color: PdfColors.grey100,
+                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+                      ),
+                      child: pw.Column(
+                        children: [
+                          pw.Row(
+                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            children: [
+                              pw.Text('Total Items:', style: const pw.TextStyle(fontSize: 10)),
+                              pw.Text('$_totalItemsCount', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                            ],
+                          ),
+                          pw.SizedBox(height: 4),
+                          pw.Divider(thickness: 0.5, color: PdfColors.grey400),
+                          pw.SizedBox(height: 4),
+                          pw.Row(
+                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            children: [
+                              pw.Text('Est. Total Cost:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11, color: PdfColors.indigo)),
+                              pw.Text('ETB ${_totalEstimatedCost.toStringAsFixed(0)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11, color: PdfColors.indigo)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  pw.Spacer(),
+
+                  pw.Center(
+                    child: pw.Text(
+                      'Generated automatically by ShopSync. Thank you for your business.',
+                      style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey500),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      );
+
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/PO_${widget.supplier.name.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf');
+      await file.writeAsBytes(await pdf.save());
+
+      if (mounted) {
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          text: 'Purchase Order from ShopSync for ${widget.supplier.name}',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error generating PDF: $e'), backgroundColor: Colors.redAccent),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGenerating = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        left: 24,
+        right: 24,
+        top: 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.white10,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Row(
+            children: [
+              const Icon(
+                Icons.assignment_rounded,
+                color: Color(0xFF818CF8),
+                size: 22,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'PO: ${widget.supplier.name.toUpperCase()}',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2.0,
+                    fontSize: 13,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'The following items are currently below their minimum safety thresholds. Adjust reorder quantities below.',
+            style: TextStyle(
+              color: Colors.white38,
+              fontSize: 11,
+            ),
+          ),
+          const SizedBox(height: 20),
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.45,
+            ),
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: widget.products.length,
+              separatorBuilder: (_, __) => Divider(
+                color: Colors.white.withValues(alpha: 0.05),
+                height: 20,
+              ),
+              itemBuilder: (context, index) {
+                final p = widget.products[index];
+                final status = widget.availability[p.id];
+                final currentStock = status?.walkInAvailable ?? 0.0;
+                final qty = _orderQuantities[p.id] ?? 0.0;
+                final cost = qty * p.costPrice;
+
+                return Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            p.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Text(
+                                'Stock: ${currentStock.toStringAsFixed(0)} / Min: ${p.minStockThreshold}',
+                                style: const TextStyle(
+                                  color: Colors.white30,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '• Cost: ETB ${p.costPrice.toStringAsFixed(0)}',
+                                style: const TextStyle(
+                                  color: Colors.white30,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              final currentVal = _orderQuantities[p.id] ?? 0.0;
+                              final newVal = (currentVal - 1).clamp(0.0, 999.0);
+                              _orderQuantities[p.id] = newVal;
+                              _controllers[p.id]?.text = newVal.toStringAsFixed(0);
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.05),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.remove, size: 14, color: Colors.white60),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 45,
+                          child: TextField(
+                            controller: _controllers[p.id],
+                            keyboardType: TextInputType.number,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(vertical: 6),
+                              border: InputBorder.none,
+                            ),
+                            onChanged: (val) {
+                              final doubleVal = double.tryParse(val) ?? 0.0;
+                              setState(() {
+                                _orderQuantities[p.id] = doubleVal;
+                              });
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              final currentVal = _orderQuantities[p.id] ?? 0.0;
+                              final newVal = (currentVal + 1).clamp(0.0, 999.0);
+                              _orderQuantities[p.id] = newVal;
+                              _controllers[p.id]?.text = newVal.toStringAsFixed(0);
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.05),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.add, size: 14, color: Colors.white60),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 16),
+                    SizedBox(
+                      width: 70,
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          'ETB ${cost.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: cost > 0 ? const Color(0xFF10B981) : Colors.white24,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.05),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$_totalItemsCount products selected',
+                      style: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'ESTIMATED TOTAL',
+                      style: TextStyle(
+                        color: Colors.white24,
+                        fontSize: 9,
+                        letterSpacing: 1.0,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  'ETB ${_totalEstimatedCost.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                    color: Color(0xFF10B981),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6366F1),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                elevation: 4,
+                shadowColor: const Color(0xFF6366F1).withValues(alpha: 0.4),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              onPressed: (_totalItemsCount > 0 && !_isGenerating)
+                  ? _generateAndSharePDF
+                  : null,
+              icon: _isGenerating
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Icon(Icons.share_rounded, size: 16),
+              label: Text(
+                _isGenerating ? 'GENERATING PDF...' : 'GENERATE & SHARE PO',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
+        ],
       ),
     );
   }
