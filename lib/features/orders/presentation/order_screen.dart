@@ -13,11 +13,18 @@ import 'package:shopsync/features/products/presentation/product_providers.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shopsync/features/dashboard/presentation/ui_providers.dart';
 
-class OrderScreen extends ConsumerWidget {
+class OrderScreen extends ConsumerStatefulWidget {
   const OrderScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<OrderScreen> createState() => _OrderScreenState();
+}
+
+class _OrderScreenState extends ConsumerState<OrderScreen> {
+  final Map<int, bool> _collapsedProducts = {};
+
+  @override
+  Widget build(BuildContext context) {
     final ordersAsync = ref.watch(ordersProvider);
     final selectedDate = ref.watch(selectedDateProvider);
     final showVoided = ref.watch(showVoidedOrdersProvider);
@@ -187,95 +194,114 @@ class OrderScreen extends ConsumerWidget {
                                 (p) => p.id == productId,
                                 orElse: () => Product()..name = 'Unknown Product',
                               );
+                              final isCollapsed = _collapsedProducts[productId] ?? false;
 
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   // Product Header Section
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                                    margin: const EdgeInsets.only(top: 16, bottom: 12),
-                                    decoration: BoxDecoration(
-                                      border: Border(
-                                        bottom: BorderSide(
-                                          color: Colors.white.withValues(alpha: 0.05),
-                                          width: 1,
+                                  InkWell(
+                                    onTap: () {
+                                      setState(() {
+                                        _collapsedProducts[productId] = !isCollapsed;
+                                      });
+                                    },
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                                      margin: const EdgeInsets.only(top: 16, bottom: 12),
+                                      decoration: BoxDecoration(
+                                        border: Border(
+                                          bottom: BorderSide(
+                                            color: Colors.white.withValues(alpha: 0.05),
+                                            width: 1,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(6),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF6366F1).withValues(alpha: 0.1),
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(
-                                            Icons.inventory_2_rounded,
-                                            color: Color(0xFF818CF8),
-                                            size: 14,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Text(
-                                          product.name.toUpperCase(),
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w900,
-                                            letterSpacing: 1.5,
-                                            color: Colors.white70,
-                                          ),
-                                        ),
-                                        const Spacer(),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF6366F1).withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(12),
-                                            border: Border.all(
-                                              color: const Color(0xFF6366F1).withValues(alpha: 0.2),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(6),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                                              shape: BoxShape.circle,
                                             ),
-                                          ),
-                                          child: Text(
-                                            '${productOrders.length} ${productOrders.length == 1 ? "ORDER" : "ORDERS"}',
-                                            style: const TextStyle(
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.w900,
+                                            child: const Icon(
+                                              Icons.inventory_2_rounded,
                                               color: Color(0xFF818CF8),
-                                              letterSpacing: 0.5,
+                                              size: 14,
                                             ),
                                           ),
-                                        ),
-                                      ],
+                                          const SizedBox(width: 10),
+                                          Text(
+                                            product.name.toUpperCase(),
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w900,
+                                              letterSpacing: 1.5,
+                                              color: Colors.white70,
+                                            ),
+                                          ),
+                                          const Spacer(),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                                              borderRadius: BorderRadius.circular(12),
+                                              border: Border.all(
+                                                color: const Color(0xFF6366F1).withValues(alpha: 0.2),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              '${productOrders.length} ${productOrders.length == 1 ? "ORDER" : "ORDERS"}',
+                                              style: const TextStyle(
+                                                fontSize: 9,
+                                                fontWeight: FontWeight.w900,
+                                                color: Color(0xFF818CF8),
+                                                letterSpacing: 0.5,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Icon(
+                                            isCollapsed
+                                                ? Icons.keyboard_arrow_right_rounded
+                                                : Icons.keyboard_arrow_down_rounded,
+                                            color: Colors.white30,
+                                            size: 18,
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                   // Grid/List of Orders for this product
-                                  crossAxisCount > 1
-                                      ? GridView.builder(
-                                          shrinkWrap: true,
-                                          physics: const NeverScrollableScrollPhysics(),
-                                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                            crossAxisCount: crossAxisCount,
-                                            mainAxisSpacing: 16,
-                                            crossAxisSpacing: 16,
-                                            mainAxisExtent: 420,
+                                  if (!isCollapsed)
+                                    crossAxisCount > 1
+                                        ? GridView.builder(
+                                            shrinkWrap: true,
+                                            physics: const NeverScrollableScrollPhysics(),
+                                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                              crossAxisCount: crossAxisCount,
+                                              mainAxisSpacing: 16,
+                                              crossAxisSpacing: 16,
+                                              mainAxisExtent: 420,
+                                            ),
+                                            itemCount: productOrders.length,
+                                            itemBuilder: (context, idx) => _OrderCard(order: productOrders[idx]),
+                                          )
+                                        : ListView.builder(
+                                            shrinkWrap: true,
+                                            physics: const NeverScrollableScrollPhysics(),
+                                            itemCount: productOrders.length,
+                                            itemBuilder: (context, idx) => Padding(
+                                              padding: const EdgeInsets.only(bottom: 16),
+                                              child: _OrderCard(order: productOrders[idx]),
+                                            ),
                                           ),
-                                          itemCount: productOrders.length,
-                                          itemBuilder: (context, idx) => _OrderCard(order: productOrders[idx]),
-                                        )
-                                      : ListView.builder(
-                                          shrinkWrap: true,
-                                          physics: const NeverScrollableScrollPhysics(),
-                                          itemCount: productOrders.length,
-                                          itemBuilder: (context, idx) => Padding(
-                                            padding: const EdgeInsets.only(bottom: 16),
-                                            child: _OrderCard(order: productOrders[idx]),
-                                          ),
-                                        ),
                                 ],
                               );
                             },
+
                             childCount: groupedOrders.length,
                           ),
                         ),

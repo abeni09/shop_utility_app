@@ -17,33 +17,38 @@ const SupplierSchema = CollectionSchema(
   name: r'Supplier',
   id: -3022359166140243741,
   properties: {
-    r'balance': PropertySchema(
+    r'account': PropertySchema(
       id: 0,
+      name: r'account',
+      type: IsarType.string,
+    ),
+    r'balance': PropertySchema(
+      id: 1,
       name: r'balance',
       type: IsarType.double,
     ),
     r'contact': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'contact',
       type: IsarType.string,
     ),
     r'isActive': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'isActive',
       type: IsarType.bool,
     ),
     r'isVoid': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'isVoid',
       type: IsarType.bool,
     ),
     r'lastUpdated': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'lastUpdated',
       type: IsarType.dateTime,
     ),
     r'name': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'name',
       type: IsarType.string,
     )
@@ -83,6 +88,12 @@ int _supplierEstimateSize(
 ) {
   var bytesCount = offsets.last;
   {
+    final value = object.account;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.contact;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -98,12 +109,13 @@ void _supplierSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeDouble(offsets[0], object.balance);
-  writer.writeString(offsets[1], object.contact);
-  writer.writeBool(offsets[2], object.isActive);
-  writer.writeBool(offsets[3], object.isVoid);
-  writer.writeDateTime(offsets[4], object.lastUpdated);
-  writer.writeString(offsets[5], object.name);
+  writer.writeString(offsets[0], object.account);
+  writer.writeDouble(offsets[1], object.balance);
+  writer.writeString(offsets[2], object.contact);
+  writer.writeBool(offsets[3], object.isActive);
+  writer.writeBool(offsets[4], object.isVoid);
+  writer.writeDateTime(offsets[5], object.lastUpdated);
+  writer.writeString(offsets[6], object.name);
 }
 
 Supplier _supplierDeserialize(
@@ -113,13 +125,14 @@ Supplier _supplierDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Supplier();
-  object.balance = reader.readDouble(offsets[0]);
-  object.contact = reader.readStringOrNull(offsets[1]);
+  object.account = reader.readStringOrNull(offsets[0]);
+  object.balance = reader.readDouble(offsets[1]);
+  object.contact = reader.readStringOrNull(offsets[2]);
   object.id = id;
-  object.isActive = reader.readBool(offsets[2]);
-  object.isVoid = reader.readBool(offsets[3]);
-  object.lastUpdated = reader.readDateTimeOrNull(offsets[4]);
-  object.name = reader.readString(offsets[5]);
+  object.isActive = reader.readBool(offsets[3]);
+  object.isVoid = reader.readBool(offsets[4]);
+  object.lastUpdated = reader.readDateTimeOrNull(offsets[5]);
+  object.name = reader.readString(offsets[6]);
   return object;
 }
 
@@ -131,16 +144,18 @@ P _supplierDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readDouble(offset)) as P;
-    case 1:
       return (reader.readStringOrNull(offset)) as P;
+    case 1:
+      return (reader.readDouble(offset)) as P;
     case 2:
-      return (reader.readBool(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 3:
       return (reader.readBool(offset)) as P;
     case 4:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 5:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 6:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -334,6 +349,152 @@ extension SupplierQueryWhere on QueryBuilder<Supplier, Supplier, QWhereClause> {
 
 extension SupplierQueryFilter
     on QueryBuilder<Supplier, Supplier, QFilterCondition> {
+  QueryBuilder<Supplier, Supplier, QAfterFilterCondition> accountIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'account',
+      ));
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterFilterCondition> accountIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'account',
+      ));
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterFilterCondition> accountEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'account',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterFilterCondition> accountGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'account',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterFilterCondition> accountLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'account',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterFilterCondition> accountBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'account',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterFilterCondition> accountStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'account',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterFilterCondition> accountEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'account',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterFilterCondition> accountContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'account',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterFilterCondition> accountMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'account',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterFilterCondition> accountIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'account',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterFilterCondition> accountIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'account',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<Supplier, Supplier, QAfterFilterCondition> balanceEqualTo(
     double value, {
     double epsilon = Query.epsilon,
@@ -823,6 +984,18 @@ extension SupplierQueryLinks
     on QueryBuilder<Supplier, Supplier, QFilterCondition> {}
 
 extension SupplierQuerySortBy on QueryBuilder<Supplier, Supplier, QSortBy> {
+  QueryBuilder<Supplier, Supplier, QAfterSortBy> sortByAccount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'account', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterSortBy> sortByAccountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'account', Sort.desc);
+    });
+  }
+
   QueryBuilder<Supplier, Supplier, QAfterSortBy> sortByBalance() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'balance', Sort.asc);
@@ -898,6 +1071,18 @@ extension SupplierQuerySortBy on QueryBuilder<Supplier, Supplier, QSortBy> {
 
 extension SupplierQuerySortThenBy
     on QueryBuilder<Supplier, Supplier, QSortThenBy> {
+  QueryBuilder<Supplier, Supplier, QAfterSortBy> thenByAccount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'account', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Supplier, Supplier, QAfterSortBy> thenByAccountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'account', Sort.desc);
+    });
+  }
+
   QueryBuilder<Supplier, Supplier, QAfterSortBy> thenByBalance() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'balance', Sort.asc);
@@ -985,6 +1170,13 @@ extension SupplierQuerySortThenBy
 
 extension SupplierQueryWhereDistinct
     on QueryBuilder<Supplier, Supplier, QDistinct> {
+  QueryBuilder<Supplier, Supplier, QDistinct> distinctByAccount(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'account', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<Supplier, Supplier, QDistinct> distinctByBalance() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'balance');
@@ -1029,6 +1221,12 @@ extension SupplierQueryProperty
   QueryBuilder<Supplier, int, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<Supplier, String?, QQueryOperations> accountProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'account');
     });
   }
 

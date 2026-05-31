@@ -1,5 +1,6 @@
 import 'package:isar/isar.dart';
 import 'package:shopsync/features/suppliers/data/supplier_model.dart';
+import 'package:shopsync/features/suppliers/data/supplier_settlement_model.dart';
 import 'package:shopsync/features/backup/data/backup_service.dart';
 
 class SupplierRepository {
@@ -81,4 +82,21 @@ class SupplierRepository {
     }
     return isar.suppliers.filter().isVoidEqualTo(false).watch(fireImmediately: true);
   }
+
+  Future<void> recordSettlement(SupplierSettlement settlement) async {
+    await isar.writeTxn(() async {
+      await isar.supplierSettlements.put(settlement);
+    });
+    await backupService.markLocalChanged();
+    backupService.autoBackupIfPossible();
+  }
+
+  Stream<List<SupplierSettlement>> watchSettlements(int supplierId) {
+    return isar.supplierSettlements
+        .filter()
+        .supplierIdEqualTo(supplierId)
+        .sortByDateDesc()
+        .watch(fireImmediately: true);
+  }
 }
+

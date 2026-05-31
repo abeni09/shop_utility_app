@@ -10,6 +10,7 @@ class Supplier {
   late String name;
 
   String? contact;
+  String? account;
 
   // The balance represents what the shop owes the supplier.
   // Positive = we owe them. Negative = we pre-paid.

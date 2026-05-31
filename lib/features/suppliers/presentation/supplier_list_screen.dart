@@ -2,10 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/suppliers/data/supplier_model.dart';
+import 'package:shopsync/features/suppliers/data/supplier_settlement_model.dart';
 import 'package:shopsync/features/suppliers/data/supplier_repository.dart';
 import 'package:shopsync/main.dart';
 import 'package:shopsync/features/dashboard/presentation/ui_providers.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:intl/intl.dart';
 
 final supplierRepositoryProvider = Provider<SupplierRepository>((ref) {
   final dbService = ref.watch(databaseServiceProvider);
@@ -206,6 +211,7 @@ void _showSupplierDialog(
 ]) {
   final nameController = TextEditingController(text: existing?.name);
   final contactController = TextEditingController(text: existing?.contact);
+  final accountController = TextEditingController(text: existing?.account);
 
   showModalBottomSheet(
     context: context,
@@ -249,6 +255,13 @@ void _showSupplierDialog(
               Icons.phone_rounded,
               context,
             ),
+            const SizedBox(height: 16),
+            _buildTextField(
+              accountController,
+              'Bank Account Details (Optional)',
+              Icons.account_balance_rounded,
+              context,
+            ),
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
@@ -284,6 +297,7 @@ void _showSupplierDialog(
                   final supplier = existing ?? Supplier();
                   supplier.name = nameController.text.trim();
                   supplier.contact = contactController.text.trim();
+                  supplier.account = accountController.text.trim().isEmpty ? null : accountController.text.trim();
 
                   await ref
                       .read(supplierRepositoryProvider)
@@ -307,6 +321,7 @@ void _showSupplierDialog(
     ),
   );
 }
+
 
 Widget _buildTextField(
   TextEditingController controller,
@@ -459,8 +474,9 @@ class _SupplierCard extends ConsumerWidget {
                                           scheme: 'tel',
                                           path: supplier.contact,
                                         );
-                                        if (await canLaunchUrl(launchUri))
+                                        if (await canLaunchUrl(launchUri)) {
                                           await launchUrl(launchUri);
+                                        }
                                       },
                                       child: Container(
                                         padding: const EdgeInsets.all(6),
@@ -482,6 +498,31 @@ class _SupplierCard extends ConsumerWidget {
                                   ],
                                 ],
                               ),
+                              if (supplier.account != null &&
+                                  supplier.account!.isNotEmpty) ...[
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.account_balance_rounded,
+                                      size: 12,
+                                      color: Colors.white38,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Flexible(
+                                      child: Text(
+                                        supplier.account!,
+                                        style: const TextStyle(
+                                          color: Colors.white38,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -495,6 +536,14 @@ class _SupplierCard extends ConsumerWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              IconButton(
+                                icon: const Icon(Icons.history_rounded, size: 16),
+                                color: Colors.white30,
+                                constraints: const BoxConstraints(),
+                                padding: const EdgeInsets.all(8),
+                                onPressed: () =>
+                                    _showSettlementHistory(context, ref, supplier),
+                              ),
                               IconButton(
                                 icon: const Icon(Icons.edit_rounded, size: 16),
                                 color: Colors.white30,
@@ -529,6 +578,7 @@ class _SupplierCard extends ConsumerWidget {
                               ),
                             ],
                           ),
+
                         ),
                       ],
                     ),
@@ -770,6 +820,7 @@ class _SupplierCard extends ConsumerWidget {
     Supplier supplier,
   ) {
     final amountController = TextEditingController();
+    String? selectedImagePath;
 
     showModalBottomSheet(
       context: context,
@@ -778,211 +829,510 @@ class _SupplierCard extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 24,
-          right: 24,
-          top: 24,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 24),
-                decoration: BoxDecoration(
-                  color: Colors.white10,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            Text(
-              'SETTLE: ${supplier.name.toUpperCase()}',
-              style: const TextStyle(
-                fontWeight: FontWeight.w900,
-                letterSpacing: 2.5,
-                fontSize: 14,
-                color: Color(0xFF818CF8),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.account_balance_rounded,
-                    color: Colors.white38,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Current Debt:',
-                    style: TextStyle(
-                      color: Colors.white38,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    '${supplier.balance.toStringAsFixed(0)} ETB',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            if (supplier.balance != 0)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 24),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: TextButton.icon(
-                    onPressed: () {
-                      amountController.text = supplier.balance.toStringAsFixed(
-                        0,
-                      );
-                    },
-                    icon: const Icon(Icons.auto_fix_high_rounded, size: 18),
-                    label: const Text('SETTLE FULL BALANCE'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Theme.of(context).colorScheme.primary,
-                      backgroundColor: Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.1),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 24,
+            right: 24,
+            top: 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 24),
+                  decoration: BoxDecoration(
+                    color: Colors.white10,
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
-            TextField(
-              controller: amountController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              style: const TextStyle(fontWeight: FontWeight.w600),
-              decoration: InputDecoration(
-                labelText: 'Payment Amount',
-                prefixText: 'ETB ',
-                prefixIcon: const Icon(
-                  Icons.payments_rounded,
+              Text(
+                'SETTLE: ${supplier.name.toUpperCase()}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2.5,
+                  fontSize: 14,
                   color: Color(0xFF818CF8),
-                  size: 20,
-                ),
-                labelStyle: const TextStyle(
-                  color: Colors.white38,
-                  fontWeight: FontWeight.w500,
-                ),
-                filled: true,
-                fillColor: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.05),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  borderSide: const BorderSide(
-                    color: Color(0xFF6366F1),
-                    width: 1.5,
-                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 60,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF10B981),
-                  foregroundColor: Colors.white,
-                  elevation: 8,
-                  shadowColor: const Color(0xFF10B981).withValues(alpha: 0.4),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                onPressed: () async {
-                  final amount = double.tryParse(amountController.text);
-                  if (amount == null || amount <= 0) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please enter valid amount'),
-                      ),
-                    );
-                    return;
-                  }
-
-                  if (amount > supplier.balance + 0.01) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Amount exceeds current balance'),
-                      ),
-                    );
-                    return;
-                  }
-
-                  await ref
-                      .read(supplierRepositoryProvider)
-                      .updateBalance(supplier.id, -amount);
-
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Payment of ${amount.toStringAsFixed(0)} ETB recorded',
-                        ),
-                        backgroundColor: const Color(0xFF10B981),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  }
-                },
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                child: Row(
                   children: [
-                    Icon(Icons.check_circle_outline_rounded),
-                    SizedBox(width: 12),
-                    Text(
-                      'CONFIRM PAYMENT',
+                    const Icon(
+                      Icons.account_balance_rounded,
+                      color: Colors.white38,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Current Debt:',
                       style: TextStyle(
+                        color: Colors.white38,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${supplier.balance.toStringAsFixed(0)} ETB',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
                         fontWeight: FontWeight.w900,
-                        letterSpacing: 1.2,
                       ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(height: 24),
+              if (supplier.balance != 0)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: TextButton.icon(
+                      onPressed: () {
+                        amountController.text = supplier.balance.toStringAsFixed(
+                          0,
+                        );
+                      },
+                      icon: const Icon(Icons.auto_fix_high_rounded, size: 18),
+                      label: const Text('SETTLE FULL BALANCE'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Theme.of(context).colorScheme.primary,
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.1),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              TextField(
+                controller: amountController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                style: const TextStyle(fontWeight: FontWeight.w600),
+                decoration: InputDecoration(
+                  labelText: 'Payment Amount',
+                  prefixText: 'ETB ',
+                  prefixIcon: const Icon(
+                    Icons.payments_rounded,
+                    color: Color(0xFF818CF8),
+                    size: 20,
+                  ),
+                  labelStyle: const TextStyle(
+                    color: Colors.white38,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.05),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF6366F1),
+                      width: 1.5,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'PROOF OF PAYMENT (OPTIONAL)',
+                style: TextStyle(
+                  color: Colors.white38,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  if (selectedImagePath != null) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.file(
+                        File(selectedImagePath!),
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      final picker = ImagePicker();
+                      final image = await picker.pickImage(source: ImageSource.gallery);
+                      if (image != null) {
+                        final appDir = await getApplicationDocumentsDirectory();
+                        final localFile = File('${appDir.path}/receipt_${DateTime.now().millisecondsSinceEpoch}.jpg');
+                        await File(image.path).copy(localFile.path);
+
+                        setDialogState(() {
+                          selectedImagePath = localFile.path;
+                        });
+                      }
+                    },
+                    icon: const Icon(Icons.add_a_photo_rounded, size: 18),
+                    label: Text(selectedImagePath == null ? 'ATTACH RECEIPT' : 'CHANGE RECEIPT'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white.withValues(alpha: 0.05),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                  if (selectedImagePath != null) ...[
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                      onPressed: () {
+                        setDialogState(() {
+                          selectedImagePath = null;
+                        });
+                      },
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 60,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    foregroundColor: Colors.white,
+                    elevation: 8,
+                    shadowColor: const Color(0xFF10B981).withValues(alpha: 0.4),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  onPressed: () async {
+                    final amount = double.tryParse(amountController.text);
+                    if (amount == null || amount <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please enter valid amount'),
+                        ),
+                      );
+                      return;
+                    }
+
+                    if (amount > supplier.balance + 0.01) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Amount exceeds current balance'),
+                        ),
+                      );
+                      return;
+                    }
+
+                    await ref
+                        .read(supplierRepositoryProvider)
+                        .updateBalance(supplier.id, -amount);
+
+                    final settlement = SupplierSettlement()
+                      ..supplierId = supplier.id
+                      ..amount = amount
+                      ..date = DateTime.now()
+                      ..imagePath = selectedImagePath;
+
+                    await ref
+                        .read(supplierRepositoryProvider)
+                        .recordSettlement(settlement);
+
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Payment of ${amount.toStringAsFixed(0)} ETB recorded',
+                          ),
+                          backgroundColor: const Color(0xFF10B981),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  },
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check_circle_outline_rounded),
+                      SizedBox(width: 12),
+                      Text(
+                        'CONFIRM PAYMENT',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showSettlementHistory(
+    BuildContext context,
+    WidgetRef ref,
+    Supplier supplier,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF0F172A).withValues(alpha: 0.98),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) {
+          final repo = ref.read(supplierRepositoryProvider);
+          return StreamBuilder<List<SupplierSettlement>>(
+            stream: repo.watchSettlements(supplier.id),
+            builder: (context, snapshot) {
+              final settlements = snapshot.data ?? [];
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 24),
+                        decoration: BoxDecoration(
+                          color: Colors.white10,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'SETTLEMENT HISTORY',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 2,
+                                  fontSize: 14,
+                                  color: Color(0xFF818CF8),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                supplier.name.toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Expanded(
+                      child: settlements.isEmpty
+                          ? const Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.receipt_long_rounded,
+                                    size: 48,
+                                    color: Colors.white24,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'NO SETTLEMENTS RECORDED YET',
+                                    style: TextStyle(
+                                      color: Colors.white30,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 1,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : ListView.builder(
+                              controller: scrollController,
+                              itemCount: settlements.length,
+                              itemBuilder: (context, index) {
+                                final settlement = settlements[index];
+                                final df = DateFormat('MMM dd, yyyy - hh:mm a');
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.02),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.check_rounded,
+                                          color: Color(0xFF10B981),
+                                          size: 18,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              '${settlement.amount.toStringAsFixed(0)} ETB',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w900,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              df.format(settlement.date),
+                                              style: const TextStyle(
+                                                color: Colors.white38,
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      if (settlement.imagePath != null)
+                                        GestureDetector(
+                                          onTap: () {
+                                            _viewReceiptPhoto(context, settlement.imagePath!);
+                                          },
+                                          child: Container(
+                                            width: 48,
+                                            height: 48,
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.circular(10),
+                                              border: Border.all(color: Colors.white10),
+                                            ),
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadius.circular(10),
+                                              child: Image.file(
+                                                File(settlement.imagePath!),
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  void _viewReceiptPhoto(BuildContext context, String imagePath) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.black87,
+        insetPadding: EdgeInsets.zero,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            InteractiveViewer(
+              panEnabled: true,
+              boundaryMargin: const EdgeInsets.all(20),
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Image.file(
+                File(imagePath),
+                fit: BoxFit.contain,
+                width: double.infinity,
+                height: double.infinity,
+              ),
             ),
-            const SizedBox(height: 40),
+            Positioned(
+              top: 40,
+              right: 20,
+              child: CircleAvatar(
+                backgroundColor: Colors.black54,
+                child: IconButton(
+                  icon: const Icon(Icons.close_rounded, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 }
+

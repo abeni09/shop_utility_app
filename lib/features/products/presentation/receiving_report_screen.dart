@@ -18,6 +18,9 @@ class _ReceivingReportScreenState extends ConsumerState<ReceivingReportScreen> {
     end: DateTime.now(),
   );
 
+  final Map<int, bool> _collapsedProducts = {};
+
+
   @override
   Widget build(BuildContext context) {
     final reportAsync = ref.watch(
@@ -188,6 +191,12 @@ class _ReceivingReportScreenState extends ConsumerState<ReceivingReportScreen> {
       (sum, item) => sum + item.totalCost,
     );
 
+    // Group items by product
+    final Map<int, List<ReceivingReportItem>> groupedItems = {};
+    for (var item in items) {
+      groupedItems.putIfAbsent(item.productId, () => []).add(item);
+    }
+
     return Column(
       children: [
         Padding(
@@ -216,17 +225,101 @@ class _ReceivingReportScreenState extends ConsumerState<ReceivingReportScreen> {
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            itemCount: items.length,
+            itemCount: groupedItems.length,
             physics: const BouncingScrollPhysics(),
             itemBuilder: (context, index) {
-              final item = items[index];
-              return _ReportItemRow(item: item);
+              final productId = groupedItems.keys.elementAt(index);
+              final productItems = groupedItems[productId]!;
+              final productName = productItems.first.productName;
+              final isCollapsed = _collapsedProducts[productId] ?? false;
+
+              final groupTotalUnits = productItems.fold<double>(0, (sum, i) => sum + i.quantity);
+              final groupTotalCost = productItems.fold<double>(0, (sum, i) => sum + i.totalCost);
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  InkWell(
+                    onTap: () {
+                      setState(() {
+                        _collapsedProducts[productId] = !isCollapsed;
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      margin: const EdgeInsets.only(top: 12, bottom: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF6366F1).withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.inventory_2_rounded,
+                              color: Color(0xFF818CF8),
+                              size: 16,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  productName.toUpperCase(),
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.0,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Received: ${groupTotalUnits.toStringAsFixed(1)} units • Cost: \$${groupTotalCost.toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.white54,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            isCollapsed
+                                ? Icons.keyboard_arrow_right_rounded
+                                : Icons.keyboard_arrow_down_rounded,
+                            color: Colors.white38,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (!isCollapsed)
+                    ...productItems.map((item) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: _ReportItemRow(item: item),
+                        )),
+                ],
+              );
             },
           ),
         ),
       ],
     );
   }
+
 }
 
 class _SummaryCard extends StatelessWidget {

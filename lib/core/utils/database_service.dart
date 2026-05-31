@@ -7,6 +7,7 @@ import 'package:shopsync/features/dashboard/data/daily_log_model.dart';
 import 'package:shopsync/features/products/data/daily_stock_model.dart';
 import 'package:shopsync/features/products/data/stock_adjustment_model.dart';
 import 'package:shopsync/features/orders/data/addon_model.dart';
+import 'package:shopsync/features/suppliers/data/supplier_settlement_model.dart';
 
 class DatabaseService {
   late Isar isar;
@@ -22,6 +23,7 @@ class DatabaseService {
         DailyStockSchema,
         StockAdjustmentSchema,
         AddonSchema,
+        SupplierSettlementSchema,
       ],
 
       directory: dir.path,

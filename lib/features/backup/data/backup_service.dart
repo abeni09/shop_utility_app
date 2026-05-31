@@ -173,14 +173,33 @@ class BackupService {
       if (await backupFile.exists()) await backupFile.delete();
       await isar.copyToFile(backupFile.path);
 
-      final driveFile = drive.File()
-        ..name = 'ShopSync_Backup_${DateTime.now().toIso8601String().replaceAll(':', '-')}.isar';
+      final dateStr = DateTime.now().toIso8601String().substring(0, 10);
+      final fileName = 'ShopSync_Backup_$dateStr.isar';
+
+      final existingFiles = await driveApi.files.list(
+        q: "name = '$fileName' and trashed = false",
+        pageSize: 1,
+      );
 
       final media = drive.Media(backupFile.openRead(), await backupFile.length());
-      final uploadedFile = await driveApi.files.create(driveFile, uploadMedia: media);
+      String? fileId;
 
-      if (uploadedFile.id != null) {
-        await _setLastSyncedId(uploadedFile.id!);
+      if (existingFiles.files != null && existingFiles.files!.isNotEmpty) {
+        final existingFile = existingFiles.files!.first;
+        final updatedFile = await driveApi.files.update(
+          drive.File(),
+          existingFile.id!,
+          uploadMedia: media,
+        );
+        fileId = updatedFile.id;
+      } else {
+        final driveFile = drive.File()..name = fileName;
+        final uploadedFile = await driveApi.files.create(driveFile, uploadMedia: media);
+        fileId = uploadedFile.id;
+      }
+
+      if (fileId != null) {
+        await _setLastSyncedId(fileId);
       }
 
       await backupFile.delete();

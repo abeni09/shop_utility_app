@@ -216,6 +216,7 @@ final receivingReportProvider =
 
         items.add(
           ReceivingReportItem(
+            productId: stock.productId,
             date: stock.date,
             productName: product.name,
             supplierName: supplierName,
@@ -230,6 +231,7 @@ final receivingReportProvider =
     });
 
 class ReceivingReportItem {
+  final int productId;
   final DateTime date;
   final String productName;
   final String supplierName;
@@ -238,6 +240,7 @@ class ReceivingReportItem {
   final double totalCost;
 
   ReceivingReportItem({
+    required this.productId,
     required this.date,
     required this.productName,
     required this.supplierName,
