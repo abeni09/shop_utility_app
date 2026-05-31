@@ -32,168 +32,193 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
       ),
-      child: Stack(
-        children: [
-          // Background Decorative Blobs
-          Positioned(
-            top: -100,
-            right: -50,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.05),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 100,
-            left: -80,
-            child: Container(
-              width: 250,
-              height: 250,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Theme.of(
-                  context,
-                ).colorScheme.secondary.withValues(alpha: 0.05),
-              ),
-            ),
-          ),
-          RefreshIndicator(
-            onRefresh: () async {
-              await ref.read(backupServiceProvider).forceSyncCheck();
-              ref.invalidate(cloudSyncStatusProvider);
-              ref.invalidate(localAheadProvider);
-              ref.invalidate(ordersProvider);
-            },
-            backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-            color: Theme.of(context).colorScheme.primary,
-            child: Scaffold(
-              backgroundColor: Colors.transparent,
-              resizeToAvoidBottomInset: false,
-              body: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragEnd: (details) {
+          if (details.primaryVelocity == null) return;
+          if (details.primaryVelocity! < -200) {
+            ref.read(selectedDateProvider.notifier).state = selectedDate.add(
+              const Duration(days: 1),
+            );
+          } else if (details.primaryVelocity! > 200) {
+            ref.read(selectedDateProvider.notifier).state = selectedDate
+                .subtract(const Duration(days: 1));
+          }
+        },
+        child: Stack(
+          children: [
+            // Background Decorative Blobs
+            Positioned(
+              top: -100,
+              right: -50,
+              child: Container(
+                width: 300,
+                height: 300,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.05),
                 ),
-                slivers: [
-                  SliverAppBar.large(
-                    backgroundColor: Colors.transparent,
-                    title: Text(
-                      'ORDERS: ${DateFormat('MMM dd').format(selectedDate).toUpperCase()}',
-                    ),
-                    actions: [
-                      Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        decoration: BoxDecoration(
-                          color: showVoided
-                              ? Theme.of(
-                                  context,
-                                ).colorScheme.primary.withValues(alpha: 0.2)
-                              : Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withValues(alpha: 0.05),
-                          shape: BoxShape.circle,
-                        ),
-                        child: IconButton(
-                          icon: Icon(
-                            showVoided
-                                ? Icons.visibility_rounded
-                                : Icons.visibility_off_rounded,
+              ),
+            ),
+            Positioned(
+              bottom: 100,
+              left: -80,
+              child: Container(
+                width: 250,
+                height: 250,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.secondary.withValues(alpha: 0.05),
+                ),
+              ),
+            ),
+            RefreshIndicator(
+              onRefresh: () async {
+                await ref.read(backupServiceProvider).forceSyncCheck();
+                ref.invalidate(cloudSyncStatusProvider);
+                ref.invalidate(localAheadProvider);
+                ref.invalidate(ordersProvider);
+              },
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+              color: Theme.of(context).colorScheme.primary,
+              child: Scaffold(
+                backgroundColor: Colors.transparent,
+                resizeToAvoidBottomInset: false,
+                body: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  slivers: [
+                    SliverAppBar.large(
+                      backgroundColor: Colors.transparent,
+                      title: Text(
+                        'ORDERS: ${DateFormat('MMM dd').format(selectedDate).toUpperCase()}',
+                      ),
+                      actions: [
+                        Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(
                             color: showVoided
-                                ? Theme.of(context).colorScheme.primary
+                                ? Theme.of(
+                                    context,
+                                  ).colorScheme.primary.withValues(alpha: 0.2)
                                 : Theme.of(context).colorScheme.onSurface
-                                      .withValues(alpha: 0.2),
+                                      .withValues(alpha: 0.05),
+                            shape: BoxShape.circle,
                           ),
-                          onPressed: () =>
-                              ref
-                                      .read(showVoidedOrdersProvider.notifier)
-                                      .state =
-                                  !showVoided,
-                          tooltip: 'Show Voided Orders',
-                        ),
-                      ),
-                      Container(
-                        margin: const EdgeInsets.only(right: 16),
-                        decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.05),
-                          shape: BoxShape.circle,
-                        ),
-                        child: IconButton(
-                          icon: Icon(
-                            Icons.calendar_month_rounded,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          onPressed: () async {
-                            final date = await showDatePicker(
-                              context: context,
-                              initialDate: selectedDate,
-                              firstDate: DateTime.now().subtract(
-                                const Duration(days: 365),
-                              ),
-                              lastDate: DateTime.now().add(
-                                const Duration(days: 365),
-                              ),
-                            );
-                            if (date != null) {
-                              ref.read(selectedDateProvider.notifier).state =
-                                  date;
-                            }
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                      child: _buildFilterBar(context, ref),
-                    ),
-                  ),
-                  ordersAsync.when(
-                    data: (_) {
-                      final orders = ref.watch(filteredOrdersProvider);
-                      final products = ref.watch(productsProvider).value ?? [];
-                      final width = MediaQuery.of(context).size.width;
-                      final horizontalPadding = width > 1200
-                          ? width * 0.1
-                          : (width > 800 ? 48.0 : 24.0);
-                      final crossAxisCount = width > 1000 ? 3 : (width > 600 ? 2 : 1);
-
-                      if (orders.isEmpty) {
-                        return const SliverFillRemaining(
-                          child: Center(
-                            child: Text(
-                              'No matching orders',
-                              style: TextStyle(color: Colors.white38),
+                          child: IconButton(
+                            icon: Icon(
+                              showVoided
+                                  ? Icons.visibility_rounded
+                                  : Icons.visibility_off_rounded,
+                              color: showVoided
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.onSurface
+                                        .withValues(alpha: 0.2),
                             ),
+                            onPressed: () =>
+                                ref
+                                        .read(showVoidedOrdersProvider.notifier)
+                                        .state =
+                                    !showVoided,
+                            tooltip: 'Show Voided Orders',
                           ),
-                        );
-                      }
+                        ),
+                        Container(
+                          margin: const EdgeInsets.only(right: 16),
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.05),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            icon: Icon(
+                              Icons.calendar_month_rounded,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            onPressed: () async {
+                              final date = await showDatePicker(
+                                context: context,
+                                initialDate: selectedDate,
+                                firstDate: DateTime.now().subtract(
+                                  const Duration(days: 365),
+                                ),
+                                lastDate: DateTime.now().add(
+                                  const Duration(days: 365),
+                                ),
+                              );
+                              if (date != null) {
+                                ref.read(selectedDateProvider.notifier).state =
+                                    date;
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                        child: _buildFilterBar(context, ref),
+                      ),
+                    ),
+                    ordersAsync.when(
+                      data: (_) {
+                        final orders = ref.watch(filteredOrdersProvider);
+                        final products =
+                            ref.watch(productsProvider).value ?? [];
+                        final width = MediaQuery.of(context).size.width;
+                        final horizontalPadding = width > 1200
+                            ? width * 0.1
+                            : (width > 800 ? 48.0 : 24.0);
+                        final crossAxisCount = width > 1000
+                            ? 3
+                            : (width > 600 ? 2 : 1);
 
-                      // Group orders by product
-                      final Map<int, List<CustomerOrder>> groupedOrders = {};
-                      for (var order in orders) {
-                        groupedOrders.putIfAbsent(order.productId, () => []).add(order);
-                      }
+                        if (orders.isEmpty) {
+                          return const SliverFillRemaining(
+                            child: Center(
+                              child: Text(
+                                'No matching orders',
+                                style: TextStyle(color: Colors.white38),
+                              ),
+                            ),
+                          );
+                        }
 
-                      return SliverPadding(
-                        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                        sliver: SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              final productId = groupedOrders.keys.elementAt(index);
+                        // Group orders by product
+                        final Map<int, List<CustomerOrder>> groupedOrders = {};
+                        for (var order in orders) {
+                          groupedOrders
+                              .putIfAbsent(order.productId, () => [])
+                              .add(order);
+                        }
+
+                        return SliverPadding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: horizontalPadding,
+                          ),
+                          sliver: SliverList(
+                            delegate: SliverChildBuilderDelegate((
+                              context,
+                              index,
+                            ) {
+                              final productId = groupedOrders.keys.elementAt(
+                                index,
+                              );
                               final productOrders = groupedOrders[productId]!;
                               final product = products.firstWhere(
                                 (p) => p.id == productId,
-                                orElse: () => Product()..name = 'Unknown Product',
+                                orElse: () =>
+                                    Product()..name = 'Unknown Product',
                               );
-                              final isCollapsed = _collapsedProducts[productId] ?? true;
+                              final isCollapsed =
+                                  _collapsedProducts[productId] ?? true;
 
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,17 +227,26 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                                   InkWell(
                                     onTap: () {
                                       setState(() {
-                                        _collapsedProducts[productId] = !isCollapsed;
+                                        _collapsedProducts[productId] =
+                                            !isCollapsed;
                                       });
                                     },
                                     borderRadius: BorderRadius.circular(12),
                                     child: Container(
-                                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                                      margin: const EdgeInsets.only(top: 16, bottom: 12),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12,
+                                        horizontal: 8,
+                                      ),
+                                      margin: const EdgeInsets.only(
+                                        top: 16,
+                                        bottom: 12,
+                                      ),
                                       decoration: BoxDecoration(
                                         border: Border(
                                           bottom: BorderSide(
-                                            color: Colors.white.withValues(alpha: 0.05),
+                                            color: Colors.white.withValues(
+                                              alpha: 0.05,
+                                            ),
                                             width: 1,
                                           ),
                                         ),
@@ -222,7 +256,9 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                                           Container(
                                             padding: const EdgeInsets.all(6),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                                              color: const Color(
+                                                0xFF6366F1,
+                                              ).withValues(alpha: 0.1),
                                               shape: BoxShape.circle,
                                             ),
                                             child: const Icon(
@@ -243,12 +279,20 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                                           ),
                                           const Spacer(),
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 4,
+                                            ),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFF6366F1).withValues(alpha: 0.1),
-                                              borderRadius: BorderRadius.circular(12),
+                                              color: const Color(
+                                                0xFF6366F1,
+                                              ).withValues(alpha: 0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
                                               border: Border.all(
-                                                color: const Color(0xFF6366F1).withValues(alpha: 0.2),
+                                                color: const Color(
+                                                  0xFF6366F1,
+                                                ).withValues(alpha: 0.2),
                                               ),
                                             ),
                                             child: Text(
@@ -264,8 +308,10 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                                           const SizedBox(width: 8),
                                           Icon(
                                             isCollapsed
-                                                ? Icons.keyboard_arrow_right_rounded
-                                                : Icons.keyboard_arrow_down_rounded,
+                                                ? Icons
+                                                      .keyboard_arrow_right_rounded
+                                                : Icons
+                                                      .keyboard_arrow_down_rounded,
                                             color: Colors.white30,
                                             size: 18,
                                           ),
@@ -278,69 +324,80 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                                     crossAxisCount > 1
                                         ? GridView.builder(
                                             shrinkWrap: true,
-                                            physics: const NeverScrollableScrollPhysics(),
-                                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                              crossAxisCount: crossAxisCount,
-                                              mainAxisSpacing: 16,
-                                              crossAxisSpacing: 16,
-                                              mainAxisExtent: 420,
-                                            ),
+                                            physics:
+                                                const NeverScrollableScrollPhysics(),
+                                            gridDelegate:
+                                                SliverGridDelegateWithFixedCrossAxisCount(
+                                                  crossAxisCount:
+                                                      crossAxisCount,
+                                                  mainAxisSpacing: 16,
+                                                  crossAxisSpacing: 16,
+                                                  mainAxisExtent: 420,
+                                                ),
                                             itemCount: productOrders.length,
-                                            itemBuilder: (context, idx) => _OrderCard(order: productOrders[idx]),
+                                            itemBuilder: (context, idx) =>
+                                                _OrderCard(
+                                                  order: productOrders[idx],
+                                                ),
                                           )
                                         : ListView.builder(
                                             shrinkWrap: true,
-                                            physics: const NeverScrollableScrollPhysics(),
+                                            physics:
+                                                const NeverScrollableScrollPhysics(),
                                             itemCount: productOrders.length,
-                                            itemBuilder: (context, idx) => Padding(
-                                              padding: const EdgeInsets.only(bottom: 16),
-                                              child: _OrderCard(order: productOrders[idx]),
-                                            ),
+                                            itemBuilder: (context, idx) =>
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        bottom: 16,
+                                                      ),
+                                                  child: _OrderCard(
+                                                    order: productOrders[idx],
+                                                  ),
+                                                ),
                                           ),
                                 ],
                               );
-                            },
-
-                            childCount: groupedOrders.length,
+                            }, childCount: groupedOrders.length),
                           ),
-                        ),
-                      );
-                    },
-                    loading: () => const SliverFillRemaining(
-                      child: Center(child: CircularProgressIndicator()),
-                    ),
-                    error: (err, stack) => SliverFillRemaining(
-                      child: Center(
-                        child: Text(
-                          'Error: $err',
-                          style: const TextStyle(color: Colors.redAccent),
+                        );
+                      },
+                      loading: () => const SliverFillRemaining(
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                      error: (err, stack) => SliverFillRemaining(
+                        child: Center(
+                          child: Text(
+                            'Error: $err',
+                            style: const TextStyle(color: Colors.redAccent),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 120)),
-                ],
-              ),
-              floatingActionButton: Padding(
-                padding: const EdgeInsets.only(bottom: 120),
-                child: FloatingActionButton.extended(
-                  onPressed: () => _onCreateOrder(context, ref),
-                  backgroundColor: const Color(0xFF6366F1),
-                  foregroundColor: Colors.white,
-                  elevation: 8,
-                  icon: const Icon(Icons.add_shopping_cart_rounded),
-                  label: const Text(
-                    'NEW ORDER',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.2,
+                    const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                  ],
+                ),
+                floatingActionButton: Padding(
+                  padding: const EdgeInsets.only(bottom: 120),
+                  child: FloatingActionButton.extended(
+                    onPressed: () => _onCreateOrder(context, ref),
+                    backgroundColor: const Color(0xFF6366F1),
+                    foregroundColor: Colors.white,
+                    elevation: 8,
+                    icon: const Icon(Icons.add_shopping_cart_rounded),
+                    label: const Text(
+                      'NEW ORDER',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.2,
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -507,8 +564,12 @@ void _showOrderDialog(
           ),
           child: StatefulBuilder(
             builder: (context, setState) {
-              if (existing != null && existing.addonName != null && !isAddonInitialized) {
-                final matched = addons.where((a) => a.name == existing.addonName).firstOrNull;
+              if (existing != null &&
+                  existing.addonName != null &&
+                  !isAddonInitialized) {
+                final matched = addons
+                    .where((a) => a.name == existing.addonName)
+                    .firstOrNull;
                 if (matched != null) {
                   selectedAddonId = matched.id;
                   selectedAddonName = matched.name;
@@ -527,7 +588,9 @@ void _showOrderDialog(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      existing == null ? 'NEW CUSTOMER ORDER' : 'EDIT CUSTOMER ORDER',
+                      existing == null
+                          ? 'NEW CUSTOMER ORDER'
+                          : 'EDIT CUSTOMER ORDER',
                       style: const TextStyle(
                         fontWeight: FontWeight.w900,
                         letterSpacing: 2.5,
@@ -541,10 +604,14 @@ void _showOrderDialog(
                       dropdownColor: const Color(0xFF1E293B),
                       items: products
                           .map(
-                            (p) => DropdownMenuItem(value: p.id, child: Text(p.name)),
+                            (p) => DropdownMenuItem(
+                              value: p.id,
+                              child: Text(p.name),
+                            ),
                           )
                           .toList(),
-                      onChanged: (val) => setState(() => selectedProductId = val),
+                      onChanged: (val) =>
+                          setState(() => selectedProductId = val),
                       decoration: _fieldDecoration(
                         'Product',
                         Icons.inventory_2_rounded,
@@ -605,8 +672,9 @@ void _showOrderDialog(
                             ),
                           )
                           .toList(),
-                      onChanged: (val) =>
-                          setState(() => selectedPayment = val ?? selectedPayment),
+                      onChanged: (val) => setState(
+                        () => selectedPayment = val ?? selectedPayment,
+                      ),
                       decoration: _fieldDecoration(
                         'Payment Method',
                         Icons.account_balance_wallet_rounded,
@@ -623,13 +691,23 @@ void _showOrderDialog(
                           value: 0,
                           child: Text('NONE (NO ADD-ON)'),
                         ),
-                        ...addons.map((a) => DropdownMenuItem<int>(
-                              value: a.id,
-                              child: Text('${a.name.toUpperCase()} (${a.price.toStringAsFixed(0)} ETB)'),
-                            )),
+                        ...addons.map(
+                          (a) => DropdownMenuItem<int>(
+                            value: a.id,
+                            child: Text(
+                              '${a.name.toUpperCase()} (${a.price.toStringAsFixed(0)} ETB)',
+                            ),
+                          ),
+                        ),
                         const DropdownMenuItem<int>(
                           value: -1,
-                          child: Text('+ ADD CUSTOM ADD-ON', style: TextStyle(color: Color(0xFF818CF8), fontWeight: FontWeight.bold)),
+                          child: Text(
+                            '+ ADD CUSTOM ADD-ON',
+                            style: TextStyle(
+                              color: Color(0xFF818CF8),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ],
                       onChanged: (val) async {
@@ -641,7 +719,10 @@ void _showOrderDialog(
                             selectedAddonCost = null;
                           });
                         } else if (val == -1) {
-                          final result = await _showCustomAddonDialog(context, ref);
+                          final result = await _showCustomAddonDialog(
+                            context,
+                            ref,
+                          );
                           if (result != null) {
                             setState(() {
                               selectedAddonId = result.id;
@@ -658,7 +739,9 @@ void _showOrderDialog(
                             });
                           }
                         } else if (val != null) {
-                          final selectedAddon = addons.firstWhere((a) => a.id == val);
+                          final selectedAddon = addons.firstWhere(
+                            (a) => a.id == val,
+                          );
                           setState(() {
                             selectedAddonId = val;
                             selectedAddonName = selectedAddon.name;
@@ -680,7 +763,9 @@ void _showOrderDialog(
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.02),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.05),
+                          ),
                         ),
                         child: Row(
                           children: [
@@ -716,9 +801,16 @@ void _showOrderDialog(
                               child: Row(
                                 children: [
                                   IconButton(
-                                    icon: const Icon(Icons.remove_rounded, color: Colors.white70, size: 18),
+                                    icon: const Icon(
+                                      Icons.remove_rounded,
+                                      color: Colors.white70,
+                                      size: 18,
+                                    ),
                                     padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                    constraints: const BoxConstraints(
+                                      minWidth: 32,
+                                      minHeight: 32,
+                                    ),
                                     onPressed: () {
                                       if (addonAmount > 1) {
                                         setState(() => addonAmount--);
@@ -738,9 +830,16 @@ void _showOrderDialog(
                                     ),
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.add_rounded, color: Colors.white70, size: 18),
+                                    icon: const Icon(
+                                      Icons.add_rounded,
+                                      color: Colors.white70,
+                                      size: 18,
+                                    ),
                                     padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                    constraints: const BoxConstraints(
+                                      minWidth: 32,
+                                      minHeight: 32,
+                                    ),
                                     onPressed: () {
                                       setState(() => addonAmount++);
                                     },
@@ -782,7 +881,9 @@ void _showOrderDialog(
                           firstDate: DateTime.now().subtract(
                             const Duration(days: 30),
                           ),
-                          lastDate: DateTime.now().add(const Duration(days: 90)),
+                          lastDate: DateTime.now().add(
+                            const Duration(days: 90),
+                          ),
                         );
                         if (date != null) setState(() => selectedDate = date);
                       },
@@ -805,18 +906,25 @@ void _showOrderDialog(
                                 if (customerController.text.trim().isEmpty) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Please enter customer name'),
+                                      content: Text(
+                                        'Please enter customer name',
+                                      ),
                                     ),
                                   );
                                   return;
                                 }
-                                final amount = double.tryParse(amountController.text);
+                                final amount = double.tryParse(
+                                  amountController.text,
+                                );
                                 final advance =
-                                    double.tryParse(advanceController.text) ?? 0;
+                                    double.tryParse(advanceController.text) ??
+                                    0;
                                 if (amount == null || amount <= 0) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Please enter a valid amount'),
+                                      content: Text(
+                                        'Please enter a valid amount',
+                                      ),
                                     ),
                                   );
                                   return;
@@ -827,8 +935,12 @@ void _showOrderDialog(
                                   (p) => p.id == selectedProductId,
                                 );
 
-                                final total = amount * product.sellingPrice +
-                                    (selectedAddonName != null ? addonAmount * (selectedAddonPrice ?? 0.0) : 0.0);
+                                final total =
+                                    amount * product.sellingPrice +
+                                    (selectedAddonName != null
+                                        ? addonAmount *
+                                              (selectedAddonPrice ?? 0.0)
+                                        : 0.0);
                                 if (advance > total) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
@@ -842,23 +954,27 @@ void _showOrderDialog(
 
                                 final order = existing ?? CustomerOrder();
                                 order.productId = selectedProductId!;
-                                order.customerName = customerController.text.trim();
+                                order.customerName = customerController.text
+                                    .trim();
                                 order.phoneNumber =
                                     phoneController.text.trim().isEmpty
                                     ? null
                                     : phoneController.text.trim();
                                 order.amount =
-                                    double.tryParse(amountController.text) ?? 1.0;
+                                    double.tryParse(amountController.text) ??
+                                    1.0;
                                 order.advancePayment = advance;
                                 order.paymentMethod = selectedPayment;
                                 order.dueDate = selectedDate;
                                 order.sellingPriceAtTime = product.sellingPrice;
                                 order.costPriceAtTime = product.costPrice;
-                                
+
                                 order.addonName = selectedAddonName;
                                 order.addonPrice = selectedAddonPrice;
                                 order.addonCost = selectedAddonCost;
-                                order.addonAmount = selectedAddonName != null ? addonAmount : null;
+                                order.addonAmount = selectedAddonName != null
+                                    ? addonAmount
+                                    : null;
 
                                 if (existing == null) {
                                   order.status = OrderStatus.pending;
@@ -877,7 +993,8 @@ void _showOrderDialog(
                                   return;
                                 }
 
-                                if (context.mounted && Navigator.canPop(context)) {
+                                if (context.mounted &&
+                                    Navigator.canPop(context)) {
                                   Navigator.pop(context);
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
@@ -908,7 +1025,9 @@ void _showOrderDialog(
                                 ),
                               )
                             : Text(
-                                existing == null ? 'SAVE ORDER' : 'UPDATE ORDER',
+                                existing == null
+                                    ? 'SAVE ORDER'
+                                    : 'UPDATE ORDER',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: 1.2,
@@ -928,7 +1047,10 @@ void _showOrderDialog(
   );
 }
 
-Future<Addon?> _showCustomAddonDialog(BuildContext context, WidgetRef ref) async {
+Future<Addon?> _showCustomAddonDialog(
+  BuildContext context,
+  WidgetRef ref,
+) async {
   final nameController = TextEditingController();
   final priceController = TextEditingController();
   final costController = TextEditingController();
@@ -997,7 +1119,13 @@ Future<Addon?> _showCustomAddonDialog(BuildContext context, WidgetRef ref) async
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, null),
-          child: const Text('CANCEL', style: TextStyle(color: Colors.white24, fontWeight: FontWeight.w900)),
+          child: const Text(
+            'CANCEL',
+            style: TextStyle(
+              color: Colors.white24,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
         ),
         ElevatedButton(
           onPressed: () async {
@@ -1006,7 +1134,9 @@ Future<Addon?> _showCustomAddonDialog(BuildContext context, WidgetRef ref) async
             final cost = double.tryParse(costController.text) ?? 0.0;
             if (name.isEmpty || price <= 0 || cost < 0) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Please fill all fields with valid data')),
+                const SnackBar(
+                  content: Text('Please fill all fields with valid data'),
+                ),
               );
               return;
             }
@@ -1022,15 +1152,19 @@ Future<Addon?> _showCustomAddonDialog(BuildContext context, WidgetRef ref) async
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF6366F1),
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
-          child: const Text('CREATE', style: TextStyle(fontWeight: FontWeight.w900)),
+          child: const Text(
+            'CREATE',
+            style: TextStyle(fontWeight: FontWeight.w900),
+          ),
         ),
       ],
     ),
   );
 }
-
 
 InputDecoration _fieldDecoration(
   String label,
@@ -1104,8 +1238,11 @@ class _OrderCard extends ConsumerWidget {
 
     final isSold = order.status == OrderStatus.sold;
     final isVoid = order.isVoid;
-    final total = order.amount * order.sellingPriceAtTime +
-        (order.addonName != null ? (order.addonPrice ?? 0.0) * (order.addonAmount ?? 0.0) : 0.0);
+    final total =
+        order.amount * order.sellingPriceAtTime +
+        (order.addonName != null
+            ? (order.addonPrice ?? 0.0) * (order.addonAmount ?? 0.0)
+            : 0.0);
     final balance = total - order.advancePayment;
     final progress = total > 0
         ? (order.advancePayment / total).clamp(0.0, 1.0)

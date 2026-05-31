@@ -51,6 +51,7 @@ class SalesScreen extends ConsumerWidget {
     final salesAsync = ref.watch(dailySalesProvider);
     final adjustmentsAsync = ref.watch(dailyAdjustmentsProvider);
     final productsAsync = ref.watch(productsProvider);
+    final dailyStockAsync = ref.watch(dailyStockProvider(selectedDate));
 
     return Container(
       decoration: BoxDecoration(
@@ -301,6 +302,52 @@ class SalesScreen extends ConsumerWidget {
                                   'ERR',
                                   Colors.redAccent,
                                   Icons.trending_down_rounded,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              dailyStockAsync.when(
+                                data: (stocks) => productsAsync.when(
+                                  data: (products) {
+                                    double totalStockReceivedCost = 0.0;
+                                    for (var stock in stocks) {
+                                      final p = products.firstWhere(
+                                        (prod) => prod.id == stock.productId,
+                                        orElse: () => Product(),
+                                      );
+                                      totalStockReceivedCost +=
+                                          stock.receivedQuantity * p.costPrice;
+                                    }
+                                    return _buildSummaryCard(
+                                      'STOCK RECEIVED',
+                                      totalStockReceivedCost.toStringAsFixed(0),
+                                      const Color(0xFFF59E0B),
+                                      Icons.local_shipping_rounded,
+                                    );
+                                  },
+                                  loading: () => _buildSummaryCard(
+                                    'STOCK RECEIVED',
+                                    '...',
+                                    Colors.grey,
+                                    Icons.local_shipping_rounded,
+                                  ),
+                                  error: (_, _) => _buildSummaryCard(
+                                    'STOCK RECEIVED',
+                                    'ERR',
+                                    Colors.redAccent,
+                                    Icons.local_shipping_rounded,
+                                  ),
+                                ),
+                                loading: () => _buildSummaryCard(
+                                  'STOCK RECEIVED',
+                                  '...',
+                                  Colors.grey,
+                                  Icons.local_shipping_rounded,
+                                ),
+                                error: (_, _) => _buildSummaryCard(
+                                  'STOCK RECEIVED',
+                                  'ERR',
+                                  Colors.redAccent,
+                                  Icons.local_shipping_rounded,
                                 ),
                               ),
                             ],
@@ -657,19 +704,37 @@ class _SaleTile extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             ListTile(
-              leading: const Icon(Icons.text_fields_rounded, color: Colors.white70),
-              title: const Text('Share as Text Message', style: TextStyle(color: Colors.white)),
+              leading: const Icon(
+                Icons.text_fields_rounded,
+                color: Colors.white70,
+              ),
+              title: const Text(
+                'Share as Text Message',
+                style: TextStyle(color: Colors.white),
+              ),
               onTap: () {
                 Navigator.pop(context);
-                ReceiptShareService.shareTextReceipt(order: sale, productName: productName);
+                ReceiptShareService.shareTextReceipt(
+                  order: sale,
+                  productName: productName,
+                );
               },
             ),
             ListTile(
-              leading: const Icon(Icons.picture_as_pdf_rounded, color: Colors.white70),
-              title: const Text('Share as PDF Document', style: TextStyle(color: Colors.white)),
+              leading: const Icon(
+                Icons.picture_as_pdf_rounded,
+                color: Colors.white70,
+              ),
+              title: const Text(
+                'Share as PDF Document',
+                style: TextStyle(color: Colors.white),
+              ),
               onTap: () {
                 Navigator.pop(context);
-                ReceiptShareService.sharePdfReceipt(order: sale, productName: productName);
+                ReceiptShareService.sharePdfReceipt(
+                  order: sale,
+                  productName: productName,
+                );
               },
             ),
           ],
