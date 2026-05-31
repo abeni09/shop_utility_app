@@ -17,64 +17,84 @@ const CustomerOrderSchema = CollectionSchema(
   name: r'CustomerOrder',
   id: 7813251628506524948,
   properties: {
-    r'advancePayment': PropertySchema(
+    r'addonAmount': PropertySchema(
       id: 0,
+      name: r'addonAmount',
+      type: IsarType.double,
+    ),
+    r'addonCost': PropertySchema(
+      id: 1,
+      name: r'addonCost',
+      type: IsarType.double,
+    ),
+    r'addonName': PropertySchema(
+      id: 2,
+      name: r'addonName',
+      type: IsarType.string,
+    ),
+    r'addonPrice': PropertySchema(
+      id: 3,
+      name: r'addonPrice',
+      type: IsarType.double,
+    ),
+    r'advancePayment': PropertySchema(
+      id: 4,
       name: r'advancePayment',
       type: IsarType.double,
     ),
     r'amount': PropertySchema(
-      id: 1,
+      id: 5,
       name: r'amount',
       type: IsarType.double,
     ),
     r'costPriceAtTime': PropertySchema(
-      id: 2,
+      id: 6,
       name: r'costPriceAtTime',
       type: IsarType.double,
     ),
     r'customerName': PropertySchema(
-      id: 3,
+      id: 7,
       name: r'customerName',
       type: IsarType.string,
     ),
     r'dueDate': PropertySchema(
-      id: 4,
+      id: 8,
       name: r'dueDate',
       type: IsarType.dateTime,
     ),
     r'fulfilledAt': PropertySchema(
-      id: 5,
+      id: 9,
       name: r'fulfilledAt',
       type: IsarType.dateTime,
     ),
     r'isVoid': PropertySchema(
-      id: 6,
+      id: 10,
       name: r'isVoid',
       type: IsarType.bool,
     ),
     r'paymentMethod': PropertySchema(
-      id: 7,
+      id: 11,
       name: r'paymentMethod',
       type: IsarType.byte,
       enumMap: _CustomerOrderpaymentMethodEnumValueMap,
     ),
     r'phoneNumber': PropertySchema(
-      id: 8,
+      id: 12,
       name: r'phoneNumber',
       type: IsarType.string,
     ),
     r'productId': PropertySchema(
-      id: 9,
+      id: 13,
       name: r'productId',
       type: IsarType.long,
     ),
     r'sellingPriceAtTime': PropertySchema(
-      id: 10,
+      id: 14,
       name: r'sellingPriceAtTime',
       type: IsarType.double,
     ),
     r'status': PropertySchema(
-      id: 11,
+      id: 15,
       name: r'status',
       type: IsarType.byte,
       enumMap: _CustomerOrderstatusEnumValueMap,
@@ -114,6 +134,12 @@ int _customerOrderEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  {
+    final value = object.addonName;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.customerName.length * 3;
   {
     final value = object.phoneNumber;
@@ -130,18 +156,22 @@ void _customerOrderSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeDouble(offsets[0], object.advancePayment);
-  writer.writeDouble(offsets[1], object.amount);
-  writer.writeDouble(offsets[2], object.costPriceAtTime);
-  writer.writeString(offsets[3], object.customerName);
-  writer.writeDateTime(offsets[4], object.dueDate);
-  writer.writeDateTime(offsets[5], object.fulfilledAt);
-  writer.writeBool(offsets[6], object.isVoid);
-  writer.writeByte(offsets[7], object.paymentMethod.index);
-  writer.writeString(offsets[8], object.phoneNumber);
-  writer.writeLong(offsets[9], object.productId);
-  writer.writeDouble(offsets[10], object.sellingPriceAtTime);
-  writer.writeByte(offsets[11], object.status.index);
+  writer.writeDouble(offsets[0], object.addonAmount);
+  writer.writeDouble(offsets[1], object.addonCost);
+  writer.writeString(offsets[2], object.addonName);
+  writer.writeDouble(offsets[3], object.addonPrice);
+  writer.writeDouble(offsets[4], object.advancePayment);
+  writer.writeDouble(offsets[5], object.amount);
+  writer.writeDouble(offsets[6], object.costPriceAtTime);
+  writer.writeString(offsets[7], object.customerName);
+  writer.writeDateTime(offsets[8], object.dueDate);
+  writer.writeDateTime(offsets[9], object.fulfilledAt);
+  writer.writeBool(offsets[10], object.isVoid);
+  writer.writeByte(offsets[11], object.paymentMethod.index);
+  writer.writeString(offsets[12], object.phoneNumber);
+  writer.writeLong(offsets[13], object.productId);
+  writer.writeDouble(offsets[14], object.sellingPriceAtTime);
+  writer.writeByte(offsets[15], object.status.index);
 }
 
 CustomerOrder _customerOrderDeserialize(
@@ -151,22 +181,26 @@ CustomerOrder _customerOrderDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = CustomerOrder();
-  object.advancePayment = reader.readDouble(offsets[0]);
-  object.amount = reader.readDouble(offsets[1]);
-  object.costPriceAtTime = reader.readDouble(offsets[2]);
-  object.customerName = reader.readString(offsets[3]);
-  object.dueDate = reader.readDateTime(offsets[4]);
-  object.fulfilledAt = reader.readDateTimeOrNull(offsets[5]);
+  object.addonAmount = reader.readDoubleOrNull(offsets[0]);
+  object.addonCost = reader.readDoubleOrNull(offsets[1]);
+  object.addonName = reader.readStringOrNull(offsets[2]);
+  object.addonPrice = reader.readDoubleOrNull(offsets[3]);
+  object.advancePayment = reader.readDouble(offsets[4]);
+  object.amount = reader.readDouble(offsets[5]);
+  object.costPriceAtTime = reader.readDouble(offsets[6]);
+  object.customerName = reader.readString(offsets[7]);
+  object.dueDate = reader.readDateTime(offsets[8]);
+  object.fulfilledAt = reader.readDateTimeOrNull(offsets[9]);
   object.id = id;
-  object.isVoid = reader.readBool(offsets[6]);
+  object.isVoid = reader.readBool(offsets[10]);
   object.paymentMethod = _CustomerOrderpaymentMethodValueEnumMap[
-          reader.readByteOrNull(offsets[7])] ??
+          reader.readByteOrNull(offsets[11])] ??
       PaymentMethod.cash;
-  object.phoneNumber = reader.readStringOrNull(offsets[8]);
-  object.productId = reader.readLong(offsets[9]);
-  object.sellingPriceAtTime = reader.readDouble(offsets[10]);
+  object.phoneNumber = reader.readStringOrNull(offsets[12]);
+  object.productId = reader.readLong(offsets[13]);
+  object.sellingPriceAtTime = reader.readDouble(offsets[14]);
   object.status =
-      _CustomerOrderstatusValueEnumMap[reader.readByteOrNull(offsets[11])] ??
+      _CustomerOrderstatusValueEnumMap[reader.readByteOrNull(offsets[15])] ??
           OrderStatus.pending;
   return object;
 }
@@ -179,30 +213,38 @@ P _customerOrderDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 1:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 2:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 3:
-      return (reader.readString(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 4:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 5:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 6:
-      return (reader.readBool(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 7:
+      return (reader.readString(offset)) as P;
+    case 8:
+      return (reader.readDateTime(offset)) as P;
+    case 9:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 10:
+      return (reader.readBool(offset)) as P;
+    case 11:
       return (_CustomerOrderpaymentMethodValueEnumMap[
               reader.readByteOrNull(offset)] ??
           PaymentMethod.cash) as P;
-    case 8:
+    case 12:
       return (reader.readStringOrNull(offset)) as P;
-    case 9:
+    case 13:
       return (reader.readLong(offset)) as P;
-    case 10:
+    case 14:
       return (reader.readDouble(offset)) as P;
-    case 11:
+    case 15:
       return (_CustomerOrderstatusValueEnumMap[reader.readByteOrNull(offset)] ??
           OrderStatus.pending) as P;
     default:
@@ -426,6 +468,412 @@ extension CustomerOrderQueryWhere
 
 extension CustomerOrderQueryFilter
     on QueryBuilder<CustomerOrder, CustomerOrder, QFilterCondition> {
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonAmountIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'addonAmount',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonAmountIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'addonAmount',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonAmountEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'addonAmount',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonAmountGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'addonAmount',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonAmountLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'addonAmount',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonAmountBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'addonAmount',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonCostIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'addonCost',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonCostIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'addonCost',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonCostEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'addonCost',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonCostGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'addonCost',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonCostLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'addonCost',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonCostBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'addonCost',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonNameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'addonName',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonNameIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'addonName',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonNameEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'addonName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonNameGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'addonName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonNameLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'addonName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonNameBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'addonName',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'addonName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'addonName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonNameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'addonName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonNameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'addonName',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'addonName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'addonName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonPriceIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'addonPrice',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonPriceIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'addonPrice',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonPriceEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'addonPrice',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonPriceGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'addonPrice',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonPriceLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'addonPrice',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      addonPriceBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'addonPrice',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
   QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
       advancePaymentEqualTo(
     double value, {
@@ -1351,6 +1799,58 @@ extension CustomerOrderQueryLinks
 
 extension CustomerOrderQuerySortBy
     on QueryBuilder<CustomerOrder, CustomerOrder, QSortBy> {
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy> sortByAddonAmount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'addonAmount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy>
+      sortByAddonAmountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'addonAmount', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy> sortByAddonCost() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'addonCost', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy>
+      sortByAddonCostDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'addonCost', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy> sortByAddonName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'addonName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy>
+      sortByAddonNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'addonName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy> sortByAddonPrice() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'addonPrice', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy>
+      sortByAddonPriceDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'addonPrice', Sort.desc);
+    });
+  }
+
   QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy>
       sortByAdvancePayment() {
     return QueryBuilder.apply(this, (query) {
@@ -1511,6 +2011,58 @@ extension CustomerOrderQuerySortBy
 
 extension CustomerOrderQuerySortThenBy
     on QueryBuilder<CustomerOrder, CustomerOrder, QSortThenBy> {
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy> thenByAddonAmount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'addonAmount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy>
+      thenByAddonAmountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'addonAmount', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy> thenByAddonCost() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'addonCost', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy>
+      thenByAddonCostDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'addonCost', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy> thenByAddonName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'addonName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy>
+      thenByAddonNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'addonName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy> thenByAddonPrice() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'addonPrice', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy>
+      thenByAddonPriceDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'addonPrice', Sort.desc);
+    });
+  }
+
   QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy>
       thenByAdvancePayment() {
     return QueryBuilder.apply(this, (query) {
@@ -1684,6 +2236,32 @@ extension CustomerOrderQuerySortThenBy
 extension CustomerOrderQueryWhereDistinct
     on QueryBuilder<CustomerOrder, CustomerOrder, QDistinct> {
   QueryBuilder<CustomerOrder, CustomerOrder, QDistinct>
+      distinctByAddonAmount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'addonAmount');
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QDistinct> distinctByAddonCost() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'addonCost');
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QDistinct> distinctByAddonName(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'addonName', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QDistinct> distinctByAddonPrice() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'addonPrice');
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QDistinct>
       distinctByAdvancePayment() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'advancePayment');
@@ -1768,6 +2346,30 @@ extension CustomerOrderQueryProperty
   QueryBuilder<CustomerOrder, int, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<CustomerOrder, double?, QQueryOperations> addonAmountProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'addonAmount');
+    });
+  }
+
+  QueryBuilder<CustomerOrder, double?, QQueryOperations> addonCostProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'addonCost');
+    });
+  }
+
+  QueryBuilder<CustomerOrder, String?, QQueryOperations> addonNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'addonName');
+    });
+  }
+
+  QueryBuilder<CustomerOrder, double?, QQueryOperations> addonPriceProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'addonPrice');
     });
   }
 

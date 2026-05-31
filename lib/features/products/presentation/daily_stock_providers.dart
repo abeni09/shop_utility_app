@@ -8,6 +8,7 @@ import 'package:shopsync/features/orders/data/customer_order_model.dart';
 import 'package:shopsync/features/products/data/stock_adjustment_model.dart';
 import 'package:shopsync/features/products/data/stock_adjustment_repository.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
+import 'package:shopsync/features/dashboard/presentation/dashboard_providers.dart';
 import 'package:shopsync/main.dart';
 
 final dailyStockRepositoryProvider = Provider<DailyStockRepository>((ref) {
@@ -27,8 +28,10 @@ final dailyStockProvider = StreamProvider.family<List<DailyStock>, DateTime>((
 final stockAdjustmentRepositoryProvider = Provider<StockAdjustmentRepository>((ref) {
   final dbService = ref.watch(databaseServiceProvider);
   final backupService = ref.watch(backupServiceProvider);
-  return StockAdjustmentRepository(dbService.isar, backupService);
+  final dashboardRepo = ref.watch(dashboardRepositoryProvider);
+  return StockAdjustmentRepository(dbService.isar, backupService, dashboardRepo);
 });
+
 
 final allAdjustmentsProvider = StreamProvider<List<StockAdjustment>>((ref) {
   final repository = ref.watch(stockAdjustmentRepositoryProvider);

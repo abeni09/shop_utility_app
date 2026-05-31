@@ -31,4 +31,10 @@ class CustomerOrder {
   DateTime? fulfilledAt;
   
   bool isVoid = false;
+
+  String? addonName;
+  double? addonPrice;
+  double? addonCost;
+  double? addonAmount;
 }
+

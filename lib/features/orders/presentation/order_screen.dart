@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:shopsync/core/presentation/widgets/theme_toggle_button.dart';
 import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/orders/data/customer_order_model.dart';
+import 'package:shopsync/features/orders/data/addon_model.dart';
 import 'package:shopsync/features/orders/presentation/order_providers.dart';
 import 'package:shopsync/features/products/data/product_model.dart';
 import 'package:shopsync/features/products/presentation/daily_stock_providers.dart';
@@ -376,6 +377,13 @@ void _showOrderDialog(
   DateTime selectedDate = existing?.dueDate ?? ref.read(selectedDateProvider);
   bool isSaving = false;
 
+  int? selectedAddonId = existing?.addonName != null ? 0 : 0;
+  String? selectedAddonName = existing?.addonName;
+  double? selectedAddonPrice = existing?.addonPrice;
+  double? selectedAddonCost = existing?.addonCost;
+  double addonAmount = existing?.addonAmount ?? 1.0;
+  bool isAddonInitialized = false;
+
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -383,272 +391,543 @@ void _showOrderDialog(
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
     ),
-    builder: (context) => Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-        left: 24,
-        right: 24,
-        top: 24,
-      ),
-      child: StatefulBuilder(
-        builder: (context, setState) => SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                existing == null ? 'NEW CUSTOMER ORDER' : 'EDIT CUSTOMER ORDER',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 2.5,
-                  fontSize: 14,
-                  color: Color(0xFF818CF8),
-                ),
-              ),
-              const SizedBox(height: 24),
-              DropdownButtonFormField<int>(
-                value: selectedProductId,
-                dropdownColor: const Color(0xFF1E293B),
-                items: products
-                    .map(
-                      (p) => DropdownMenuItem(value: p.id, child: Text(p.name)),
-                    )
-                    .toList(),
-                onChanged: (val) => setState(() => selectedProductId = val),
-                decoration: _fieldDecoration(
-                  'Product',
-                  Icons.inventory_2_rounded,
-                  context,
-                ),
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                customerController,
-                'Customer Name',
-                Icons.person_rounded,
-                context,
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                phoneController,
-                'Phone Number (Optional)',
-                Icons.phone_rounded,
-                context,
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildTextField(
-                      amountController,
-                      'Amount',
-                      Icons.numbers_rounded,
-                      context,
-                      isNumber: true,
+    builder: (context) => Consumer(
+      builder: (context, ref, child) {
+        final addons = ref.watch(addonsProvider).value ?? [];
+
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 24,
+            right: 24,
+            top: 24,
+          ),
+          child: StatefulBuilder(
+            builder: (context, setState) {
+              if (existing != null && existing.addonName != null && !isAddonInitialized) {
+                final matched = addons.where((a) => a.name == existing.addonName).firstOrNull;
+                if (matched != null) {
+                  selectedAddonId = matched.id;
+                  selectedAddonName = matched.name;
+                  selectedAddonPrice = matched.price;
+                  selectedAddonCost = matched.cost;
+                  isAddonInitialized = true;
+                } else if (addons.isNotEmpty) {
+                  selectedAddonId = -1;
+                  isAddonInitialized = true;
+                }
+              }
+
+              return SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      existing == null ? 'NEW CUSTOMER ORDER' : 'EDIT CUSTOMER ORDER',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 2.5,
+                        fontSize: 14,
+                        color: Color(0xFF818CF8),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildTextField(
-                      advanceController,
-                      'Advance',
-                      Icons.payments_rounded,
-                      context,
-                      isNumber: true,
+                    const SizedBox(height: 24),
+                    DropdownButtonFormField<int>(
+                      value: selectedProductId,
+                      dropdownColor: const Color(0xFF1E293B),
+                      items: products
+                          .map(
+                            (p) => DropdownMenuItem(value: p.id, child: Text(p.name)),
+                          )
+                          .toList(),
+                      onChanged: (val) => setState(() => selectedProductId = val),
+                      decoration: _fieldDecoration(
+                        'Product',
+                        Icons.inventory_2_rounded,
+                        context,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<PaymentMethod>(
-                value: selectedPayment,
-                isExpanded: true,
-                dropdownColor: const Color(0xFF1E293B),
-                items: PaymentMethod.values
-                    .map(
-                      (p) => DropdownMenuItem(
-                        value: p,
-                        child: Text(
-                          p.name.toUpperCase(),
-                          overflow: TextOverflow.ellipsis,
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      customerController,
+                      'Customer Name',
+                      Icons.person_rounded,
+                      context,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      phoneController,
+                      'Phone Number (Optional)',
+                      Icons.phone_rounded,
+                      context,
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildTextField(
+                            amountController,
+                            'Amount',
+                            Icons.numbers_rounded,
+                            context,
+                            isNumber: true,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildTextField(
+                            advanceController,
+                            'Advance',
+                            Icons.payments_rounded,
+                            context,
+                            isNumber: true,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<PaymentMethod>(
+                      value: selectedPayment,
+                      isExpanded: true,
+                      dropdownColor: const Color(0xFF1E293B),
+                      items: PaymentMethod.values
+                          .map(
+                            (p) => DropdownMenuItem(
+                              value: p,
+                              child: Text(
+                                p.name.toUpperCase(),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (val) =>
+                          setState(() => selectedPayment = val ?? selectedPayment),
+                      decoration: _fieldDecoration(
+                        'Payment Method',
+                        Icons.account_balance_wallet_rounded,
+                        context,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<int>(
+                      value: selectedAddonId,
+                      dropdownColor: const Color(0xFF1E293B),
+                      isExpanded: true,
+                      items: [
+                        const DropdownMenuItem<int>(
+                          value: 0,
+                          child: Text('NONE (NO ADD-ON)'),
+                        ),
+                        ...addons.map((a) => DropdownMenuItem<int>(
+                              value: a.id,
+                              child: Text('${a.name.toUpperCase()} (${a.price.toStringAsFixed(0)} ETB)'),
+                            )),
+                        const DropdownMenuItem<int>(
+                          value: -1,
+                          child: Text('+ ADD CUSTOM ADD-ON', style: TextStyle(color: Color(0xFF818CF8), fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                      onChanged: (val) async {
+                        if (val == 0) {
+                          setState(() {
+                            selectedAddonId = 0;
+                            selectedAddonName = null;
+                            selectedAddonPrice = null;
+                            selectedAddonCost = null;
+                          });
+                        } else if (val == -1) {
+                          final result = await _showCustomAddonDialog(context, ref);
+                          if (result != null) {
+                            setState(() {
+                              selectedAddonId = result.id;
+                              selectedAddonName = result.name;
+                              selectedAddonPrice = result.price;
+                              selectedAddonCost = result.cost;
+                            });
+                          } else {
+                            setState(() {
+                              selectedAddonId = 0;
+                              selectedAddonName = null;
+                              selectedAddonPrice = null;
+                              selectedAddonCost = null;
+                            });
+                          }
+                        } else if (val != null) {
+                          final selectedAddon = addons.firstWhere((a) => a.id == val);
+                          setState(() {
+                            selectedAddonId = val;
+                            selectedAddonName = selectedAddon.name;
+                            selectedAddonPrice = selectedAddon.price;
+                            selectedAddonCost = selectedAddon.cost;
+                          });
+                        }
+                      },
+                      decoration: _fieldDecoration(
+                        'Add-on (Optional)',
+                        Icons.add_box_rounded,
+                        context,
+                      ),
+                    ),
+                    if (selectedAddonName != null) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.02),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    selectedAddonName!.toUpperCase(),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 13,
+                                      color: Colors.amberAccent,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Price: ${selectedAddonPrice?.toStringAsFixed(0)} ETB | Cost: ${selectedAddonCost?.toStringAsFixed(0)} ETB',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.white38,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.remove_rounded, color: Colors.white70, size: 18),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                    onPressed: () {
+                                      if (addonAmount > 1) {
+                                        setState(() => addonAmount--);
+                                      }
+                                    },
+                                  ),
+                                  SizedBox(
+                                    width: 30,
+                                    child: Text(
+                                      addonAmount.toStringAsFixed(0),
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 14,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.add_rounded, color: Colors.white70, size: 18),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                    onPressed: () {
+                                      setState(() => addonAmount++);
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    )
-                    .toList(),
-                onChanged: (val) =>
-                    setState(() => selectedPayment = val ?? selectedPayment),
-                decoration: _fieldDecoration(
-                  'Payment Method',
-                  Icons.account_balance_wallet_rounded,
-                  context,
-                ),
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(
-                  'Due: ${DateFormat('yyyy-MM-dd').format(selectedDate)}',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.calendar_month_rounded,
-                    color: Colors.indigoAccent,
-                  ),
-                ),
-                trailing: const Icon(
-                  Icons.edit_rounded,
-                  size: 20,
-                  color: Colors.white24,
-                ),
-                onTap: () async {
-                  final date = await showDatePicker(
-                    context: context,
-                    initialDate: selectedDate,
-                    firstDate: DateTime.now().subtract(
-                      const Duration(days: 30),
-                    ),
-                    lastDate: DateTime.now().add(const Duration(days: 90)),
-                  );
-                  if (date != null) setState(() => selectedDate = date);
-                },
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6366F1),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  onPressed: isSaving
-                      ? null
-                      : () async {
-                          if (customerController.text.trim().isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please enter customer name'),
-                              ),
-                            );
-                            return;
-                          }
-                          final amount = double.tryParse(amountController.text);
-                          final advance =
-                              double.tryParse(advanceController.text) ?? 0;
-                          if (amount == null || amount <= 0) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please enter a valid amount'),
-                              ),
-                            );
-                            return;
-                          }
-
-                          if (selectedProductId == null) return;
-                          final product = products.firstWhere(
-                            (p) => p.id == selectedProductId,
-                          );
-
-                          final total = amount * product.sellingPrice;
-                          if (advance > total) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Advance cannot exceed total price',
-                                ),
-                              ),
-                            );
-                            return;
-                          }
-
-                          final order = existing ?? CustomerOrder();
-                          order.productId = selectedProductId!;
-                          order.customerName = customerController.text.trim();
-                          order.phoneNumber =
-                              phoneController.text.trim().isEmpty
-                              ? null
-                              : phoneController.text.trim();
-                          order.amount =
-                              double.tryParse(amountController.text) ?? 1.0;
-                          order.advancePayment = advance;
-                          order.paymentMethod = selectedPayment;
-                          order.dueDate = selectedDate;
-                          order.sellingPriceAtTime = product.sellingPrice;
-                          order.costPriceAtTime = product.costPrice;
-                          // If new order, status is pending
-                          if (existing == null) {
-                            order.status = OrderStatus.pending;
-                          }
-
-                          setState(() => isSaving = true);
-                          try {
-                            await orderRepo.saveOrder(order);
-                          } catch (e) {
-                            if (context.mounted) {
-                              setState(() => isSaving = false);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Error: $e')),
-                              );
-                            }
-                            return;
-                          }
-
-                          if (context.mounted && Navigator.canPop(context)) {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                backgroundColor: const Color(0xFF10B981),
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                content: Text(
-                                  existing == null
-                                      ? 'Order created successfully!'
-                                      : 'Order updated successfully!',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }
-                        },
-                  child: isSaving
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 3,
-                            color: Colors.white,
+                    ],
+                    const SizedBox(height: 16),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        'Due: ${DateFormat('yyyy-MM-dd').format(selectedDate)}',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.calendar_month_rounded,
+                          color: Colors.indigoAccent,
+                        ),
+                      ),
+                      trailing: const Icon(
+                        Icons.edit_rounded,
+                        size: 20,
+                        color: Colors.white24,
+                      ),
+                      onTap: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: selectedDate,
+                          firstDate: DateTime.now().subtract(
+                            const Duration(days: 30),
                           ),
-                        )
-                      : Text(
-                          existing == null ? 'SAVE ORDER' : 'UPDATE ORDER',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.2,
+                          lastDate: DateTime.now().add(const Duration(days: 90)),
+                        );
+                        if (date != null) setState(() => selectedDate = date);
+                      },
+                    ),
+                    const SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF6366F1),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
                           ),
                         ),
+                        onPressed: isSaving
+                            ? null
+                            : () async {
+                                if (customerController.text.trim().isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Please enter customer name'),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                final amount = double.tryParse(amountController.text);
+                                final advance =
+                                    double.tryParse(advanceController.text) ?? 0;
+                                if (amount == null || amount <= 0) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Please enter a valid amount'),
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                if (selectedProductId == null) return;
+                                final product = products.firstWhere(
+                                  (p) => p.id == selectedProductId,
+                                );
+
+                                final total = amount * product.sellingPrice +
+                                    (selectedAddonName != null ? addonAmount * (selectedAddonPrice ?? 0.0) : 0.0);
+                                if (advance > total) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Advance cannot exceed total price',
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                final order = existing ?? CustomerOrder();
+                                order.productId = selectedProductId!;
+                                order.customerName = customerController.text.trim();
+                                order.phoneNumber =
+                                    phoneController.text.trim().isEmpty
+                                    ? null
+                                    : phoneController.text.trim();
+                                order.amount =
+                                    double.tryParse(amountController.text) ?? 1.0;
+                                order.advancePayment = advance;
+                                order.paymentMethod = selectedPayment;
+                                order.dueDate = selectedDate;
+                                order.sellingPriceAtTime = product.sellingPrice;
+                                order.costPriceAtTime = product.costPrice;
+                                
+                                order.addonName = selectedAddonName;
+                                order.addonPrice = selectedAddonPrice;
+                                order.addonCost = selectedAddonCost;
+                                order.addonAmount = selectedAddonName != null ? addonAmount : null;
+
+                                if (existing == null) {
+                                  order.status = OrderStatus.pending;
+                                }
+
+                                setState(() => isSaving = true);
+                                try {
+                                  await orderRepo.saveOrder(order);
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    setState(() => isSaving = false);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Error: $e')),
+                                    );
+                                  }
+                                  return;
+                                }
+
+                                if (context.mounted && Navigator.canPop(context)) {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      backgroundColor: const Color(0xFF10B981),
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      content: Text(
+                                        existing == null
+                                            ? 'Order created successfully!'
+                                            : 'Order updated successfully!',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                        child: isSaving
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 3,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                existing == null ? 'SAVE ORDER' : 'UPDATE ORDER',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 24),
-            ],
+              );
+            },
           ),
-        ),
-      ),
+        );
+      },
     ),
   );
 }
+
+Future<Addon?> _showCustomAddonDialog(BuildContext context, WidgetRef ref) async {
+  final nameController = TextEditingController();
+  final priceController = TextEditingController();
+  final costController = TextEditingController();
+
+  return showDialog<Addon>(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: const Color(0xFF0F172A),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(28),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      title: const Text(
+        'NEW CUSTOM ADD-ON',
+        style: TextStyle(
+          fontWeight: FontWeight.w900,
+          fontSize: 14,
+          letterSpacing: 1.5,
+          color: Color(0xFF818CF8),
+        ),
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Add-on Name',
+                labelStyle: TextStyle(color: Colors.white38),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF6366F1)),
+                ),
+              ),
+              style: const TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: priceController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Selling Price (ETB)',
+                labelStyle: TextStyle(color: Colors.white38),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF6366F1)),
+                ),
+              ),
+              style: const TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: costController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Cost Price (ETB)',
+                labelStyle: TextStyle(color: Colors.white38),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF6366F1)),
+                ),
+              ),
+              style: const TextStyle(color: Colors.white),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, null),
+          child: const Text('CANCEL', style: TextStyle(color: Colors.white24, fontWeight: FontWeight.w900)),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            final name = nameController.text.trim();
+            final price = double.tryParse(priceController.text) ?? 0.0;
+            final cost = double.tryParse(costController.text) ?? 0.0;
+            if (name.isEmpty || price <= 0 || cost < 0) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Please fill all fields with valid data')),
+              );
+              return;
+            }
+            final newAddon = Addon()
+              ..name = name
+              ..price = price
+              ..cost = cost;
+            await ref.read(addonRepositoryProvider).saveAddon(newAddon);
+            if (context.mounted) {
+              Navigator.pop(context, newAddon);
+            }
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF6366F1),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: const Text('CREATE', style: TextStyle(fontWeight: FontWeight.w900)),
+        ),
+      ],
+    ),
+  );
+}
+
 
 InputDecoration _fieldDecoration(
   String label,
@@ -722,7 +1001,8 @@ class _OrderCard extends ConsumerWidget {
 
     final isSold = order.status == OrderStatus.sold;
     final isVoid = order.isVoid;
-    final total = order.amount * order.sellingPriceAtTime;
+    final total = order.amount * order.sellingPriceAtTime +
+        (order.addonName != null ? (order.addonPrice ?? 0.0) * (order.addonAmount ?? 0.0) : 0.0);
     final balance = total - order.advancePayment;
     final progress = total > 0
         ? (order.advancePayment / total).clamp(0.0, 1.0)
@@ -939,6 +1219,27 @@ class _OrderCard extends ConsumerWidget {
                               fontWeight: FontWeight.w800,
                             ),
                           ),
+                          if (order.addonName != null) ...[
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.add_circle_outline_rounded,
+                                  size: 12,
+                                  color: Colors.amberAccent,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '+ ${order.addonName} (x${order.addonAmount?.toStringAsFixed(0)}): ${((order.addonAmount ?? 0.0) * (order.addonPrice ?? 0.0)).toStringAsFixed(0)} ETB',
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.amberAccent,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),

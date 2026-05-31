@@ -3,6 +3,8 @@ import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/dashboard/presentation/ui_providers.dart';
 import 'package:shopsync/features/orders/data/customer_order_model.dart';
 import 'package:shopsync/features/orders/data/order_repository.dart';
+import 'package:shopsync/features/orders/data/addon_model.dart';
+import 'package:shopsync/features/orders/data/addon_repository.dart';
 import 'package:shopsync/main.dart';
 
 import 'package:shopsync/features/dashboard/presentation/dashboard_providers.dart';
@@ -13,6 +15,18 @@ final orderRepositoryProvider = Provider<OrderRepository>((ref) {
   final backupService = ref.watch(backupServiceProvider);
   return OrderRepository(dbService.isar, dashboardRepo, backupService);
 });
+
+final addonRepositoryProvider = Provider<AddonRepository>((ref) {
+  final dbService = ref.watch(databaseServiceProvider);
+  final backupService = ref.watch(backupServiceProvider);
+  return AddonRepository(dbService.isar, backupService);
+});
+
+final addonsProvider = StreamProvider<List<Addon>>((ref) {
+  final repository = ref.watch(addonRepositoryProvider);
+  return repository.watchAddons();
+});
+
 
 final selectedDateProvider = StateProvider<DateTime>((ref) {
   final now = DateTime.now();

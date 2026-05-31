@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:shopsync/features/dashboard/data/daily_log_model.dart';
 import 'package:shopsync/features/dashboard/presentation/dashboard_providers.dart';
+import 'package:shopsync/features/suppliers/presentation/supplier_list_screen.dart';
 import 'dart:ui';
 
 class FinancialReportScreen extends ConsumerStatefulWidget {
@@ -144,6 +145,12 @@ class _FinancialReportScreenState extends ConsumerState<FinancialReportScreen> {
       (start: _dateRange.start, end: _dateRange.end),
     ));
 
+    final suppliersAsync = ref.watch(suppliersProvider);
+    final suppliers = suppliersAsync.value ?? [];
+    final totalDueToSuppliers = suppliers
+        .where((s) => s.isActive && !s.isVoid)
+        .fold<double>(0.0, (sum, s) => sum + s.balance);
+
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       children: [
@@ -169,6 +176,13 @@ class _FinancialReportScreenState extends ConsumerState<FinancialReportScreen> {
           value: '${margin.toStringAsFixed(1)}%',
           icon: Icons.pie_chart_rounded,
           color: Colors.orangeAccent,
+        ),
+        const SizedBox(height: 16),
+        _StatCard(
+          label: 'TOTAL DUE TO SUPPLIERS',
+          value: totalDueToSuppliers.toStringAsFixed(2),
+          icon: Icons.account_balance_wallet_rounded,
+          color: Colors.redAccent,
         ),
         const SizedBox(height: 40),
         const Text(

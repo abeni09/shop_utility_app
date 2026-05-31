@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopsync/features/products/presentation/daily_stock_providers.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
 import 'package:shopsync/features/orders/data/customer_order_model.dart';
+import 'package:shopsync/features/orders/data/addon_model.dart';
 import 'package:shopsync/features/orders/presentation/order_providers.dart';
 
 // class QuickSaleDialog extends ConsumerWidget {
@@ -27,6 +28,12 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
   );
   int? _selectedBagId;
 
+  int? _selectedAddonId = 0;
+  String? _addonName;
+  double? _addonPrice;
+  double? _addonCost;
+  double _addonAmount = 1.0;
+
   @override
   void dispose() {
     _customerController.dispose();
@@ -43,6 +50,7 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
     final products = ref.watch(productsProvider).value ?? [];
     final availabilityAsync = ref.watch(walkInAvailabilityProvider(today));
     final availability = availabilityAsync.asData?.value ?? {};
+    final addons = ref.watch(addonsProvider).value ?? [];
 
     // Filter products
     final activeProducts = products.where((p) => !p.isVoid).toList();
@@ -120,6 +128,163 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
               ),
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<int>(
+              value: _selectedAddonId,
+              dropdownColor: const Color(0xFF1E293B),
+              isExpanded: true,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+              items: [
+                const DropdownMenuItem<int>(
+                  value: 0,
+                  child: Text('NONE (NO ADD-ON)'),
+                ),
+                ...addons.map((a) => DropdownMenuItem<int>(
+                      value: a.id,
+                      child: Text('${a.name.toUpperCase()} (${a.price.toStringAsFixed(0)} ETB)'),
+                    )),
+                const DropdownMenuItem<int>(
+                  value: -1,
+                  child: Text('+ ADD CUSTOM ADD-ON', style: TextStyle(color: Color(0xFF818CF8), fontWeight: FontWeight.bold)),
+                ),
+              ],
+              onChanged: (val) async {
+                if (val == 0) {
+                  setState(() {
+                    _selectedAddonId = 0;
+                    _addonName = null;
+                    _addonPrice = null;
+                    _addonCost = null;
+                  });
+                } else if (val == -1) {
+                  final result = await _showCustomAddonDialog(context, ref);
+                  if (result != null) {
+                    setState(() {
+                      _selectedAddonId = result.id;
+                      _addonName = result.name;
+                      _addonPrice = result.price;
+                      _addonCost = result.cost;
+                    });
+                  } else {
+                    setState(() {
+                      _selectedAddonId = 0;
+                      _addonName = null;
+                      _addonPrice = null;
+                      _addonCost = null;
+                    });
+                  }
+                } else if (val != null) {
+                  final selectedAddon = addons.firstWhere((a) => a.id == val);
+                  setState(() {
+                    _selectedAddonId = val;
+                    _addonName = selectedAddon.name;
+                    _addonPrice = selectedAddon.price;
+                    _addonCost = selectedAddon.cost;
+                  });
+                }
+              },
+              decoration: InputDecoration(
+                labelText: 'Add-on / Service (Optional)',
+                labelStyle: const TextStyle(color: Colors.white38, fontSize: 12),
+                prefixIcon: const Icon(
+                  Icons.add_box_rounded,
+                  size: 20,
+                  color: Color(0xFF818CF8),
+                ),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.05),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: const BorderSide(color: Color(0xFF6366F1)),
+                ),
+              ),
+            ),
+            if (_addonName != null) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.02),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _addonName!.toUpperCase(),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 12,
+                              color: Colors.amberAccent,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          Text(
+                            'Price: ${_addonPrice?.toStringAsFixed(0)} ETB',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: Colors.white38,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove_rounded, color: Colors.white70, size: 18),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                            onPressed: () {
+                              if (_addonAmount > 1) {
+                                setState(() => _addonAmount--);
+                              }
+                            },
+                          ),
+                          SizedBox(
+                            width: 30,
+                            child: Text(
+                              _addonAmount.toStringAsFixed(0),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 14,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.add_rounded, color: Colors.white70, size: 18),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                            onPressed: () {
+                              setState(() => _addonAmount++);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -645,7 +810,8 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
 
     // 1. Process the main product sale
     final customerName = _customerController.text.trim();
-    final totalPrice = quantity * product.sellingPrice;
+    final totalPrice = quantity * product.sellingPrice +
+        (_addonName != null ? _addonAmount * (_addonPrice ?? 0.0) : 0.0);
     final order = CustomerOrder()
       ..productId = product.id
       ..customerName = customerName.isEmpty ? "Walk-in Customer" : customerName
@@ -656,7 +822,11 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
       ..costPriceAtTime = product.costPrice
       ..sellingPriceAtTime = product.sellingPrice
       ..advancePayment = totalPrice
-      ..fulfilledAt = now;
+      ..fulfilledAt = now
+      ..addonName = _addonName
+      ..addonPrice = _addonPrice
+      ..addonCost = _addonCost
+      ..addonAmount = _addonName != null ? _addonAmount : null;
 
     print('DEBUG: QuickSale processing. Name: ${order.customerName}');
     await ref.read(orderRepositoryProvider).saveOrder(order);
@@ -717,6 +887,109 @@ class _IconButton extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<Addon?> _showCustomAddonDialog(BuildContext context, WidgetRef ref) async {
+  final nameController = TextEditingController();
+  final priceController = TextEditingController();
+  final costController = TextEditingController();
+
+  return showDialog<Addon>(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: const Color(0xFF0F172A),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(28),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      title: const Text(
+        'NEW CUSTOM ADD-ON',
+        style: TextStyle(
+          fontWeight: FontWeight.w900,
+          fontSize: 14,
+          letterSpacing: 1.5,
+          color: Color(0xFF818CF8),
+        ),
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Add-on Name',
+                labelStyle: TextStyle(color: Colors.white38),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF6366F1)),
+                ),
+              ),
+              style: const TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: priceController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Selling Price (ETB)',
+                labelStyle: TextStyle(color: Colors.white38),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF6366F1)),
+                ),
+              ),
+              style: const TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: costController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Cost Price (ETB)',
+                labelStyle: TextStyle(color: Colors.white38),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF6366F1)),
+                ),
+              ),
+              style: const TextStyle(color: Colors.white),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, null),
+          child: const Text('CANCEL', style: TextStyle(color: Colors.white24, fontWeight: FontWeight.w900)),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            final name = nameController.text.trim();
+            final price = double.tryParse(priceController.text) ?? 0.0;
+            final cost = double.tryParse(costController.text) ?? 0.0;
+            if (name.isEmpty || price <= 0 || cost < 0) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Please fill all fields with valid data')),
+              );
+              return;
+            }
+            final newAddon = Addon()
+              ..name = name
+              ..price = price
+              ..cost = cost;
+            await ref.read(addonRepositoryProvider).saveAddon(newAddon);
+            if (context.mounted) {
+              Navigator.pop(context, newAddon);
+            }
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF6366F1),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: const Text('CREATE', style: TextStyle(fontWeight: FontWeight.w900)),
+        ),
+      ],
+    ),
+  );
 }
 
 //   }
