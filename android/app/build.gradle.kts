@@ -43,3 +43,9 @@ android {
 flutter {
     source = "../.."
 }
+
+configurations.all {
+    resolutionStrategy {
+        force("androidx.core:core-viewtree:1.0.0")
+    }
+}
