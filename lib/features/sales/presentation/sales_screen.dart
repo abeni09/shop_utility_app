@@ -857,10 +857,12 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
         final supplierSettlements = wallet.getSupplierSettlements();
         final totalLosses = wallet.getLossesCost(products);
         final supplierDuesIncurred = wallet.getSupplierDuesIncurred(products);
+        final unsoldStockValue = wallet.getUnsoldReceivedStockValue(products);
 
         final netCashPosition =
             cashCollected - totalExpenses - supplierSettlements;
-        final netProfit = totalSales - totalExpenses - totalLosses;
+        final netProfit =
+            totalSales - wallet.cogs - totalExpenses - totalLosses;
 
         return SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -876,6 +878,183 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
                 totalLosses,
                 supplierSettlements,
                 supplierDuesIncurred,
+                unsoldStockValue,
+                onUnsoldStockTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    backgroundColor: const Color(0xFF1E1E38),
+                    shape: const RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(28)),
+                    ),
+                    builder: (context) {
+                      final receivedStocks = wallet.dailyStocks
+                          .where((ds) => ds.receivedQuantity > 0)
+                          .toList();
+                      final unsoldItemsList = <Widget>[];
+
+                      for (var ds in receivedStocks) {
+                        final prod = products.firstWhere(
+                          (p) => p.id == ds.productId,
+                          orElse: () => Product()
+                            ..name = 'Unknown Product'
+                            ..costPrice = 0.0,
+                        );
+                        final soldInPeriod = wallet.orders
+                            .where((o) => o.productId == ds.productId)
+                            .fold(0.0, (sum, o) => sum + o.amount);
+                        final unsoldQty =
+                            (ds.receivedQuantity - soldInPeriod)
+                                .clamp(0.0, double.infinity);
+
+                        if (unsoldQty > 0) {
+                          final suppliers =
+                              ref.read(suppliersProvider).value ?? [];
+                          final supName = prod.supplierId != null
+                              ? suppliers
+                                  .firstWhere(
+                                    (sup) => sup.id == prod.supplierId,
+                                    orElse: () => Supplier()
+                                      ..name = 'Supplier #${prod.supplierId}',
+                                  )
+                                  .name
+                              : 'No Supplier';
+
+                          unsoldItemsList.add(
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.02),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                    color:
+                                        Colors.white.withValues(alpha: 0.05)),
+                              ),
+                              child: ListTile(
+                                leading: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF06B6D4)
+                                        .withValues(alpha: 0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.inventory_2_rounded,
+                                    color: Color(0xFF06B6D4),
+                                    size: 20,
+                                  ),
+                                ),
+                                title: Text(
+                                  prod.name,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  'Unsold: ${unsoldQty.toStringAsFixed(0)} / ${ds.receivedQuantity.toStringAsFixed(0)} rec. • $supName',
+                                  style: const TextStyle(
+                                    color: Colors.white30,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                trailing: Text(
+                                  'ETB ${(unsoldQty * prod.costPrice).toStringAsFixed(0)}',
+                                  style: const TextStyle(
+                                    color: Color(0xFF06B6D4),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                      }
+
+                      return SafeArea(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Center(
+                                child: Container(
+                                  width: 40,
+                                  height: 4,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white24,
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'UNSOLD RECEIVED STOCK',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 1.2,
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF06B6D4)
+                                          .withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      'ETB ${unsoldStockValue.toStringAsFixed(0)}',
+                                      style: const TextStyle(
+                                        color: Color(0xFF06B6D4),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Value of inventory received in this range that remains unsold on the shelves.',
+                                style: TextStyle(
+                                    color: Colors.white30, fontSize: 11),
+                              ),
+                              const SizedBox(height: 20),
+                              if (unsoldItemsList.isEmpty)
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 40),
+                                  child: Center(
+                                    child: Text(
+                                      'No unsold received stock found.',
+                                      style: TextStyle(
+                                          color: Colors.white24, fontSize: 13),
+                                    ),
+                                  ),
+                                )
+                              else
+                                Flexible(
+                                  child: ListView(
+                                    shrinkWrap: true,
+                                    children: unsoldItemsList,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
               ),
               const SizedBox(height: 24),
               _buildWalletNetPositions(netCashPosition, netProfit),
@@ -984,6 +1163,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
     double losses,
     double settlements,
     double duesIncurred,
+    double unsoldStock,
   ) {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -1077,6 +1257,12 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
               duesIncurred.toString(),
               const Color(0xFFEC4899),
               Icons.local_shipping_rounded,
+            ),
+            kpiCard(
+              'UNSOLD STOCK',
+              unsoldStock.toString(),
+              const Color(0xFF06B6D4),
+              Icons.inventory_2_rounded,
             ),
             kpiCard(
               'DUES SETTLED',
@@ -3891,6 +4077,35 @@ class WalletData {
           orElse: () => Product()..costPrice = 0.0,
         );
         total += ds.receivedQuantity * prod.costPrice;
+      }
+    }
+    return total;
+  }
+
+  double get cogs => orders.fold(0.0, (sum, o) {
+    final baseCost = o.amount * o.costPriceAtTime;
+    final addonCostVal = o.addonName != null
+        ? (o.addonCost ?? 0.0) * (o.addonAmount ?? 0.0)
+        : 0.0;
+    return sum + baseCost + addonCostVal;
+  });
+
+  double getUnsoldReceivedStockValue(List<Product> products) {
+    double total = 0.0;
+    for (var ds in dailyStocks) {
+      if (ds.receivedQuantity > 0) {
+        final prod = products.firstWhere(
+          (p) => p.id == ds.productId,
+          orElse: () => Product()..costPrice = 0.0,
+        );
+        final soldInPeriod = orders
+            .where((o) => o.productId == ds.productId)
+            .fold(0.0, (sum, o) => sum + o.amount);
+        final unsoldQty = (ds.receivedQuantity - soldInPeriod).clamp(
+          0.0,
+          double.infinity,
+        );
+        total += unsoldQty * prod.costPrice;
       }
     }
     return total;
