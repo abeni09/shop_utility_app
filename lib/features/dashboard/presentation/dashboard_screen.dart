@@ -384,7 +384,8 @@ class DashboardScreen extends ConsumerWidget {
                             ),
                           ),
                         ),
-                      if (isCloudNewer && isLocalAhead) const SizedBox(width: 12),
+                      if (isCloudNewer && isLocalAhead)
+                        const SizedBox(width: 12),
                       if (isLocalAhead)
                         Expanded(
                           child: ElevatedButton.icon(
@@ -426,7 +427,9 @@ class DashboardScreen extends ConsumerWidget {
                         child: Text(
                           'All data is backed up and synchronized',
                           style: TextStyle(
-                            color: const Color(0xFF10B981).withValues(alpha: 0.8),
+                            color: const Color(
+                              0xFF10B981,
+                            ).withValues(alpha: 0.8),
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                           ),
@@ -824,14 +827,21 @@ class _HeroProfitCard extends StatelessWidget {
             child: GestureDetector(
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const FinancialReportScreen()),
+                MaterialPageRoute(
+                  builder: (_) => const FinancialReportScreen(),
+                ),
               ),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.1),
+                  ),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
@@ -846,7 +856,11 @@ class _HeroProfitCard extends StatelessWidget {
                       ),
                     ),
                     SizedBox(width: 4),
-                    Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 10),
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: Colors.white,
+                      size: 10,
+                    ),
                   ],
                 ),
               ),

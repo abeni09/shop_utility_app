@@ -8,7 +8,9 @@ import 'package:shopsync/features/dashboard/presentation/ui_providers.dart';
 
 enum ProductSortType { nameAsc, nameDesc, priceAsc, priceDesc, oldest, newest }
 
-final productSortTypeProvider = StateProvider<ProductSortType>((ref) => ProductSortType.newest);
+final productSortTypeProvider = StateProvider<ProductSortType>(
+  (ref) => ProductSortType.newest,
+);
 
 final productRepositoryProvider = Provider<ProductRepository>((ref) {
   final dbService = ref.watch(databaseServiceProvider);
@@ -30,10 +32,14 @@ final sortedProductsProvider = Provider<AsyncValue<List<Product>>>((ref) {
     final sorted = List<Product>.from(products);
     switch (sortType) {
       case ProductSortType.nameAsc:
-        sorted.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        sorted.sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
         break;
       case ProductSortType.nameDesc:
-        sorted.sort((a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()));
+        sorted.sort(
+          (a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()),
+        );
         break;
       case ProductSortType.priceAsc:
         sorted.sort((a, b) => a.sellingPrice.compareTo(b.sellingPrice));

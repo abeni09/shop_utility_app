@@ -118,7 +118,8 @@ class ProductListScreen extends ConsumerWidget {
                             Icons.auto_awesome_rounded,
                             color: Color(0xFF10B981),
                           ),
-                          onPressed: () => _showSafetyStockRecommender(context, ref),
+                          onPressed: () =>
+                              _showSafetyStockRecommender(context, ref),
                           tooltip: 'Smart Safety Stock Recommender',
                         ),
                       ),
@@ -253,12 +254,48 @@ class ProductListScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              _sortTile(context, ref, 'Recently Added', ProductSortType.newest, currentSort),
-              _sortTile(context, ref, 'Oldest First', ProductSortType.oldest, currentSort),
-              _sortTile(context, ref, 'Name (A - Z)', ProductSortType.nameAsc, currentSort),
-              _sortTile(context, ref, 'Name (Z - A)', ProductSortType.nameDesc, currentSort),
-              _sortTile(context, ref, 'Price (Low to High)', ProductSortType.priceAsc, currentSort),
-              _sortTile(context, ref, 'Price (High to Low)', ProductSortType.priceDesc, currentSort),
+              _sortTile(
+                context,
+                ref,
+                'Recently Added',
+                ProductSortType.newest,
+                currentSort,
+              ),
+              _sortTile(
+                context,
+                ref,
+                'Oldest First',
+                ProductSortType.oldest,
+                currentSort,
+              ),
+              _sortTile(
+                context,
+                ref,
+                'Name (A - Z)',
+                ProductSortType.nameAsc,
+                currentSort,
+              ),
+              _sortTile(
+                context,
+                ref,
+                'Name (Z - A)',
+                ProductSortType.nameDesc,
+                currentSort,
+              ),
+              _sortTile(
+                context,
+                ref,
+                'Price (Low to High)',
+                ProductSortType.priceAsc,
+                currentSort,
+              ),
+              _sortTile(
+                context,
+                ref,
+                'Price (High to Low)',
+                ProductSortType.priceDesc,
+                currentSort,
+              ),
             ],
           ),
         );
@@ -479,7 +516,8 @@ void _showProductDialog(
                       return;
                     }
 
-                    final threshold = int.tryParse(minStockController.text) ?? 5;
+                    final threshold =
+                        int.tryParse(minStockController.text) ?? 5;
                     final product = existing ?? Product();
                     product.name = nameController.text.trim();
                     product.costPrice = cost;
@@ -1047,8 +1085,9 @@ class _SafetyStockRecommenderBodyState
   Widget build(BuildContext context) {
     final productsAsync = ref.watch(productsProvider);
     final allOrdersAsync = ref.watch(allOrdersProvider);
-    final availabilityAsync =
-        ref.watch(walkInAvailabilityProvider(DateTime.now()));
+    final availabilityAsync = ref.watch(
+      walkInAvailabilityProvider(DateTime.now()),
+    );
 
     return Container(
       padding: EdgeInsets.only(
@@ -1074,8 +1113,11 @@ class _SafetyStockRecommenderBodyState
           ),
           Row(
             children: [
-              const Icon(Icons.auto_awesome_rounded,
-                  color: Color(0xFF10B981), size: 22),
+              const Icon(
+                Icons.auto_awesome_rounded,
+                color: Color(0xFF10B981),
+                size: 22,
+              ),
               const SizedBox(width: 12),
               const Expanded(
                 child: Text(
@@ -1093,7 +1135,7 @@ class _SafetyStockRecommenderBodyState
           const SizedBox(height: 6),
           Text(
             _useDayOfWeekMode
-                ? 'Based on avg sales for ${["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][DateTime.now().weekday - 1]} over the last 90 days × lead time.'
+                ? 'Based on avg sales for ${["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][DateTime.now().weekday - 1]} over the last 90 days × lead time.'
                 : 'Based on 14-day average daily sales velocity × lead time.',
             style: const TextStyle(color: Colors.white38, fontSize: 11),
           ),
@@ -1101,35 +1143,46 @@ class _SafetyStockRecommenderBodyState
           // Mode toggle
           Row(
             children: [
-              _modeChip('AVG VELOCITY', !_useDayOfWeekMode,
-                  () => setState(() => _useDayOfWeekMode = false)),
+              _modeChip(
+                'AVG VELOCITY',
+                !_useDayOfWeekMode,
+                () => setState(() => _useDayOfWeekMode = false),
+              ),
               const SizedBox(width: 8),
-              _modeChip('DAY PATTERN', _useDayOfWeekMode,
-                  () => setState(() => _useDayOfWeekMode = true)),
+              _modeChip(
+                'DAY PATTERN',
+                _useDayOfWeekMode,
+                () => setState(() => _useDayOfWeekMode = true),
+              ),
             ],
           ),
           const SizedBox(height: 16),
           // Lead time slider
           Row(
             children: [
-              const Icon(Icons.local_shipping_outlined,
-                  color: Colors.white30, size: 16),
+              const Icon(
+                Icons.local_shipping_outlined,
+                color: Colors.white30,
+                size: 16,
+              ),
               const SizedBox(width: 8),
               const Text(
                 'LEAD TIME:',
                 style: TextStyle(
-                    color: Colors.white30,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.0),
+                  color: Colors.white30,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.0,
+                ),
               ),
               const SizedBox(width: 8),
               Text(
                 '${_leadTimeDays.toStringAsFixed(0)} days',
                 style: const TextStyle(
-                    color: Color(0xFF10B981),
-                    fontWeight: FontWeight.w900,
-                    fontSize: 12),
+                  color: Color(0xFF10B981),
+                  fontWeight: FontWeight.w900,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -1138,8 +1191,7 @@ class _SafetyStockRecommenderBodyState
               activeTrackColor: const Color(0xFF10B981),
               inactiveTrackColor: Colors.white10,
               thumbColor: const Color(0xFF10B981),
-              overlayColor:
-                  const Color(0xFF10B981).withValues(alpha: 0.1),
+              overlayColor: const Color(0xFF10B981).withValues(alpha: 0.1),
               trackHeight: 3,
             ),
             child: Slider(
@@ -1159,8 +1211,9 @@ class _SafetyStockRecommenderBodyState
                       ? DateTime.now().subtract(const Duration(days: 90))
                       : DateTime.now().subtract(const Duration(days: 14));
                   final todayWeekday = DateTime.now().weekday; // 1=Mon..7=Sun
-                  final activeProducts =
-                      products.where((p) => !p.isVoid).toList();
+                  final activeProducts = products
+                      .where((p) => !p.isVoid)
+                      .toList();
 
                   // Compute velocity per product
                   final Map<int, double> velocity = {};
@@ -1183,16 +1236,18 @@ class _SafetyStockRecommenderBodyState
                     // Count occurrences of todayWeekday in last 90 days
                     int weekdayCount = 0;
                     for (int d = 0; d < 90; d++) {
-                      if (DateTime.now()
-                              .subtract(Duration(days: d))
-                              .weekday ==
+                      if (DateTime.now().subtract(Duration(days: d)).weekday ==
                           todayWeekday) {
                         weekdayCount++;
                       }
                     }
                     for (final p in activeProducts) {
                       final totalOnWeekday =
-                          weekdaySales[p.id]?.values.fold(0.0, (a, b) => a + b) ?? 0.0;
+                          weekdaySales[p.id]?.values.fold(
+                            0.0,
+                            (a, b) => a + b,
+                          ) ??
+                          0.0;
                       velocity[p.id] = weekdayCount > 0
                           ? totalOnWeekday / weekdayCount
                           : 0.0;
@@ -1210,34 +1265,39 @@ class _SafetyStockRecommenderBodyState
 
                   final List<_SafetyStockEntry> entries = [];
                   for (final p in activeProducts) {
-                    final dailyVelocity =
-                        (velocity[p.id] ?? 0.0) / 14.0;
-                    final recommended =
-                        (dailyVelocity * _leadTimeDays).ceil().clamp(1, 9999);
-                    entries.add(_SafetyStockEntry(
-                      product: p,
-                      currentThreshold: p.minStockThreshold,
-                      recommendedThreshold: recommended,
-                      dailyVelocity: dailyVelocity,
-                      currentStock:
-                          availability[p.id]?.walkInAvailable ?? 0.0,
-                    ));
+                    final dailyVelocity = (velocity[p.id] ?? 0.0) / 14.0;
+                    final recommended = (dailyVelocity * _leadTimeDays)
+                        .ceil()
+                        .clamp(1, 9999);
+                    entries.add(
+                      _SafetyStockEntry(
+                        product: p,
+                        currentThreshold: p.minStockThreshold,
+                        recommendedThreshold: recommended,
+                        dailyVelocity: dailyVelocity,
+                        currentStock:
+                            availability[p.id]?.walkInAvailable ?? 0.0,
+                      ),
+                    );
                   }
 
                   // Sort: products needing biggest change first
-                  entries.sort((a, b) =>
-                      (b.recommendedThreshold - b.currentThreshold)
-                          .abs()
-                          .compareTo((a.recommendedThreshold -
-                                  a.currentThreshold)
-                              .abs()));
+                  entries.sort(
+                    (a, b) => (b.recommendedThreshold - b.currentThreshold)
+                        .abs()
+                        .compareTo(
+                          (a.recommendedThreshold - a.currentThreshold).abs(),
+                        ),
+                  );
 
                   if (entries.isEmpty) {
                     return const Padding(
                       padding: EdgeInsets.symmetric(vertical: 24),
                       child: Center(
-                        child: Text('No active products.',
-                            style: TextStyle(color: Colors.white24)),
+                        child: Text(
+                          'No active products.',
+                          style: TextStyle(color: Colors.white24),
+                        ),
                       ),
                     );
                   }
@@ -1247,8 +1307,7 @@ class _SafetyStockRecommenderBodyState
                     children: [
                       ConstrainedBox(
                         constraints: BoxConstraints(
-                          maxHeight:
-                              MediaQuery.of(context).size.height * 0.42,
+                          maxHeight: MediaQuery.of(context).size.height * 0.42,
                         ),
                         child: ListView.separated(
                           shrinkWrap: true,
@@ -1259,16 +1318,16 @@ class _SafetyStockRecommenderBodyState
                           ),
                           itemBuilder: (context, index) {
                             final e = entries[index];
-                            final diff = e.recommendedThreshold -
-                                e.currentThreshold;
+                            final diff =
+                                e.recommendedThreshold - e.currentThreshold;
                             final isIncrease = diff > 0;
                             final isDecrease = diff < 0;
                             final isOk = diff == 0;
                             final changeColor = isIncrease
                                 ? const Color(0xFFF59E0B)
                                 : isDecrease
-                                    ? const Color(0xFF818CF8)
-                                    : const Color(0xFF10B981);
+                                ? const Color(0xFF818CF8)
+                                : const Color(0xFF10B981);
 
                             return Row(
                               children: [
@@ -1290,16 +1349,16 @@ class _SafetyStockRecommenderBodyState
                                       Text(
                                         'Velocity: ${e.dailyVelocity.toStringAsFixed(1)}/day  •  Stock: ${e.currentStock.toStringAsFixed(0)}',
                                         style: const TextStyle(
-                                            color: Colors.white30,
-                                            fontSize: 11),
+                                          color: Colors.white30,
+                                          fontSize: 11,
+                                        ),
                                       ),
                                     ],
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.end,
+                                  crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
                                     Row(
                                       mainAxisSize: MainAxisSize.min,
@@ -1307,17 +1366,18 @@ class _SafetyStockRecommenderBodyState
                                         Text(
                                           '${e.currentThreshold}',
                                           style: const TextStyle(
-                                              color: Colors.white38,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600),
+                                            color: Colors.white38,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                         const SizedBox(width: 6),
                                         Icon(
                                           isIncrease
                                               ? Icons.arrow_forward_rounded
                                               : isDecrease
-                                                  ? Icons.arrow_back_rounded
-                                                  : Icons.check_rounded,
+                                              ? Icons.arrow_back_rounded
+                                              : Icons.check_rounded,
                                           size: 14,
                                           color: changeColor,
                                         ),
@@ -1336,12 +1396,14 @@ class _SafetyStockRecommenderBodyState
                                       isOk
                                           ? 'Optimal'
                                           : isIncrease
-                                              ? '+$diff (increase)'
-                                              : '$diff (decrease)',
+                                          ? '+$diff (increase)'
+                                          : '$diff (decrease)',
                                       style: TextStyle(
-                                          color:
-                                              changeColor.withValues(alpha: 0.7),
-                                          fontSize: 10),
+                                        color: changeColor.withValues(
+                                          alpha: 0.7,
+                                        ),
+                                        fontSize: 10,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -1352,8 +1414,7 @@ class _SafetyStockRecommenderBodyState
                                       final updated = Product()
                                         ..id = e.product.id
                                         ..name = e.product.name
-                                        ..sellingPrice =
-                                            e.product.sellingPrice
+                                        ..sellingPrice = e.product.sellingPrice
                                         ..costPrice = e.product.costPrice
                                         ..minStockThreshold =
                                             e.recommendedThreshold
@@ -1365,29 +1426,36 @@ class _SafetyStockRecommenderBodyState
                                       ref.invalidate(productsProvider);
                                       if (context.mounted) {
                                         ScaffoldMessenger.of(
-                                                context)
-                                            .showSnackBar(SnackBar(
-                                          content: Text(
-                                            '✓ ${e.product.name} threshold updated to ${e.recommendedThreshold}',
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              '✓ ${e.product.name} threshold updated to ${e.recommendedThreshold}',
+                                            ),
+                                            backgroundColor: const Color(
+                                              0xFF10B981,
+                                            ),
+                                            duration: const Duration(
+                                              seconds: 2,
+                                            ),
                                           ),
-                                          backgroundColor:
-                                              const Color(0xFF10B981),
-                                          duration: const Duration(
-                                              seconds: 2),
-                                        ));
+                                        );
                                       }
                                     },
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 6),
+                                        horizontal: 10,
+                                        vertical: 6,
+                                      ),
                                       decoration: BoxDecoration(
-                                        color: changeColor
-                                            .withValues(alpha: 0.12),
-                                        borderRadius:
-                                            BorderRadius.circular(10),
+                                        color: changeColor.withValues(
+                                          alpha: 0.12,
+                                        ),
+                                        borderRadius: BorderRadius.circular(10),
                                         border: Border.all(
-                                          color: changeColor
-                                              .withValues(alpha: 0.3),
+                                          color: changeColor.withValues(
+                                            alpha: 0.3,
+                                          ),
                                           width: 1,
                                         ),
                                       ),
@@ -1415,8 +1483,7 @@ class _SafetyStockRecommenderBodyState
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF10B981),
                             foregroundColor: Colors.white,
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
@@ -1425,21 +1492,26 @@ class _SafetyStockRecommenderBodyState
                           label: const Text(
                             'APPLY ALL RECOMMENDATIONS',
                             style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1.0),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.0,
+                            ),
                           ),
                           onPressed: () async {
-                            final toApply =
-                                entries.where((e) => e.recommendedThreshold != e.currentThreshold).toList();
+                            final toApply = entries
+                                .where(
+                                  (e) =>
+                                      e.recommendedThreshold !=
+                                      e.currentThreshold,
+                                )
+                                .toList();
                             for (final e in toApply) {
                               final updated = Product()
                                 ..id = e.product.id
                                 ..name = e.product.name
                                 ..sellingPrice = e.product.sellingPrice
                                 ..costPrice = e.product.costPrice
-                                ..minStockThreshold =
-                                    e.recommendedThreshold
+                                ..minStockThreshold = e.recommendedThreshold
                                 ..supplierId = e.product.supplierId
                                 ..isVoid = e.product.isVoid;
                               await ref
@@ -1468,8 +1540,7 @@ class _SafetyStockRecommenderBodyState
                 loading: () => const Padding(
                   padding: EdgeInsets.all(24.0),
                   child: Center(
-                    child: CircularProgressIndicator(
-                        color: Color(0xFF10B981)),
+                    child: CircularProgressIndicator(color: Color(0xFF10B981)),
                   ),
                 ),
                 error: (e, _) => const SizedBox.shrink(),
@@ -1477,8 +1548,7 @@ class _SafetyStockRecommenderBodyState
               loading: () => const Padding(
                 padding: EdgeInsets.all(24.0),
                 child: Center(
-                  child:
-                      CircularProgressIndicator(color: Color(0xFF10B981)),
+                  child: CircularProgressIndicator(color: Color(0xFF10B981)),
                 ),
               ),
               error: (e, _) => const SizedBox.shrink(),
@@ -1486,8 +1556,7 @@ class _SafetyStockRecommenderBodyState
             loading: () => const Padding(
               padding: EdgeInsets.all(24.0),
               child: Center(
-                child:
-                    CircularProgressIndicator(color: Color(0xFF10B981)),
+                child: CircularProgressIndicator(color: Color(0xFF10B981)),
               ),
             ),
             error: (e, _) => const SizedBox.shrink(),
@@ -1543,4 +1612,3 @@ class _SafetyStockEntry {
     required this.currentStock,
   });
 }
-

@@ -45,11 +45,11 @@ class DashboardRepository {
     for (var order in orders) {
       final baseRevenue = order.amount * order.sellingPriceAtTime;
       final baseCost = order.amount * order.costPriceAtTime;
-      
+
       final addonAmt = order.addonAmount ?? 0.0;
       final addonPr = order.addonPrice ?? 0.0;
       final addonCst = order.addonCost ?? 0.0;
-      
+
       final addonRevenue = addonAmt * addonPr;
       final addonExpense = addonAmt * addonCst;
 
@@ -82,7 +82,6 @@ class DashboardRepository {
       await isar.dailyLogs.put(log);
     });
   }
-
 
   Future<void> recalculateSupplierOrders(DateTime date) async {
     final startOfDay = DateTime(date.year, date.month, date.day);
@@ -141,7 +140,10 @@ class DashboardRepository {
     return {'sales': totalSales, 'profit': totalProfit};
   }
 
-  Future<List<DailyLog>> getDailyLogsForRange(DateTime start, DateTime end) async {
+  Future<List<DailyLog>> getDailyLogsForRange(
+    DateTime start,
+    DateTime end,
+  ) async {
     return await isar.dailyLogs
         .filter()
         .dateGreaterThan(start.subtract(const Duration(milliseconds: 1)))

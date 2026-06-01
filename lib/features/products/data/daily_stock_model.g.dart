@@ -17,11 +17,7 @@ const DailyStockSchema = CollectionSchema(
   name: r'DailyStock',
   id: 179604680033595418,
   properties: {
-    r'date': PropertySchema(
-      id: 0,
-      name: r'date',
-      type: IsarType.dateTime,
-    ),
+    r'date': PropertySchema(id: 0, name: r'date', type: IsarType.dateTime),
     r'productId': PropertySchema(
       id: 1,
       name: r'productId',
@@ -41,7 +37,7 @@ const DailyStockSchema = CollectionSchema(
       id: 4,
       name: r'supplierId',
       type: IsarType.long,
-    )
+    ),
   },
   estimateSize: _dailyStockEstimateSize,
   serialize: _dailyStockSerialize,
@@ -59,9 +55,9 @@ const DailyStockSchema = CollectionSchema(
           name: r'date',
           type: IndexType.value,
           caseSensitive: false,
-        )
+        ),
       ],
-    )
+    ),
   },
   links: {},
   embeddedSchemas: {},
@@ -164,10 +160,7 @@ extension DailyStockQueryWhere
     on QueryBuilder<DailyStock, DailyStock, QWhereClause> {
   QueryBuilder<DailyStock, DailyStock, QAfterWhereClause> idEqualTo(Id id) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IdWhereClause.between(
-        lower: id,
-        upper: id,
-      ));
+      return query.addWhereClause(IdWhereClause.between(lower: id, upper: id));
     });
   }
 
@@ -193,8 +186,10 @@ extension DailyStockQueryWhere
     });
   }
 
-  QueryBuilder<DailyStock, DailyStock, QAfterWhereClause> idGreaterThan(Id id,
-      {bool include = false}) {
+  QueryBuilder<DailyStock, DailyStock, QAfterWhereClause> idGreaterThan(
+    Id id, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.greaterThan(lower: id, includeLower: include),
@@ -202,8 +197,10 @@ extension DailyStockQueryWhere
     });
   }
 
-  QueryBuilder<DailyStock, DailyStock, QAfterWhereClause> idLessThan(Id id,
-      {bool include = false}) {
+  QueryBuilder<DailyStock, DailyStock, QAfterWhereClause> idLessThan(
+    Id id, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.lessThan(upper: id, includeUpper: include),
@@ -218,56 +215,67 @@ extension DailyStockQueryWhere
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IdWhereClause.between(
-        lower: lowerId,
-        includeLower: includeLower,
-        upper: upperId,
-        includeUpper: includeUpper,
-      ));
+      return query.addWhereClause(
+        IdWhereClause.between(
+          lower: lowerId,
+          includeLower: includeLower,
+          upper: upperId,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<DailyStock, DailyStock, QAfterWhereClause> dateEqualTo(
-      DateTime date) {
+    DateTime date,
+  ) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.equalTo(
-        indexName: r'date',
-        value: [date],
-      ));
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'date', value: [date]),
+      );
     });
   }
 
   QueryBuilder<DailyStock, DailyStock, QAfterWhereClause> dateNotEqualTo(
-      DateTime date) {
+    DateTime date,
+  ) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'date',
-              lower: [],
-              upper: [date],
-              includeUpper: false,
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'date',
-              lower: [date],
-              includeLower: false,
-              upper: [],
-            ));
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'date',
+                lower: [],
+                upper: [date],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'date',
+                lower: [date],
+                includeLower: false,
+                upper: [],
+              ),
+            );
       } else {
         return query
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'date',
-              lower: [date],
-              includeLower: false,
-              upper: [],
-            ))
-            .addWhereClause(IndexWhereClause.between(
-              indexName: r'date',
-              lower: [],
-              upper: [date],
-              includeUpper: false,
-            ));
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'date',
+                lower: [date],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'date',
+                lower: [],
+                upper: [date],
+                includeUpper: false,
+              ),
+            );
       }
     });
   }
@@ -277,12 +285,14 @@ extension DailyStockQueryWhere
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'date',
-        lower: [date],
-        includeLower: include,
-        upper: [],
-      ));
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'date',
+          lower: [date],
+          includeLower: include,
+          upper: [],
+        ),
+      );
     });
   }
 
@@ -291,12 +301,14 @@ extension DailyStockQueryWhere
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'date',
-        lower: [],
-        upper: [date],
-        includeUpper: include,
-      ));
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'date',
+          lower: [],
+          upper: [date],
+          includeUpper: include,
+        ),
+      );
     });
   }
 
@@ -307,13 +319,15 @@ extension DailyStockQueryWhere
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IndexWhereClause.between(
-        indexName: r'date',
-        lower: [lowerDate],
-        includeLower: includeLower,
-        upper: [upperDate],
-        includeUpper: includeUpper,
-      ));
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'date',
+          lower: [lowerDate],
+          includeLower: includeLower,
+          upper: [upperDate],
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 }
@@ -321,12 +335,12 @@ extension DailyStockQueryWhere
 extension DailyStockQueryFilter
     on QueryBuilder<DailyStock, DailyStock, QFilterCondition> {
   QueryBuilder<DailyStock, DailyStock, QAfterFilterCondition> dateEqualTo(
-      DateTime value) {
+    DateTime value,
+  ) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'date',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'date', value: value),
+      );
     });
   }
 
@@ -335,11 +349,13 @@ extension DailyStockQueryFilter
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'date',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'date',
+          value: value,
+        ),
+      );
     });
   }
 
@@ -348,11 +364,13 @@ extension DailyStockQueryFilter
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'date',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'date',
+          value: value,
+        ),
+      );
     });
   }
 
@@ -363,23 +381,25 @@ extension DailyStockQueryFilter
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'date',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'date',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<DailyStock, DailyStock, QAfterFilterCondition> idEqualTo(
-      Id value) {
+    Id value,
+  ) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'id', value: value),
+      );
     });
   }
 
@@ -388,11 +408,13 @@ extension DailyStockQueryFilter
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'id',
+          value: value,
+        ),
+      );
     });
   }
 
@@ -401,11 +423,13 @@ extension DailyStockQueryFilter
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'id',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'id',
+          value: value,
+        ),
+      );
     });
   }
 
@@ -416,37 +440,38 @@ extension DailyStockQueryFilter
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'id',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'id',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<DailyStock, DailyStock, QAfterFilterCondition> productIdEqualTo(
-      int value) {
+    int value,
+  ) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'productId',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'productId', value: value),
+      );
     });
   }
 
   QueryBuilder<DailyStock, DailyStock, QAfterFilterCondition>
-      productIdGreaterThan(
-    int value, {
-    bool include = false,
-  }) {
+  productIdGreaterThan(int value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'productId',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'productId',
+          value: value,
+        ),
+      );
     });
   }
 
@@ -455,11 +480,13 @@ extension DailyStockQueryFilter
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'productId',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'productId',
+          value: value,
+        ),
+      );
     });
   }
 
@@ -470,64 +497,69 @@ extension DailyStockQueryFilter
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'productId',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'productId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 
   QueryBuilder<DailyStock, DailyStock, QAfterFilterCondition>
-      receivedQuantityEqualTo(
-    double value, {
-    double epsilon = Query.epsilon,
-  }) {
+  receivedQuantityEqualTo(double value, {double epsilon = Query.epsilon}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'receivedQuantity',
-        value: value,
-        epsilon: epsilon,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'receivedQuantity',
+          value: value,
+          epsilon: epsilon,
+        ),
+      );
     });
   }
 
   QueryBuilder<DailyStock, DailyStock, QAfterFilterCondition>
-      receivedQuantityGreaterThan(
-    double value, {
-    bool include = false,
-    double epsilon = Query.epsilon,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'receivedQuantity',
-        value: value,
-        epsilon: epsilon,
-      ));
-    });
-  }
-
-  QueryBuilder<DailyStock, DailyStock, QAfterFilterCondition>
-      receivedQuantityLessThan(
+  receivedQuantityGreaterThan(
     double value, {
     bool include = false,
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'receivedQuantity',
-        value: value,
-        epsilon: epsilon,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'receivedQuantity',
+          value: value,
+          epsilon: epsilon,
+        ),
+      );
     });
   }
 
   QueryBuilder<DailyStock, DailyStock, QAfterFilterCondition>
-      receivedQuantityBetween(
+  receivedQuantityLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'receivedQuantity',
+          value: value,
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DailyStock, DailyStock, QAfterFilterCondition>
+  receivedQuantityBetween(
     double lower,
     double upper, {
     bool includeLower = true,
@@ -535,65 +567,70 @@ extension DailyStockQueryFilter
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'receivedQuantity',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        epsilon: epsilon,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'receivedQuantity',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          epsilon: epsilon,
+        ),
+      );
     });
   }
 
   QueryBuilder<DailyStock, DailyStock, QAfterFilterCondition>
-      requestedQuantityEqualTo(
-    double value, {
-    double epsilon = Query.epsilon,
-  }) {
+  requestedQuantityEqualTo(double value, {double epsilon = Query.epsilon}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'requestedQuantity',
-        value: value,
-        epsilon: epsilon,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'requestedQuantity',
+          value: value,
+          epsilon: epsilon,
+        ),
+      );
     });
   }
 
   QueryBuilder<DailyStock, DailyStock, QAfterFilterCondition>
-      requestedQuantityGreaterThan(
-    double value, {
-    bool include = false,
-    double epsilon = Query.epsilon,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'requestedQuantity',
-        value: value,
-        epsilon: epsilon,
-      ));
-    });
-  }
-
-  QueryBuilder<DailyStock, DailyStock, QAfterFilterCondition>
-      requestedQuantityLessThan(
+  requestedQuantityGreaterThan(
     double value, {
     bool include = false,
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'requestedQuantity',
-        value: value,
-        epsilon: epsilon,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'requestedQuantity',
+          value: value,
+          epsilon: epsilon,
+        ),
+      );
     });
   }
 
   QueryBuilder<DailyStock, DailyStock, QAfterFilterCondition>
-      requestedQuantityBetween(
+  requestedQuantityLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'requestedQuantity',
+          value: value,
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<DailyStock, DailyStock, QAfterFilterCondition>
+  requestedQuantityBetween(
     double lower,
     double upper, {
     bool includeLower = true,
@@ -601,70 +638,70 @@ extension DailyStockQueryFilter
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'requestedQuantity',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        epsilon: epsilon,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'requestedQuantity',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          epsilon: epsilon,
+        ),
+      );
     });
   }
 
   QueryBuilder<DailyStock, DailyStock, QAfterFilterCondition>
-      supplierIdIsNull() {
+  supplierIdIsNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'supplierId',
-      ));
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'supplierId'),
+      );
     });
   }
 
   QueryBuilder<DailyStock, DailyStock, QAfterFilterCondition>
-      supplierIdIsNotNull() {
+  supplierIdIsNotNull() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'supplierId',
-      ));
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'supplierId'),
+      );
     });
   }
 
   QueryBuilder<DailyStock, DailyStock, QAfterFilterCondition> supplierIdEqualTo(
-      int? value) {
+    int? value,
+  ) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'supplierId',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'supplierId', value: value),
+      );
     });
   }
 
   QueryBuilder<DailyStock, DailyStock, QAfterFilterCondition>
-      supplierIdGreaterThan(
-    int? value, {
-    bool include = false,
-  }) {
+  supplierIdGreaterThan(int? value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'supplierId',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'supplierId',
+          value: value,
+        ),
+      );
     });
   }
 
   QueryBuilder<DailyStock, DailyStock, QAfterFilterCondition>
-      supplierIdLessThan(
-    int? value, {
-    bool include = false,
-  }) {
+  supplierIdLessThan(int? value, {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'supplierId',
-        value: value,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'supplierId',
+          value: value,
+        ),
+      );
     });
   }
 
@@ -675,13 +712,15 @@ extension DailyStockQueryFilter
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'supplierId',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'supplierId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
     });
   }
 }
@@ -725,7 +764,7 @@ extension DailyStockQuerySortBy
   }
 
   QueryBuilder<DailyStock, DailyStock, QAfterSortBy>
-      sortByReceivedQuantityDesc() {
+  sortByReceivedQuantityDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'receivedQuantity', Sort.desc);
     });
@@ -738,7 +777,7 @@ extension DailyStockQuerySortBy
   }
 
   QueryBuilder<DailyStock, DailyStock, QAfterSortBy>
-      sortByRequestedQuantityDesc() {
+  sortByRequestedQuantityDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'requestedQuantity', Sort.desc);
     });
@@ -802,7 +841,7 @@ extension DailyStockQuerySortThenBy
   }
 
   QueryBuilder<DailyStock, DailyStock, QAfterSortBy>
-      thenByReceivedQuantityDesc() {
+  thenByReceivedQuantityDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'receivedQuantity', Sort.desc);
     });
@@ -815,7 +854,7 @@ extension DailyStockQuerySortThenBy
   }
 
   QueryBuilder<DailyStock, DailyStock, QAfterSortBy>
-      thenByRequestedQuantityDesc() {
+  thenByRequestedQuantityDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'requestedQuantity', Sort.desc);
     });
@@ -855,7 +894,7 @@ extension DailyStockQueryWhereDistinct
   }
 
   QueryBuilder<DailyStock, DailyStock, QDistinct>
-      distinctByRequestedQuantity() {
+  distinctByRequestedQuantity() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'requestedQuantity');
     });
@@ -889,14 +928,14 @@ extension DailyStockQueryProperty
   }
 
   QueryBuilder<DailyStock, double, QQueryOperations>
-      receivedQuantityProperty() {
+  receivedQuantityProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'receivedQuantity');
     });
   }
 
   QueryBuilder<DailyStock, double, QQueryOperations>
-      requestedQuantityProperty() {
+  requestedQuantityProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'requestedQuantity');
     });

@@ -9,7 +9,8 @@ final showVoidedOrdersProvider = StateProvider<bool>((ref) => false);
 
 enum OrderFilter { active, completed, all }
 
-final orderFilterProvider =
-    StateProvider<OrderFilter>((ref) => OrderFilter.active);
+final orderFilterProvider = StateProvider<OrderFilter>(
+  (ref) => OrderFilter.active,
+);
 
 final bottomNavIndexProvider = StateProvider<int>((ref) => 0);

@@ -59,12 +59,18 @@ class BackupService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('last_synced_id', id);
     // When we sync with the cloud, local is no longer ahead
-    await prefs.setInt('last_backed_up_time', DateTime.now().millisecondsSinceEpoch);
+    await prefs.setInt(
+      'last_backed_up_time',
+      DateTime.now().millisecondsSinceEpoch,
+    );
   }
 
   Future<void> markLocalChanged() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('last_local_change_time', DateTime.now().millisecondsSinceEpoch);
+    await prefs.setInt(
+      'last_local_change_time',
+      DateTime.now().millisecondsSinceEpoch,
+    );
   }
 
   Future<bool> isLocalAhead() async {
@@ -106,7 +112,7 @@ class BackupService {
     try {
       // Re-sign in silently to ensure valid token
       await _googleSignIn.signInSilently();
-      
+
       // These getters will naturally refresh because the underlying
       // SharedPreferences and Google session are used.
       await isCloudNewer();
@@ -181,7 +187,10 @@ class BackupService {
         pageSize: 1,
       );
 
-      final media = drive.Media(backupFile.openRead(), await backupFile.length());
+      final media = drive.Media(
+        backupFile.openRead(),
+        await backupFile.length(),
+      );
       String? fileId;
 
       if (existingFiles.files != null && existingFiles.files!.isNotEmpty) {
@@ -194,7 +203,10 @@ class BackupService {
         fileId = updatedFile.id;
       } else {
         final driveFile = drive.File()..name = fileName;
-        final uploadedFile = await driveApi.files.create(driveFile, uploadMedia: media);
+        final uploadedFile = await driveApi.files.create(
+          driveFile,
+          uploadMedia: media,
+        );
         fileId = uploadedFile.id;
       }
 
@@ -232,10 +244,12 @@ class BackupService {
 
       final fileId = fileList.files!.first.id!;
 
-      final drive.Media media = await driveApi.files.get(
-        fileId,
-        downloadOptions: drive.DownloadOptions.fullMedia,
-      ) as drive.Media;
+      final drive.Media media =
+          await driveApi.files.get(
+                fileId,
+                downloadOptions: drive.DownloadOptions.fullMedia,
+              )
+              as drive.Media;
 
       final dir = await getApplicationDocumentsDirectory();
       final tempFile = File('${dir.path}/temp_restore.isar');

@@ -9,7 +9,7 @@ class Addon {
   @Index(unique: true)
   late String name;
   late double price; // selling price
-  late double cost;  // cost price
+  late double cost; // cost price
 
   bool isVoid = false;
 }

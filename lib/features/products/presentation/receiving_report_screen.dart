@@ -20,7 +20,6 @@ class _ReceivingReportScreenState extends ConsumerState<ReceivingReportScreen> {
 
   final Map<int, bool> _collapsedProducts = {};
 
-
   @override
   Widget build(BuildContext context) {
     final reportAsync = ref.watch(
@@ -233,8 +232,14 @@ class _ReceivingReportScreenState extends ConsumerState<ReceivingReportScreen> {
               final productName = productItems.first.productName;
               final isCollapsed = _collapsedProducts[productId] ?? true;
 
-              final groupTotalUnits = productItems.fold<double>(0, (sum, i) => sum + i.quantity);
-              final groupTotalCost = productItems.fold<double>(0, (sum, i) => sum + i.totalCost);
+              final groupTotalUnits = productItems.fold<double>(
+                0,
+                (sum, i) => sum + i.quantity,
+              );
+              final groupTotalCost = productItems.fold<double>(
+                0,
+                (sum, i) => sum + i.totalCost,
+              );
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -261,7 +266,9 @@ class _ReceivingReportScreenState extends ConsumerState<ReceivingReportScreen> {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                              color: const Color(
+                                0xFF6366F1,
+                              ).withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(
@@ -307,10 +314,12 @@ class _ReceivingReportScreenState extends ConsumerState<ReceivingReportScreen> {
                     ),
                   ),
                   if (!isCollapsed)
-                    ...productItems.map((item) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
-                          child: _ReportItemRow(item: item),
-                        )),
+                    ...productItems.map(
+                      (item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: _ReportItemRow(item: item),
+                      ),
+                    ),
                 ],
               );
             },
@@ -319,7 +328,6 @@ class _ReceivingReportScreenState extends ConsumerState<ReceivingReportScreen> {
       ],
     );
   }
-
 }
 
 class _SummaryCard extends StatelessWidget {

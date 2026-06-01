@@ -138,13 +138,23 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                   value: 0,
                   child: Text('NONE (NO ADD-ON)'),
                 ),
-                ...addons.map((a) => DropdownMenuItem<int>(
-                      value: a.id,
-                      child: Text('${a.name.toUpperCase()} (${a.price.toStringAsFixed(0)} ETB)'),
-                    )),
+                ...addons.map(
+                  (a) => DropdownMenuItem<int>(
+                    value: a.id,
+                    child: Text(
+                      '${a.name.toUpperCase()} (${a.price.toStringAsFixed(0)} ETB)',
+                    ),
+                  ),
+                ),
                 const DropdownMenuItem<int>(
                   value: -1,
-                  child: Text('+ ADD CUSTOM ADD-ON', style: TextStyle(color: Color(0xFF818CF8), fontWeight: FontWeight.bold)),
+                  child: Text(
+                    '+ ADD CUSTOM ADD-ON',
+                    style: TextStyle(
+                      color: Color(0xFF818CF8),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
               onChanged: (val) async {
@@ -184,7 +194,10 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
               },
               decoration: InputDecoration(
                 labelText: 'Add-on / Service (Optional)',
-                labelStyle: const TextStyle(color: Colors.white38, fontSize: 12),
+                labelStyle: const TextStyle(
+                  color: Colors.white38,
+                  fontSize: 12,
+                ),
                 prefixIcon: const Icon(
                   Icons.add_box_rounded,
                   size: 20,
@@ -209,11 +222,16 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
             if (_addonName != null) ...[
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.02),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.05),
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -248,9 +266,16 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                       child: Row(
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.remove_rounded, color: Colors.white70, size: 18),
+                            icon: const Icon(
+                              Icons.remove_rounded,
+                              color: Colors.white70,
+                              size: 18,
+                            ),
                             padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                            constraints: const BoxConstraints(
+                              minWidth: 32,
+                              minHeight: 32,
+                            ),
                             onPressed: () {
                               if (_addonAmount > 1) {
                                 setState(() => _addonAmount--);
@@ -270,9 +295,16 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.add_rounded, color: Colors.white70, size: 18),
+                            icon: const Icon(
+                              Icons.add_rounded,
+                              color: Colors.white70,
+                              size: 18,
+                            ),
                             padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                            constraints: const BoxConstraints(
+                              minWidth: 32,
+                              minHeight: 32,
+                            ),
                             onPressed: () {
                               setState(() => _addonAmount++);
                             },
@@ -811,7 +843,8 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
 
     // 1. Process the main product sale
     final customerName = _customerController.text.trim();
-    final totalPrice = quantity * product.sellingPrice +
+    final totalPrice =
+        quantity * product.sellingPrice +
         (_addonName != null ? _addonAmount * (_addonPrice ?? 0.0) : 0.0);
     final order = CustomerOrder()
       ..productId = product.id
@@ -890,7 +923,10 @@ class _IconButton extends StatelessWidget {
   }
 }
 
-Future<Addon?> _showCustomAddonDialog(BuildContext context, WidgetRef ref) async {
+Future<Addon?> _showCustomAddonDialog(
+  BuildContext context,
+  WidgetRef ref,
+) async {
   final nameController = TextEditingController();
   final priceController = TextEditingController();
   final costController = TextEditingController();
@@ -959,7 +995,13 @@ Future<Addon?> _showCustomAddonDialog(BuildContext context, WidgetRef ref) async
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, null),
-          child: const Text('CANCEL', style: TextStyle(color: Colors.white24, fontWeight: FontWeight.w900)),
+          child: const Text(
+            'CANCEL',
+            style: TextStyle(
+              color: Colors.white24,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
         ),
         ElevatedButton(
           onPressed: () async {
@@ -968,7 +1010,9 @@ Future<Addon?> _showCustomAddonDialog(BuildContext context, WidgetRef ref) async
             final cost = double.tryParse(costController.text) ?? 0.0;
             if (name.isEmpty || price <= 0 || cost < 0) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Please fill all fields with valid data')),
+                const SnackBar(
+                  content: Text('Please fill all fields with valid data'),
+                ),
               );
               return;
             }
@@ -984,9 +1028,14 @@ Future<Addon?> _showCustomAddonDialog(BuildContext context, WidgetRef ref) async
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF6366F1),
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
-          child: const Text('CREATE', style: TextStyle(fontWeight: FontWeight.w900)),
+          child: const Text(
+            'CREATE',
+            style: TextStyle(fontWeight: FontWeight.w900),
+          ),
         ),
       ],
     ),

@@ -61,7 +61,9 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.05),
               ),
             ),
           ),
@@ -80,7 +82,9 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                     Container(
                       margin: const EdgeInsets.only(right: 16),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.05),
                         shape: BoxShape.circle,
                       ),
                       child: IconButton(
@@ -200,7 +204,9 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                     data: (stocks) {
                       final displayProducts = List<Product>.from(products);
                       if (widget.preselectedProductId != null) {
-                        final idx = displayProducts.indexWhere((p) => p.id == widget.preselectedProductId);
+                        final idx = displayProducts.indexWhere(
+                          (p) => p.id == widget.preselectedProductId,
+                        );
                         if (idx != -1) {
                           final p = displayProducts.removeAt(idx);
                           displayProducts.insert(0, p);
@@ -209,18 +215,23 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                       return SliverPadding(
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         sliver: SliverList(
-                          delegate: SliverChildBuilderDelegate((context, index) {
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
                             final product = displayProducts[index];
                             final stock = stocks
                                 .where((s) => s.productId == product.id)
                                 .firstOrNull;
-                            final isPreselected = product.id == widget.preselectedProductId;
+                            final isPreselected =
+                                product.id == widget.preselectedProductId;
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 16),
                               child: _StockInputCard(
                                 productName: product.name,
                                 controller: _controllers[product.id]!,
-                                requestedAmount: stock?.requestedQuantity ?? 0.0,
+                                requestedAmount:
+                                    stock?.requestedQuantity ?? 0.0,
                                 isHighlight: isPreselected,
                                 onLongPress: () async {
                                   final confirm = await showDialog<bool>(
@@ -288,7 +299,9 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                                         .read(orderRepositoryProvider)
                                         .resetProductHistory(product.id);
                                     if (context.mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         SnackBar(
                                           content: Text(
                                             'History reset for ${product.name}',
@@ -460,7 +473,9 @@ class _StockInputCard extends StatelessWidget {
                   const Color(0xFF818CF8).withValues(alpha: 0.05),
                 ]
               : [
-                  Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                  Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.05),
                   Colors.white.withValues(alpha: 0.02),
                 ],
         ),

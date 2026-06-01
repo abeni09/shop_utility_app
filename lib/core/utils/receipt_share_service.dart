@@ -42,7 +42,7 @@ class ReceiptShareService {
     buffer.writeln('Qty:       ${order.amount.toStringAsFixed(0)}');
     buffer.writeln('Price:     ${_formatCurrency(order.sellingPriceAtTime)}');
     buffer.writeln('Subtotal:  ${_formatCurrency(totalBase)}');
-    
+
     if (order.addonName != null && order.addonName!.isNotEmpty) {
       buffer.writeln('----------------------------------');
       buffer.writeln('Add-on:    ${order.addonName}');
@@ -50,7 +50,7 @@ class ReceiptShareService {
       buffer.writeln('Add-on Prc:${_formatCurrency(order.addonPrice ?? 0.0)}');
       buffer.writeln('Add-on Sub:${_formatCurrency(totalAddon)}');
     }
-    
+
     buffer.writeln('==================================');
     buffer.writeln('TOTAL:     ${_formatCurrency(totalAmount)}');
     buffer.writeln('Paid Adv:  ${_formatCurrency(order.advancePayment)}');
@@ -69,10 +69,7 @@ class ReceiptShareService {
   }) async {
     final text = _generateTextReceipt(order: order, productName: productName);
     await SharePlus.instance.share(
-      ShareParams(
-        text: text,
-        subject: 'ShopSync Receipt #${order.id}',
-      ),
+      ShareParams(text: text, subject: 'ShopSync Receipt #${order.id}'),
     );
   }
 
@@ -99,7 +96,10 @@ class ReceiptShareService {
                 pw.Center(
                   child: pw.Text(
                     'SHOP SYNC',
-                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 16),
+                    style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
                 pw.Center(
@@ -110,28 +110,61 @@ class ReceiptShareService {
                 ),
                 pw.SizedBox(height: 10),
                 pw.Divider(thickness: 1, color: PdfColors.grey400),
-                pw.Text('Date: ${df.format(order.dueDate)}', style: const pw.TextStyle(fontSize: 9)),
-                pw.Text('Receipt #: ${order.id}', style: const pw.TextStyle(fontSize: 9)),
-                pw.Text('Customer: ${order.customerName}', style: const pw.TextStyle(fontSize: 9)),
+                pw.Text(
+                  'Date: ${df.format(order.dueDate)}',
+                  style: const pw.TextStyle(fontSize: 9),
+                ),
+                pw.Text(
+                  'Receipt #: ${order.id}',
+                  style: const pw.TextStyle(fontSize: 9),
+                ),
+                pw.Text(
+                  'Customer: ${order.customerName}',
+                  style: const pw.TextStyle(fontSize: 9),
+                ),
                 if (order.phoneNumber != null && order.phoneNumber!.isNotEmpty)
-                  pw.Text('Phone: ${order.phoneNumber}', style: const pw.TextStyle(fontSize: 9)),
-                pw.Text('Status: ${order.status.name.toUpperCase()}', style: const pw.TextStyle(fontSize: 9)),
+                  pw.Text(
+                    'Phone: ${order.phoneNumber}',
+                    style: const pw.TextStyle(fontSize: 9),
+                  ),
+                pw.Text(
+                  'Status: ${order.status.name.toUpperCase()}',
+                  style: const pw.TextStyle(fontSize: 9),
+                ),
                 pw.Divider(thickness: 1, color: PdfColors.grey400),
-                
+
                 // Item table
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text('Item Description', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
-                    pw.Text('Total', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+                    pw.Text(
+                      'Item Description',
+                      style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 9,
+                      ),
+                    ),
+                    pw.Text(
+                      'Total',
+                      style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 9,
+                      ),
+                    ),
                   ],
                 ),
                 pw.SizedBox(height: 4),
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text('$productName (x${order.amount.toStringAsFixed(0)})', style: const pw.TextStyle(fontSize: 8)),
-                    pw.Text(_formatCurrency(totalBase), style: const pw.TextStyle(fontSize: 8)),
+                    pw.Text(
+                      '$productName (x${order.amount.toStringAsFixed(0)})',
+                      style: const pw.TextStyle(fontSize: 8),
+                    ),
+                    pw.Text(
+                      _formatCurrency(totalBase),
+                      style: const pw.TextStyle(fontSize: 8),
+                    ),
                   ],
                 ),
                 if (order.addonName != null && order.addonName!.isNotEmpty) ...[
@@ -139,42 +172,86 @@ class ReceiptShareService {
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
-                      pw.Text('+ ${order.addonName} (x${order.addonAmount?.toStringAsFixed(0)})', style: const pw.TextStyle(fontSize: 8)),
-                      pw.Text(_formatCurrency(totalAddon), style: const pw.TextStyle(fontSize: 8)),
+                      pw.Text(
+                        '+ ${order.addonName} (x${order.addonAmount?.toStringAsFixed(0)})',
+                        style: const pw.TextStyle(fontSize: 8),
+                      ),
+                      pw.Text(
+                        _formatCurrency(totalAddon),
+                        style: const pw.TextStyle(fontSize: 8),
+                      ),
                     ],
                   ),
                 ],
-                
+
                 pw.Divider(thickness: 1, color: PdfColors.grey400),
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text('TOTAL AMOUNT:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
-                    pw.Text(_formatCurrency(totalAmount), style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
+                    pw.Text(
+                      'TOTAL AMOUNT:',
+                      style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 9,
+                      ),
+                    ),
+                    pw.Text(
+                      _formatCurrency(totalAmount),
+                      style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 9,
+                      ),
+                    ),
                   ],
                 ),
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text('Advance Paid:', style: const pw.TextStyle(fontSize: 8)),
-                    pw.Text(_formatCurrency(order.advancePayment), style: const pw.TextStyle(fontSize: 8)),
+                    pw.Text(
+                      'Advance Paid:',
+                      style: const pw.TextStyle(fontSize: 8),
+                    ),
+                    pw.Text(
+                      _formatCurrency(order.advancePayment),
+                      style: const pw.TextStyle(fontSize: 8),
+                    ),
                   ],
                 ),
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text('Balance Due:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8, color: PdfColors.red900)),
-                    pw.Text(_formatCurrency(balanceDue), style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8, color: PdfColors.red900)),
+                    pw.Text(
+                      'Balance Due:',
+                      style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 8,
+                        color: PdfColors.red900,
+                      ),
+                    ),
+                    pw.Text(
+                      _formatCurrency(balanceDue),
+                      style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 8,
+                        color: PdfColors.red900,
+                      ),
+                    ),
                   ],
                 ),
                 pw.SizedBox(height: 4),
-                pw.Text('Payment Method: ${order.paymentMethod.name.toUpperCase()}', style: const pw.TextStyle(fontSize: 8)),
+                pw.Text(
+                  'Payment Method: ${order.paymentMethod.name.toUpperCase()}',
+                  style: const pw.TextStyle(fontSize: 8),
+                ),
                 pw.Divider(thickness: 1, color: PdfColors.grey400),
                 pw.SizedBox(height: 10),
                 pw.Center(
                   child: pw.Text(
                     'Thank you for your business!',
-                    style: pw.TextStyle(fontStyle: pw.FontStyle.italic, fontSize: 8),
+                    style: pw.TextStyle(
+                      fontStyle: pw.FontStyle.italic,
+                      fontSize: 8,
+                    ),
                   ),
                 ),
               ],
@@ -271,7 +348,10 @@ class ReceiptShareService {
 
     String productNameFor(int productId) {
       return products
-          .firstWhere((p) => p.id == productId, orElse: () => Product()..name = 'Unknown')
+          .firstWhere(
+            (p) => p.id == productId,
+            orElse: () => Product()..name = 'Unknown',
+          )
           .name;
     }
 
@@ -301,13 +381,19 @@ class ReceiptShareService {
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
               _summaryBox('REVENUE', totalRevenue, PdfColors.green800),
-              _summaryBox('GROSS PROFIT', grossProfit,
-                  grossProfit >= 0 ? PdfColors.indigo700 : PdfColors.red700),
+              _summaryBox(
+                'GROSS PROFIT',
+                grossProfit,
+                grossProfit >= 0 ? PdfColors.indigo700 : PdfColors.red700,
+              ),
               _summaryBox('LOSSES', totalLoss, PdfColors.red700),
-              _summaryBox('NET', grossProfit - totalLoss,
-                  (grossProfit - totalLoss) >= 0
-                      ? PdfColors.teal700
-                      : PdfColors.red900),
+              _summaryBox(
+                'NET',
+                grossProfit - totalLoss,
+                (grossProfit - totalLoss) >= 0
+                    ? PdfColors.teal700
+                    : PdfColors.red900,
+              ),
             ],
           ),
           pw.SizedBox(height: 20),
@@ -315,18 +401,20 @@ class ReceiptShareService {
           pw.Text(
             'TRANSACTIONS (${sales.length})',
             style: pw.TextStyle(
-                fontWeight: pw.FontWeight.bold,
-                fontSize: 10,
-                color: PdfColors.grey600),
+              fontWeight: pw.FontWeight.bold,
+              fontSize: 10,
+              color: PdfColors.grey600,
+            ),
           ),
           pw.SizedBox(height: 8),
           pw.TableHelper.fromTextArray(
             headers: ['Time', 'Customer', 'Product', 'Qty', 'Price', 'Total'],
             headerStyle: pw.TextStyle(
-                fontWeight: pw.FontWeight.bold, fontSize: 8),
+              fontWeight: pw.FontWeight.bold,
+              fontSize: 8,
+            ),
             cellStyle: const pw.TextStyle(fontSize: 8),
-            headerDecoration:
-                const pw.BoxDecoration(color: PdfColors.grey200),
+            headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
             data: sales
                 .map(
                   (o) => [
@@ -339,8 +427,7 @@ class ReceiptShareService {
                   ],
                 )
                 .toList(),
-            border: pw.TableBorder.all(
-                color: PdfColors.grey300, width: 0.5),
+            border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
           ),
           if (adjustments.isNotEmpty) ...[
             pw.SizedBox(height: 16),
@@ -348,18 +435,20 @@ class ReceiptShareService {
             pw.Text(
               'INVENTORY LOSSES (${adjustments.length})',
               style: pw.TextStyle(
-                  fontWeight: pw.FontWeight.bold,
-                  fontSize: 10,
-                  color: PdfColors.red700),
+                fontWeight: pw.FontWeight.bold,
+                fontSize: 10,
+                color: PdfColors.red700,
+              ),
             ),
             pw.SizedBox(height: 8),
             pw.TableHelper.fromTextArray(
               headers: ['Product', 'Qty Lost', 'Cost/Unit', 'Loss Value'],
               headerStyle: pw.TextStyle(
-                  fontWeight: pw.FontWeight.bold, fontSize: 8),
+                fontWeight: pw.FontWeight.bold,
+                fontSize: 8,
+              ),
               cellStyle: const pw.TextStyle(fontSize: 8),
-              headerDecoration:
-                  const pw.BoxDecoration(color: PdfColors.red50),
+              headerDecoration: const pw.BoxDecoration(color: PdfColors.red50),
               data: adjustments.map((adj) {
                 final p = products.firstWhere(
                   (pr) => pr.id == adj.productId,
@@ -372,8 +461,7 @@ class ReceiptShareService {
                   (adj.amount.abs() * p.costPrice).toStringAsFixed(2),
                 ];
               }).toList(),
-              border: pw.TableBorder.all(
-                  color: PdfColors.grey300, width: 0.5),
+              border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
             ),
           ],
           pw.SizedBox(height: 20),
@@ -381,9 +469,10 @@ class ReceiptShareService {
             child: pw.Text(
               'Generated by ShopSync',
               style: pw.TextStyle(
-                  fontSize: 8,
-                  fontStyle: pw.FontStyle.italic,
-                  color: PdfColors.grey500),
+                fontSize: 8,
+                fontStyle: pw.FontStyle.italic,
+                color: PdfColors.grey500,
+              ),
             ),
           ),
         ],
@@ -415,13 +504,19 @@ class ReceiptShareService {
           pw.Text(
             label,
             style: pw.TextStyle(
-                fontSize: 7, color: color, fontWeight: pw.FontWeight.bold),
+              fontSize: 7,
+              color: color,
+              fontWeight: pw.FontWeight.bold,
+            ),
           ),
           pw.SizedBox(height: 2),
           pw.Text(
             amount.toStringAsFixed(2),
             style: pw.TextStyle(
-                fontSize: 10, color: color, fontWeight: pw.FontWeight.bold),
+              fontSize: 10,
+              color: color,
+              fontWeight: pw.FontWeight.bold,
+            ),
           ),
         ],
       ),

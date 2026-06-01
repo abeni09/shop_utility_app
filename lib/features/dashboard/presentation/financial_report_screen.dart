@@ -24,9 +24,9 @@ class _FinancialReportScreenState extends ConsumerState<FinancialReportScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final reportAsync = ref.watch(customDateProfitProvider(
-      (start: _dateRange.start, end: _dateRange.end),
-    ));
+    final reportAsync = ref.watch(
+      customDateProfitProvider((start: _dateRange.start, end: _dateRange.end)),
+    );
 
     return Scaffold(
       backgroundColor: const Color(0xFF020617),
@@ -37,7 +37,10 @@ class _FinancialReportScreenState extends ConsumerState<FinancialReportScreen> {
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.receipt_long_rounded, color: Color(0xFF10B981)),
+            icon: const Icon(
+              Icons.receipt_long_rounded,
+              color: Color(0xFF10B981),
+            ),
             tooltip: 'Receiving Report',
             onPressed: () => Navigator.push(
               context,
@@ -59,14 +62,18 @@ class _FinancialReportScreenState extends ConsumerState<FinancialReportScreen> {
           Positioned(
             top: -100,
             left: -100,
-            child: _GlowCircle(color: const Color(0xFF6366F1).withValues(alpha: 0.15)),
+            child: _GlowCircle(
+              color: const Color(0xFF6366F1).withValues(alpha: 0.15),
+            ),
           ),
           Positioned(
             bottom: -100,
             right: -100,
-            child: _GlowCircle(color: const Color(0xFF10B981).withValues(alpha: 0.1)),
+            child: _GlowCircle(
+              color: const Color(0xFF10B981).withValues(alpha: 0.1),
+            ),
           ),
-          
+
           SafeArea(
             child: Column(
               children: [
@@ -75,10 +82,15 @@ class _FinancialReportScreenState extends ConsumerState<FinancialReportScreen> {
                   child: reportAsync.when(
                     data: (data) => _buildReportContent(data),
                     loading: () => const Center(
-                      child: CircularProgressIndicator(color: Color(0xFF818CF8)),
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF818CF8),
+                      ),
                     ),
                     error: (err, _) => Center(
-                      child: Text('Error: $err', style: const TextStyle(color: Colors.redAccent)),
+                      child: Text(
+                        'Error: $err',
+                        style: const TextStyle(color: Colors.redAccent),
+                      ),
                     ),
                   ),
                 ),
@@ -128,7 +140,11 @@ class _FinancialReportScreenState extends ConsumerState<FinancialReportScreen> {
           ),
           child: Row(
             children: [
-              const Icon(Icons.calendar_today_rounded, color: Color(0xFF818CF8), size: 20),
+              const Icon(
+                Icons.calendar_today_rounded,
+                color: Color(0xFF818CF8),
+                size: 20,
+              ),
               const SizedBox(width: 16),
               Expanded(
                 child: Text(
@@ -153,9 +169,9 @@ class _FinancialReportScreenState extends ConsumerState<FinancialReportScreen> {
     final profit = data['profit'] ?? 0;
     final margin = sales > 0 ? (profit / sales) * 100 : 0.0;
 
-    final dailyLogsAsync = ref.watch(dailyLogsProvider(
-      (start: _dateRange.start, end: _dateRange.end),
-    ));
+    final dailyLogsAsync = ref.watch(
+      dailyLogsProvider((start: _dateRange.start, end: _dateRange.end)),
+    );
 
     final suppliersAsync = ref.watch(suppliersProvider);
     final suppliers = suppliersAsync.value ?? [];
@@ -327,10 +343,7 @@ class _StatCard extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            color.withValues(alpha: 0.1),
-            color.withValues(alpha: 0.02),
-          ],
+          colors: [color.withValues(alpha: 0.1), color.withValues(alpha: 0.02)],
         ),
       ),
       child: Row(
@@ -380,7 +393,11 @@ class _SummaryRow extends StatelessWidget {
   final String value;
   final Color? valueColor;
 
-  const _SummaryRow({required this.label, required this.value, this.valueColor});
+  const _SummaryRow({
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -389,7 +406,10 @@ class _SummaryRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(color: Colors.white38, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+            color: Colors.white38,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         Text(
           value,
@@ -413,10 +433,7 @@ class _GlowCircle extends StatelessWidget {
     return Container(
       width: 300,
       height: 300,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color,
-      ),
+      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
         child: Container(color: Colors.transparent),

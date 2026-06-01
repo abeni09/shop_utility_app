@@ -12,6 +12,7 @@ import 'package:isar/isar.dart';
 import 'package:shopsync/core/utils/receipt_share_service.dart';
 import 'package:shopsync/features/expenses/data/expense_model.dart';
 import 'package:shopsync/features/expenses/presentation/expense_providers.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 final selectedSalesDateProvider = StateProvider<DateTime>(
   (ref) => DateTime.now(),
@@ -2049,7 +2050,11 @@ class _SalesAnalysisTabState extends ConsumerState<_SalesAnalysisTab> {
                           o.fulfilledAt ?? o.dueDate,
                           widget.selectedDate,
                         )) {
-                      final totalOrderValue = o.amount * o.sellingPriceAtTime;
+                      final addonValue = o.addonName != null
+                          ? (o.addonPrice ?? 0.0) * (o.addonAmount ?? 0.0)
+                          : 0.0;
+                      final totalOrderValue =
+                          o.amount * o.sellingPriceAtTime + addonValue;
                       if (o.paymentMethod == PaymentMethod.credit) {
                         cashCollected += o.advancePayment;
                         outstandingCredit +=
@@ -2187,6 +2192,46 @@ class _SalesAnalysisTabState extends ConsumerState<_SalesAnalysisTab> {
                                 ),
                               ],
                             ),
+                            if (outstandingCredit > 0) ...[
+                              const SizedBox(height: 16),
+                              Divider(
+                                color: Colors.white.withValues(alpha: 0.08),
+                              ),
+                              const SizedBox(height: 8),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton.icon(
+                                  onPressed: () => _showCreditCustomersSheet(
+                                    context,
+                                    ref,
+                                    widget.selectedDate,
+                                    _showAllTime,
+                                  ),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: const Color(0xFF818CF8),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 8,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  icon: const Icon(
+                                    Icons.people_alt_rounded,
+                                    size: 18,
+                                  ),
+                                  label: const Text(
+                                    'VIEW CREDIT CUSTOMERS',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                      letterSpacing: 1.0,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -2283,6 +2328,572 @@ class _SalesAnalysisTabState extends ConsumerState<_SalesAnalysisTab> {
         ),
       ),
     );
+  }
+
+  void _showCreditCustomersSheet(
+    BuildContext context,
+    WidgetRef ref,
+    DateTime selectedDate,
+    bool showAllTime,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF0F172A).withValues(alpha: 0.98),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.4,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return Consumer(
+              builder: (context, ref, _) {
+                final creditOrdersAsync = ref.watch(
+                  outstandingCreditOrdersProvider,
+                );
+                final productsAsync = ref.watch(productsProvider);
+
+                return Column(
+                  children: [
+                    // Handle
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white10,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    // Header
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 8,
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.people_alt_rounded,
+                            color: Color(0xFF818CF8),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            showAllTime
+                                ? 'ALL OUTSTANDING CREDIT'
+                                : 'CREDIT DUE TODAY',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 14,
+                              letterSpacing: 1.5,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(color: Colors.white10),
+                    Expanded(
+                      child: creditOrdersAsync.when(
+                        data: (allCredit) {
+                          final creditOrders = allCredit
+                              .where((o) {
+                                if (showAllTime) return true;
+                                return _isSameDay(
+                                  o.fulfilledAt ?? o.dueDate,
+                                  selectedDate,
+                                );
+                              })
+                              .where((o) {
+                                final total =
+                                    o.amount * o.sellingPriceAtTime +
+                                    (o.addonName != null
+                                        ? (o.addonPrice ?? 0.0) *
+                                              (o.addonAmount ?? 0.0)
+                                        : 0.0);
+                                return (total - o.advancePayment) > 0.01;
+                              })
+                              .toList();
+
+                          if (creditOrders.isEmpty) {
+                            return const Center(
+                              child: Text(
+                                'No outstanding credit orders found.',
+                                style: TextStyle(
+                                  color: Colors.white30,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            );
+                          }
+
+                          final products = productsAsync.value ?? [];
+
+                          return ListView.separated(
+                            controller: scrollController,
+                            padding: const EdgeInsets.all(24),
+                            itemCount: creditOrders.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 16),
+                            itemBuilder: (context, index) {
+                              final order = creditOrders[index];
+                              final total =
+                                  order.amount * order.sellingPriceAtTime +
+                                  (order.addonName != null
+                                      ? (order.addonPrice ?? 0.0) *
+                                            (order.addonAmount ?? 0.0)
+                                      : 0.0);
+                              final balance = total - order.advancePayment;
+                              final product = products.firstWhere(
+                                (p) => p.id == order.productId,
+                                orElse: () =>
+                                    Product()..name = 'Unknown Product',
+                              );
+
+                              return Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.03),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.05),
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            order.customerName,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ),
+                                        if (order.phoneNumber != null &&
+                                            order.phoneNumber!.isNotEmpty)
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.phone_rounded,
+                                              color: Color(0xFF10B981),
+                                              size: 20,
+                                            ),
+                                            onPressed: () async {
+                                              final Uri launchUri = Uri(
+                                                scheme: 'tel',
+                                                path: order.phoneNumber,
+                                              );
+                                              if (await canLaunchUrl(
+                                                launchUri,
+                                              )) {
+                                                await launchUrl(launchUri);
+                                              }
+                                            },
+                                          ),
+                                      ],
+                                    ),
+                                    if (order.phoneNumber != null &&
+                                        order.phoneNumber!.isNotEmpty) ...[
+                                      Text(
+                                        order.phoneNumber!,
+                                        style: const TextStyle(
+                                          color: Colors.white30,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                    ],
+                                    Text(
+                                      'Items: ${order.amount.toStringAsFixed(0)}x ${product.name}',
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    if (order.addonName != null)
+                                      Text(
+                                        'Addon: ${order.addonAmount?.toStringAsFixed(0)}x ${order.addonName}',
+                                        style: const TextStyle(
+                                          color: Colors.white54,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          'Due Date: ${_formatDate(order.dueDate)}',
+                                          style: const TextStyle(
+                                            color: Colors.white30,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                        Text(
+                                          'Balance: ETB ${balance.toStringAsFixed(0)} / ${total.toStringAsFixed(0)}',
+                                          style: const TextStyle(
+                                            color: Color(0xFFEF4444),
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    const Divider(color: Colors.white10),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              _recordPartialPayment(
+                                                context,
+                                                ref,
+                                                order,
+                                                balance,
+                                              ),
+                                          style: TextButton.styleFrom(
+                                            foregroundColor: const Color(
+                                              0xFF818CF8,
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            'RECORD PAYMENT',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        ElevatedButton(
+                                          onPressed: () => _settleCreditOrder(
+                                            context,
+                                            ref,
+                                            order,
+                                            balance,
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(
+                                              0xFF10B981,
+                                            ),
+                                            foregroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            'FULL SETTLE',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
+                        error: (err, _) => Center(
+                          child: Text(
+                            'Error: $err',
+                            style: const TextStyle(color: Colors.redAccent),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _settleCreditOrder(
+    BuildContext context,
+    WidgetRef ref,
+    CustomerOrder order,
+    double balance,
+  ) async {
+    final PaymentMethod? method = await showDialog<PaymentMethod>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E38),
+        title: const Text(
+          'SETTLE BALANCE',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            fontSize: 14,
+            letterSpacing: 1.2,
+          ),
+        ),
+        content: const Text(
+          'Select the payment method used to settle the outstanding balance:',
+          style: TextStyle(color: Colors.white70, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, PaymentMethod.cash),
+            child: const Text(
+              'CASH',
+              style: TextStyle(
+                color: Color(0xFF10B981),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, PaymentMethod.mobile),
+            child: const Text(
+              'MOBILE',
+              style: TextStyle(
+                color: Color(0xFF818CF8),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'CANCEL',
+              style: TextStyle(color: Colors.white24),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (method == null) return;
+
+    try {
+      final total =
+          order.amount * order.sellingPriceAtTime +
+          (order.addonName != null
+              ? (order.addonPrice ?? 0.0) * (order.addonAmount ?? 0.0)
+              : 0.0);
+      order.paymentMethod = method;
+      order.advancePayment = total;
+
+      await ref.read(orderRepositoryProvider).saveOrder(order);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Order for ${order.customerName} successfully settled via ${method.name.toUpperCase()}!',
+            ),
+            backgroundColor: const Color(0xFF10B981),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _recordPartialPayment(
+    BuildContext context,
+    WidgetRef ref,
+    CustomerOrder order,
+    double balance,
+  ) async {
+    final controller = TextEditingController();
+    final double? amount = await showDialog<double>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E38),
+        title: const Text(
+          'RECORD PAYMENT',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            fontSize: 14,
+            letterSpacing: 1.2,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Remaining balance: ETB ${balance.toStringAsFixed(0)}',
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: 'Paid Amount',
+                labelStyle: const TextStyle(color: Colors.white30),
+                prefixText: 'ETB ',
+                prefixStyle: const TextStyle(color: Colors.white54),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: const BorderSide(color: Colors.white10),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: const BorderSide(color: Color(0xFF818CF8)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              final val = double.tryParse(controller.text.trim());
+              if (val != null && val > 0 && val <= balance) {
+                Navigator.pop(context, val);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Please enter a valid amount between 0 and ${balance.toStringAsFixed(0)}',
+                    ),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
+              }
+            },
+            child: const Text(
+              'SUBMIT',
+              style: TextStyle(
+                color: Color(0xFF818CF8),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'CANCEL',
+              style: TextStyle(color: Colors.white24),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (amount == null) return;
+
+    try {
+      order.advancePayment += amount;
+
+      final total =
+          order.amount * order.sellingPriceAtTime +
+          (order.addonName != null
+              ? (order.addonPrice ?? 0.0) * (order.addonAmount ?? 0.0)
+              : 0.0);
+      if (order.advancePayment >= total) {
+        if (!context.mounted) return;
+        final PaymentMethod? method = await showDialog<PaymentMethod>(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: const Color(0xFF1E1E38),
+            title: const Text(
+              'FULLY SETTLED',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 14,
+                letterSpacing: 1.2,
+              ),
+            ),
+            content: const Text(
+              'The order is now fully paid. Select final payment method:',
+              style: TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, PaymentMethod.cash),
+                child: const Text(
+                  'CASH',
+                  style: TextStyle(
+                    color: Color(0xFF10B981),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, PaymentMethod.mobile),
+                child: const Text(
+                  'MOBILE',
+                  style: TextStyle(
+                    color: Color(0xFF818CF8),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+        if (method != null) {
+          order.paymentMethod = method;
+        }
+        order.advancePayment = total;
+      }
+
+      await ref.read(orderRepositoryProvider).saveOrder(order);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Payment of ETB ${amount.toStringAsFixed(0)} recorded for ${order.customerName}!',
+            ),
+            backgroundColor: const Color(0xFF10B981),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  String _formatDate(DateTime dt) {
+    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
   }
 }
 

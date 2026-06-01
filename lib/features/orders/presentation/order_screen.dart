@@ -512,9 +512,9 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
       .toList();
 
   if (allProducts.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Please add products first!')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Please add products first!')));
     return;
   }
 
@@ -536,9 +536,9 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
     builder: (context) => StatefulBuilder(
       builder: (context, setState) {
         double cartTotal() => cartItems.fold(
-              0,
-              (s, item) => s + item.amount * item.product.sellingPrice,
-            );
+          0,
+          (s, item) => s + item.amount * item.product.sellingPrice,
+        );
 
         return Padding(
           padding: EdgeInsets.only(
@@ -576,18 +576,30 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
                 ),
                 const SizedBox(height: 20),
                 // Customer Info Block
-                _buildTextField(customerController, 'Customer Name',
-                    Icons.person_rounded, context),
+                _buildTextField(
+                  customerController,
+                  'Customer Name',
+                  Icons.person_rounded,
+                  context,
+                ),
                 const SizedBox(height: 12),
-                _buildTextField(phoneController, 'Phone (Optional)',
-                    Icons.phone_rounded, context),
+                _buildTextField(
+                  phoneController,
+                  'Phone (Optional)',
+                  Icons.phone_rounded,
+                  context,
+                ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
-                      child: _buildTextField(advanceController, 'Advance',
-                          Icons.payments_rounded, context,
-                          isNumber: true),
+                      child: _buildTextField(
+                        advanceController,
+                        'Advance',
+                        Icons.payments_rounded,
+                        context,
+                        isNumber: true,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -596,16 +608,19 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
                         isExpanded: true,
                         dropdownColor: const Color(0xFF1E293B),
                         items: PaymentMethod.values
-                            .map((p) => DropdownMenuItem(
-                                  value: p,
-                                  child: Text(
-                                    p.name.toUpperCase(),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ))
+                            .map(
+                              (p) => DropdownMenuItem(
+                                value: p,
+                                child: Text(
+                                  p.name.toUpperCase(),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            )
                             .toList(),
                         onChanged: (val) => setState(
-                            () => selectedPayment = val ?? selectedPayment),
+                          () => selectedPayment = val ?? selectedPayment,
+                        ),
                         decoration: _fieldDecoration(
                           'Payment',
                           Icons.account_balance_wallet_rounded,
@@ -634,12 +649,15 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
                     padding: const EdgeInsets.only(bottom: 10),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.03),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.06)),
+                          color: Colors.white.withValues(alpha: 0.06),
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -650,18 +668,21 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
                               isExpanded: true,
                               dropdownColor: const Color(0xFF1E293B),
                               items: allProducts
-                                  .map((p) => DropdownMenuItem(
-                                        value: p.id,
-                                        child: Text(
-                                          p.name,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ))
+                                  .map(
+                                    (p) => DropdownMenuItem(
+                                      value: p.id,
+                                      child: Text(
+                                        p.name,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  )
                                   .toList(),
                               onChanged: (val) {
                                 if (val == null) return;
-                                final p = allProducts
-                                    .firstWhere((pr) => pr.id == val);
+                                final p = allProducts.firstWhere(
+                                  (pr) => pr.id == val,
+                                );
                                 setState(() => cartItems[idx].product = p);
                               },
                               decoration: _fieldDecoration(
@@ -682,11 +703,16 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
-                                  icon: const Icon(Icons.remove_rounded,
-                                      size: 16, color: Colors.white54),
+                                  icon: const Icon(
+                                    Icons.remove_rounded,
+                                    size: 16,
+                                    color: Colors.white54,
+                                  ),
                                   padding: EdgeInsets.zero,
                                   constraints: const BoxConstraints(
-                                      minWidth: 28, minHeight: 28),
+                                    minWidth: 28,
+                                    minHeight: 28,
+                                  ),
                                   onPressed: () {
                                     if (item.amount > 1) {
                                       setState(() => cartItems[idx].amount--);
@@ -696,16 +722,22 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
                                 Text(
                                   item.amount.toStringAsFixed(0),
                                   style: const TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 13,
-                                      color: Colors.white),
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 13,
+                                    color: Colors.white,
+                                  ),
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.add_rounded,
-                                      size: 16, color: Colors.white54),
+                                  icon: const Icon(
+                                    Icons.add_rounded,
+                                    size: 16,
+                                    color: Colors.white54,
+                                  ),
                                   padding: EdgeInsets.zero,
                                   constraints: const BoxConstraints(
-                                      minWidth: 28, minHeight: 28),
+                                    minWidth: 28,
+                                    minHeight: 28,
+                                  ),
                                   onPressed: () =>
                                       setState(() => cartItems[idx].amount++),
                                 ),
@@ -715,11 +747,16 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
                           if (cartItems.length > 1) ...[
                             const SizedBox(width: 4),
                             IconButton(
-                              icon: const Icon(Icons.delete_outline_rounded,
-                                  size: 18, color: Colors.red),
+                              icon: const Icon(
+                                Icons.delete_outline_rounded,
+                                size: 18,
+                                color: Colors.red,
+                              ),
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(
-                                  minWidth: 28, minHeight: 28),
+                                minWidth: 28,
+                                minHeight: 28,
+                              ),
                               onPressed: () =>
                                   setState(() => cartItems.removeAt(idx)),
                             ),
@@ -734,8 +771,11 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
                   onPressed: () => setState(
                     () => cartItems.add(_CartItem(product: allProducts.first)),
                   ),
-                  icon: const Icon(Icons.add_rounded,
-                      color: Color(0xFF6366F1), size: 18),
+                  icon: const Icon(
+                    Icons.add_rounded,
+                    color: Color(0xFF6366F1),
+                    size: 18,
+                  ),
                   label: const Text(
                     'ADD ITEM',
                     style: TextStyle(
@@ -749,13 +789,16 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
                 const SizedBox(height: 8),
                 // Total Preview
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF6366F1).withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                        color: const Color(0xFF6366F1).withValues(alpha: 0.2)),
+                      color: const Color(0xFF6366F1).withValues(alpha: 0.2),
+                    ),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -763,7 +806,9 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
                       Text(
                         '${cartItems.length} item${cartItems.length > 1 ? 's' : ''}',
                         style: const TextStyle(
-                            color: Colors.white54, fontSize: 12),
+                          color: Colors.white54,
+                          fontSize: 12,
+                        ),
                       ),
                       Text(
                         'TOTAL: ${cartTotal().toStringAsFixed(2)} ETB',
@@ -790,17 +835,23 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
                       color: Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.calendar_month_rounded,
-                        color: Colors.indigoAccent),
+                    child: const Icon(
+                      Icons.calendar_month_rounded,
+                      color: Colors.indigoAccent,
+                    ),
                   ),
-                  trailing: const Icon(Icons.edit_rounded,
-                      size: 20, color: Colors.white24),
+                  trailing: const Icon(
+                    Icons.edit_rounded,
+                    size: 20,
+                    color: Colors.white24,
+                  ),
                   onTap: () async {
                     final date = await showDatePicker(
                       context: context,
                       initialDate: selectedDate,
-                      firstDate:
-                          DateTime.now().subtract(const Duration(days: 30)),
+                      firstDate: DateTime.now().subtract(
+                        const Duration(days: 30),
+                      ),
                       lastDate: DateTime.now().add(const Duration(days: 90)),
                     );
                     if (date != null) setState(() => selectedDate = date);
@@ -826,8 +877,8 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
                             if (customer.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                    content: Text(
-                                        'Please enter customer name')),
+                                  content: Text('Please enter customer name'),
+                                ),
                               );
                               return;
                             }
@@ -841,11 +892,10 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
                                   ..customerName = customer
                                   ..phoneNumber =
                                       phoneController.text.trim().isEmpty
-                                          ? null
-                                          : phoneController.text.trim()
+                                      ? null
+                                      : phoneController.text.trim()
                                   ..amount = item.amount
-                                  ..advancePayment =
-                                      advance / cartItems.length
+                                  ..advancePayment = advance / cartItems.length
                                   ..paymentMethod = selectedPayment
                                   ..dueDate = selectedDate
                                   ..sellingPriceAtTime =
@@ -875,7 +925,8 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
                                   content: Text(
                                     '${cartItems.length} order${cartItems.length > 1 ? 's' : ''} created!',
                                     style: const TextStyle(
-                                        fontWeight: FontWeight.w700),
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   ),
                                 ),
                               );
@@ -886,7 +937,9 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
                             height: 20,
                             width: 20,
                             child: CircularProgressIndicator(
-                                strokeWidth: 3, color: Colors.white),
+                              strokeWidth: 3,
+                              color: Colors.white,
+                            ),
                           )
                         : Text(
                             'PLACE ${cartItems.length} ORDER${cartItems.length > 1 ? 'S' : ''}',

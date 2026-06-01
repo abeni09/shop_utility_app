@@ -17,7 +17,7 @@ final backupUserProvider = StreamProvider<GoogleSignInAccount?>((ref) {
 final cloudSyncStatusProvider = FutureProvider<bool>((ref) async {
   final user = ref.watch(backupUserProvider).value;
   if (user == null) return false;
-  
+
   final service = ref.watch(backupServiceProvider);
   return service.isCloudNewer();
 });
@@ -26,7 +26,7 @@ final cloudSyncStatusProvider = FutureProvider<bool>((ref) async {
 final localAheadProvider = FutureProvider<bool>((ref) async {
   final user = ref.watch(backupUserProvider).value;
   if (user == null) return false;
-  
+
   final service = ref.watch(backupServiceProvider);
   return service.isLocalAhead();
 });

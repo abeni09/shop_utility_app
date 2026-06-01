@@ -7,7 +7,7 @@ class RequisitionItem {
   final Product product;
   final double orderAmount;
   final double bufferAmount;
-  
+
   double get totalNeeded => orderAmount + bufferAmount;
 
   RequisitionItem({
@@ -25,26 +25,37 @@ class RequisitionService {
 
   Future<List<RequisitionItem>> calculateTomorrowRequisition() async {
     final now = DateTime.now();
-    final tomorrow = DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+    final tomorrow = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).add(const Duration(days: 1));
     final orders = await orderRepo.getOrdersForDate(tomorrow);
-    print('DEBUG: Requisition calculating for ${tomorrow.toIso8601String()}. Found ${orders.length} orders.');
+    print(
+      'DEBUG: Requisition calculating for ${tomorrow.toIso8601String()}. Found ${orders.length} orders.',
+    );
     final products = await productRepo.getAllProducts();
 
     final Map<int, double> productTotals = {};
 
     for (var order in orders) {
       if (order.status == OrderStatus.pending && !order.isVoid) {
-        productTotals[order.productId] = (productTotals[order.productId] ?? 0.0) + order.amount;
+        productTotals[order.productId] =
+            (productTotals[order.productId] ?? 0.0) + order.amount;
       }
     }
 
-    return products.map((p) {
-      return RequisitionItem(
-        product: p,
-        orderAmount: productTotals[p.id] ?? 0.0,
-        // For now, buffer is 0. In future, could be based on history or user setting.
-        bufferAmount: (productTotals[p.id] ?? 0.0) * 0.1, // 10% default buffer
-      );
-    }).where((item) => item.totalNeeded > 0).toList();
+    return products
+        .map((p) {
+          return RequisitionItem(
+            product: p,
+            orderAmount: productTotals[p.id] ?? 0.0,
+            // For now, buffer is 0. In future, could be based on history or user setting.
+            bufferAmount:
+                (productTotals[p.id] ?? 0.0) * 0.1, // 10% default buffer
+          );
+        })
+        .where((item) => item.totalNeeded > 0)
+        .toList();
   }
 }

@@ -74,7 +74,9 @@ class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.05),
               ),
             ),
           ),
@@ -94,8 +96,9 @@ class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
                     }
                   }
 
-                  final activeProducts =
-                      products.where((p) => !p.isVoid).toList();
+                  final activeProducts = products
+                      .where((p) => !p.isVoid)
+                      .toList();
                   final items = activeProducts.map((p) {
                     final preOrder = preOrderTotals[p.id] ?? 0.0;
                     final suggested = preOrder;
@@ -147,7 +150,6 @@ class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
         ],
       ),
     );
-
   }
 
   Widget _buildAppBar() {
@@ -157,7 +159,6 @@ class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
       centerTitle: true,
     );
   }
-
 
   Widget _buildHeader() {
     final isToday = _selectedDate.day == DateTime.now().day;
@@ -185,8 +186,15 @@ class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Review needs for ${isToday ? "today" : isTomorrow ? "tomorrow" : DateFormat('MMM dd').format(_selectedDate)}',
-                      style: const TextStyle(color: Colors.white38, fontSize: 13),
+                      'Review needs for ${isToday
+                          ? "today"
+                          : isTomorrow
+                          ? "tomorrow"
+                          : DateFormat('MMM dd').format(_selectedDate)}',
+                      style: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),
@@ -196,13 +204,18 @@ class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
                     final date = await showDatePicker(
                       context: context,
                       initialDate: _selectedDate,
-                      firstDate: DateTime.now().subtract(const Duration(days: 1)),
+                      firstDate: DateTime.now().subtract(
+                        const Duration(days: 1),
+                      ),
                       lastDate: DateTime.now().add(const Duration(days: 14)),
                     );
                     if (date != null) {
                       setState(() {
-                        _selectedDate =
-                            DateTime(date.year, date.month, date.day);
+                        _selectedDate = DateTime(
+                          date.year,
+                          date.month,
+                          date.day,
+                        );
                         _controllers.clear();
                       });
                     }
@@ -307,7 +320,11 @@ class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
           ],
         ),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05)),
+        border: Border.all(
+          color: Theme.of(
+            context,
+          ).colorScheme.onSurface.withValues(alpha: 0.05),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),

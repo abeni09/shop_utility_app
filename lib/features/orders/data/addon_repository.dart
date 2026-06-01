@@ -62,6 +62,9 @@ class AddonRepository {
   }
 
   Stream<List<Addon>> watchAddons() {
-    return isar.addons.filter().isVoidEqualTo(false).watch(fireImmediately: true);
+    return isar.addons
+        .filter()
+        .isVoidEqualTo(false)
+        .watch(fireImmediately: true);
   }
 }

@@ -11,13 +11,22 @@ class OrderRepository {
   final BackupService backupService;
   final SupplierRepository supplierRepo;
 
-  OrderRepository(this.isar, this.dashboardRepo, this.backupService, this.supplierRepo);
+  OrderRepository(
+    this.isar,
+    this.dashboardRepo,
+    this.backupService,
+    this.supplierRepo,
+  );
 
   Future<List<CustomerOrder>> getOrdersForDate(DateTime date) async {
     final startOfDay = DateTime(date.year, date.month, date.day);
-    final endOfDay = startOfDay.add(const Duration(days: 1)).subtract(const Duration(milliseconds: 1));
+    final endOfDay = startOfDay
+        .add(const Duration(days: 1))
+        .subtract(const Duration(milliseconds: 1));
 
-    print('DEBUG: Fetching orders between ${startOfDay.toIso8601String()} and ${endOfDay.toIso8601String()}');
+    print(
+      'DEBUG: Fetching orders between ${startOfDay.toIso8601String()} and ${endOfDay.toIso8601String()}',
+    );
 
     return await isar.customerOrders
         .filter()
@@ -27,8 +36,9 @@ class OrderRepository {
 
   Future<void> saveOrder(CustomerOrder order) async {
     print(
-        'DEBUG: Saving order for ${order.customerName}, amount: ${order.amount}, status: ${order.status}');
-    
+      'DEBUG: Saving order for ${order.customerName}, amount: ${order.amount}, status: ${order.status}',
+    );
+
     CustomerOrder? oldOrder;
     if (order.id != 0 && order.id != Isar.autoIncrement) {
       oldOrder = await isar.customerOrders.get(order.id);
@@ -71,7 +81,7 @@ class OrderRepository {
   Future<void> updateOrderStatus(Id id, OrderStatus status) async {
     final oldOrder = await isar.customerOrders.get(id);
     if (oldOrder == null) return;
-    
+
     final oldStatus = oldOrder.status;
     final oldIsVoid = oldOrder.isVoid;
     final oldAddonCost = oldOrder.addonCost;
@@ -107,7 +117,7 @@ class OrderRepository {
     final order = await isar.customerOrders.get(id);
     if (order != null) {
       await dashboardRepo.recalculateDailyStats(order.dueDate);
-      
+
       // Auto-Sync trigger
       await backupService.markLocalChanged();
       backupService.autoBackupIfPossible();
@@ -117,7 +127,7 @@ class OrderRepository {
   Future<void> voidOrder(Id id) async {
     final oldOrder = await isar.customerOrders.get(id);
     if (oldOrder == null) return;
-    
+
     final oldStatus = oldOrder.status;
     final oldIsVoid = oldOrder.isVoid;
     final oldAddonCost = oldOrder.addonCost;
@@ -156,7 +166,7 @@ class OrderRepository {
   Future<void> unvoidOrder(Id id) async {
     final oldOrder = await isar.customerOrders.get(id);
     if (oldOrder == null) return;
-    
+
     final oldStatus = oldOrder.status;
     final oldAddonCost = oldOrder.addonCost;
     final oldAddonAmount = oldOrder.addonAmount;
@@ -196,9 +206,14 @@ class OrderRepository {
     bool includeVoided = false,
   }) {
     final startOfDay = DateTime(date.year, date.month, date.day);
-    final endOfDay = startOfDay.add(const Duration(days: 1)).subtract(const Duration(milliseconds: 1));
+    final endOfDay = startOfDay
+        .add(const Duration(days: 1))
+        .subtract(const Duration(milliseconds: 1));
 
-    var query = isar.customerOrders.filter().dueDateBetween(startOfDay, endOfDay);
+    var query = isar.customerOrders.filter().dueDateBetween(
+      startOfDay,
+      endOfDay,
+    );
 
     if (!includeVoided) {
       query = query.and().isVoidEqualTo(false);
@@ -222,7 +237,9 @@ class OrderRepository {
   }
 
   Future<List<CustomerOrder>> getAllOrdersInRange(
-      DateTime from, DateTime to) async {
+    DateTime from,
+    DateTime to,
+  ) async {
     return await isar.customerOrders
         .filter()
         .dueDateBetween(from, to)

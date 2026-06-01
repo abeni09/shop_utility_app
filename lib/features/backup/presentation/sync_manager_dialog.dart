@@ -73,14 +73,16 @@ class _SyncManagerDialogState extends ConsumerState<SyncManagerDialog> {
       await _loadStats();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Database backup uploaded successfully!')),
+          const SnackBar(
+            content: Text('Database backup uploaded successfully!'),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Upload failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
       }
     } finally {
       if (mounted) {
@@ -163,14 +165,18 @@ class _SyncManagerDialogState extends ConsumerState<SyncManagerDialog> {
       await _loadStats();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Database restored successfully! Restart app if changes don\'t display immediately.')),
+          const SnackBar(
+            content: Text(
+              'Database restored successfully! Restart app if changes don\'t display immediately.',
+            ),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Restore failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Restore failed: $e')));
       }
     } finally {
       if (mounted) {
@@ -216,7 +222,11 @@ class _SyncManagerDialogState extends ConsumerState<SyncManagerDialog> {
                       const SizedBox(height: 24),
                       _buildAccountSection(userAsync),
                       const SizedBox(height: 20),
-                      _buildStatusSection(cloudNewerAsync, localAheadAsync, userAsync),
+                      _buildStatusSection(
+                        cloudNewerAsync,
+                        localAheadAsync,
+                        userAsync,
+                      ),
                       const SizedBox(height: 20),
                       _buildStatsSection(),
                       const SizedBox(height: 24),
@@ -285,10 +295,7 @@ class _SyncManagerDialogState extends ConsumerState<SyncManagerDialog> {
               ),
               Text(
                 'Cloud Backup & Resolution',
-                style: TextStyle(
-                  color: Colors.white30,
-                  fontSize: 11,
-                ),
+                style: TextStyle(color: Colors.white30, fontSize: 11),
               ),
             ],
           ),
@@ -314,7 +321,11 @@ class _SyncManagerDialogState extends ConsumerState<SyncManagerDialog> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.account_circle_outlined, color: Colors.white30, size: 28),
+                const Icon(
+                  Icons.account_circle_outlined,
+                  color: Colors.white30,
+                  size: 28,
+                ),
                 const SizedBox(width: 14),
                 const Expanded(
                   child: Column(
@@ -322,7 +333,11 @@ class _SyncManagerDialogState extends ConsumerState<SyncManagerDialog> {
                     children: [
                       Text(
                         'Cloud Sync Status',
-                        style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       Text(
                         'Not signed in',
@@ -352,7 +367,9 @@ class _SyncManagerDialogState extends ConsumerState<SyncManagerDialog> {
           decoration: BoxDecoration(
             color: const Color(0xFF6366F1).withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFF6366F1).withValues(alpha: 0.2)),
+            border: Border.all(
+              color: const Color(0xFF6366F1).withValues(alpha: 0.2),
+            ),
           ),
           child: Row(
             children: [
@@ -361,7 +378,11 @@ class _SyncManagerDialogState extends ConsumerState<SyncManagerDialog> {
                 backgroundColor: const Color(0xFF818CF8),
                 child: Text(
                   user.displayName?.substring(0, 1).toUpperCase() ?? 'U',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
                 ),
               ),
               const SizedBox(width: 14),
@@ -371,17 +392,28 @@ class _SyncManagerDialogState extends ConsumerState<SyncManagerDialog> {
                   children: [
                     Text(
                       user.displayName ?? 'Google User',
-                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     Text(
                       user.email,
-                      style: const TextStyle(color: Colors.white54, fontSize: 11),
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 11,
+                      ),
                     ),
                   ],
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.logout_rounded, color: Colors.white30, size: 18),
+                icon: const Icon(
+                  Icons.logout_rounded,
+                  color: Colors.white30,
+                  size: 18,
+                ),
                 tooltip: 'Sign Out',
                 onPressed: () async {
                   await ref.read(backupServiceProvider).signOut();
@@ -419,12 +451,14 @@ class _SyncManagerDialogState extends ConsumerState<SyncManagerDialog> {
             statusText = 'Cloud Update Available';
             statusIcon = Icons.cloud_download_outlined;
             statusColor = const Color(0xFFF59E0B);
-            statusDetail = 'There is a newer backup on Google Drive. Pull changes to restore.';
+            statusDetail =
+                'There is a newer backup on Google Drive. Pull changes to restore.';
           } else if (isLocalAhead) {
             statusText = 'Local Changes Pending';
             statusIcon = Icons.cloud_upload_outlined;
             statusColor = const Color(0xFF818CF8);
-            statusDetail = 'Local modifications are newer than Drive backup. Push to backup.';
+            statusDetail =
+                'Local modifications are newer than Drive backup. Push to backup.';
           }
 
           return Container(
@@ -495,15 +529,35 @@ class _SyncManagerDialogState extends ConsumerState<SyncManagerDialog> {
             ),
           ),
           const SizedBox(height: 16),
-          _buildStatRow('Database File Size', '${_dbSizeKb.toStringAsFixed(1)} KB', Icons.storage_rounded),
+          _buildStatRow(
+            'Database File Size',
+            '${_dbSizeKb.toStringAsFixed(1)} KB',
+            Icons.storage_rounded,
+          ),
           const Divider(color: Colors.white10, height: 24),
-          _buildStatRow('Products Count', '$_productCount items', Icons.inventory_2_outlined),
+          _buildStatRow(
+            'Products Count',
+            '$_productCount items',
+            Icons.inventory_2_outlined,
+          ),
           const SizedBox(height: 12),
-          _buildStatRow('Suppliers Count', '$_supplierCount contacts', Icons.people_outline),
+          _buildStatRow(
+            'Suppliers Count',
+            '$_supplierCount contacts',
+            Icons.people_outline,
+          ),
           const SizedBox(height: 12),
-          _buildStatRow('Orders & Sales', '$_orderCount logs', Icons.receipt_long_outlined),
+          _buildStatRow(
+            'Orders & Sales',
+            '$_orderCount logs',
+            Icons.receipt_long_outlined,
+          ),
           const SizedBox(height: 12),
-          _buildStatRow('Settlements', '$_settlementCount records', Icons.payment_outlined),
+          _buildStatRow(
+            'Settlements',
+            '$_settlementCount records',
+            Icons.payment_outlined,
+          ),
         ],
       ),
     );
@@ -521,7 +575,11 @@ class _SyncManagerDialogState extends ConsumerState<SyncManagerDialog> {
         const Spacer(),
         Text(
           value,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+          ),
         ),
       ],
     );
@@ -568,7 +626,11 @@ class _SyncManagerDialogState extends ConsumerState<SyncManagerDialog> {
                 icon: const Icon(Icons.cloud_upload_rounded, size: 18),
                 label: const Text(
                   'FORCE PUSH',
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 11,
+                    letterSpacing: 1,
+                  ),
                 ),
               ),
             ),
@@ -587,7 +649,11 @@ class _SyncManagerDialogState extends ConsumerState<SyncManagerDialog> {
                 icon: const Icon(Icons.cloud_download_rounded, size: 18),
                 label: const Text(
                   'FORCE PULL',
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 11,
+                    letterSpacing: 1,
+                  ),
                 ),
               ),
             ),
@@ -615,7 +681,11 @@ class _SyncManagerDialogState extends ConsumerState<SyncManagerDialog> {
             icon: const Icon(Icons.refresh_rounded, size: 18),
             label: const Text(
               'REFRESH SYNC STATUS',
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1),
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 11,
+                letterSpacing: 1,
+              ),
             ),
           ),
         ),

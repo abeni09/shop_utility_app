@@ -16,7 +16,7 @@ class ProductRepository {
     await isar.writeTxn(() async {
       await isar.products.put(product);
     });
-    
+
     await backupService.markLocalChanged();
     backupService.autoBackupIfPossible();
   }
@@ -29,7 +29,7 @@ class ProductRepository {
         await isar.products.put(product);
       }
     });
-    
+
     await backupService.markLocalChanged();
     backupService.autoBackupIfPossible();
   }
@@ -42,7 +42,7 @@ class ProductRepository {
         await isar.products.put(product);
       }
     });
-    
+
     await backupService.markLocalChanged();
     backupService.autoBackupIfPossible();
   }
@@ -51,6 +51,9 @@ class ProductRepository {
     if (includeVoided) {
       return isar.products.where().watch(fireImmediately: true);
     }
-    return isar.products.filter().isVoidEqualTo(false).watch(fireImmediately: true);
+    return isar.products
+        .filter()
+        .isVoidEqualTo(false)
+        .watch(fireImmediately: true);
   }
 }

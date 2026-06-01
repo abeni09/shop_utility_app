@@ -11,7 +11,9 @@ class StockAdjustmentRepository {
   StockAdjustmentRepository(this.isar, this.backupService, this.dashboardRepo);
 
   Stream<List<StockAdjustment>> watchAdjustments() {
-    return isar.stockAdjustments.where().sortByDateDesc().watch(fireImmediately: true);
+    return isar.stockAdjustments.where().sortByDateDesc().watch(
+      fireImmediately: true,
+    );
   }
 
   Future<void> saveAdjustment(StockAdjustment adjustment) async {
@@ -35,4 +37,3 @@ class StockAdjustmentRepository {
     await backupService.forceSyncCheck();
   }
 }
-

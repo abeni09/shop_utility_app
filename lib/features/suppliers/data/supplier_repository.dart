@@ -17,7 +17,7 @@ class SupplierRepository {
     await isar.writeTxn(() async {
       await isar.suppliers.put(supplier);
     });
-    
+
     await backupService.markLocalChanged();
     backupService.autoBackupIfPossible();
   }
@@ -30,7 +30,7 @@ class SupplierRepository {
         await isar.suppliers.put(supplier);
       }
     });
-    
+
     await backupService.markLocalChanged();
     backupService.autoBackupIfPossible();
   }
@@ -43,7 +43,7 @@ class SupplierRepository {
         await isar.suppliers.put(supplier);
       }
     });
-    
+
     await backupService.markLocalChanged();
     backupService.autoBackupIfPossible();
   }
@@ -57,7 +57,7 @@ class SupplierRepository {
         await isar.suppliers.put(supplier);
       }
     });
-    
+
     await backupService.markLocalChanged();
     backupService.autoBackupIfPossible();
   }
@@ -71,7 +71,7 @@ class SupplierRepository {
         await isar.suppliers.put(supplier);
       }
     });
-    
+
     await backupService.markLocalChanged();
     backupService.autoBackupIfPossible();
   }
@@ -80,7 +80,10 @@ class SupplierRepository {
     if (includeVoided) {
       return isar.suppliers.where().watch(fireImmediately: true);
     }
-    return isar.suppliers.filter().isVoidEqualTo(false).watch(fireImmediately: true);
+    return isar.suppliers
+        .filter()
+        .isVoidEqualTo(false)
+        .watch(fireImmediately: true);
   }
 
   Future<void> recordSettlement(SupplierSettlement settlement) async {
@@ -100,11 +103,12 @@ class SupplierRepository {
   }
 
   Future<List<SupplierSettlement>> getSettlementsInRange(
-      DateTime from, DateTime to) async {
+    DateTime from,
+    DateTime to,
+  ) async {
     return await isar.supplierSettlements
         .filter()
         .dateBetween(from, to)
         .findAll();
   }
 }
-
