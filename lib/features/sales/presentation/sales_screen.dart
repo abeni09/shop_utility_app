@@ -884,8 +884,9 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
                     context: context,
                     backgroundColor: const Color(0xFF1E1E38),
                     shape: const RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.vertical(top: Radius.circular(28)),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(28),
+                      ),
                     ),
                     builder: (context) {
                       final receivedStocks = wallet.dailyStocks
@@ -903,21 +904,20 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
                         final soldInPeriod = wallet.orders
                             .where((o) => o.productId == ds.productId)
                             .fold(0.0, (sum, o) => sum + o.amount);
-                        final unsoldQty =
-                            (ds.receivedQuantity - soldInPeriod)
-                                .clamp(0.0, double.infinity);
+                        final unsoldQty = (ds.receivedQuantity - soldInPeriod)
+                            .clamp(0.0, double.infinity);
 
                         if (unsoldQty > 0) {
                           final suppliers =
                               ref.read(suppliersProvider).value ?? [];
                           final supName = prod.supplierId != null
                               ? suppliers
-                                  .firstWhere(
-                                    (sup) => sup.id == prod.supplierId,
-                                    orElse: () => Supplier()
-                                      ..name = 'Supplier #${prod.supplierId}',
-                                  )
-                                  .name
+                                    .firstWhere(
+                                      (sup) => sup.id == prod.supplierId,
+                                      orElse: () => Supplier()
+                                        ..name = 'Supplier #${prod.supplierId}',
+                                    )
+                                    .name
                               : 'No Supplier';
 
                           unsoldItemsList.add(
@@ -927,15 +927,16 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
                                 color: Colors.white.withValues(alpha: 0.02),
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                    color:
-                                        Colors.white.withValues(alpha: 0.05)),
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                ),
                               ),
                               child: ListTile(
                                 leading: Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF06B6D4)
-                                        .withValues(alpha: 0.1),
+                                    color: const Color(
+                                      0xFF06B6D4,
+                                    ).withValues(alpha: 0.1),
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(
@@ -1006,10 +1007,13 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
                                   ),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 4),
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF06B6D4)
-                                          .withValues(alpha: 0.1),
+                                      color: const Color(
+                                        0xFF06B6D4,
+                                      ).withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
@@ -1027,7 +1031,9 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
                               const Text(
                                 'Value of inventory received in this range that remains unsold on the shelves.',
                                 style: TextStyle(
-                                    color: Colors.white30, fontSize: 11),
+                                  color: Colors.white30,
+                                  fontSize: 11,
+                                ),
                               ),
                               const SizedBox(height: 20),
                               if (unsoldItemsList.isEmpty)
@@ -1037,7 +1043,9 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
                                     child: Text(
                                       'No unsold received stock found.',
                                       style: TextStyle(
-                                          color: Colors.white24, fontSize: 13),
+                                        color: Colors.white24,
+                                        fontSize: 13,
+                                      ),
                                     ),
                                   ),
                                 )
@@ -1163,56 +1171,86 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
     double losses,
     double settlements,
     double duesIncurred,
-    double unsoldStock,
-  ) {
+    double unsoldStock, {
+    VoidCallback? onUnsoldStockTap,
+  }) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final cardWidth = (constraints.maxWidth - 12) / 2;
-        Widget kpiCard(String label, String value, Color color, IconData icon) {
+        Widget kpiCard(
+          String label,
+          String value,
+          Color color,
+          IconData icon, {
+          VoidCallback? onTap,
+        }) {
           return SizedBox(
             width: cardWidth,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.05),
+            child: Card(
+              margin: EdgeInsets.zero,
+              color: color.withValues(alpha: 0.05),
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: color.withValues(alpha: 0.15),
+                side: BorderSide(
+                  color: color.withValues(alpha: 0.1),
                   width: 1.5,
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              elevation: 0,
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: onTap,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
-                          label,
-                          style: TextStyle(
-                            color: color.withValues(alpha: 0.6),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.2,
-                            overflow: TextOverflow.ellipsis,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              label,
+                              style: TextStyle(
+                                color: color.withValues(alpha: 0.6),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            icon,
+                            color: color.withValues(alpha: 0.6),
+                            size: 16,
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 4),
-                      Icon(icon, color: color.withValues(alpha: 0.6), size: 16),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'ETB ${double.parse(value).toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          if (onTap != null)
+                            Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 10,
+                              color: color.withValues(alpha: 0.6),
+                            ),
+                        ],
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'ETB ${double.parse(value).toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           );
@@ -1263,6 +1301,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
               unsoldStock.toString(),
               const Color(0xFF06B6D4),
               Icons.inventory_2_rounded,
+              onTap: onUnsoldStockTap,
             ),
             kpiCard(
               'DUES SETTLED',
