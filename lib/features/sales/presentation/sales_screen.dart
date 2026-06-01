@@ -4036,13 +4036,25 @@ final allAdjustmentsProvider = StreamProvider<List<StockAdjustment>>((ref) {
   return dbService.isar.stockAdjustments.where().watch(fireImmediately: true);
 });
 
+class ReceivedStockItem {
+  final DailyStock dailyStock;
+  final double unsoldAtEnd;
+  final double unsoldCurrently;
+
+  ReceivedStockItem({
+    required this.dailyStock,
+    required this.unsoldAtEnd,
+    required this.unsoldCurrently,
+  });
+}
+
 class WalletData {
   final DateTimeRange range;
   final List<CustomerOrder> orders;
   final List<ExpenseInstance> expenses;
   final List<StockAdjustment> losses;
   final List<SupplierSettlement> settlements;
-  final List<DailyStock> dailyStocks;
+  final List<ReceivedStockItem> receivedStockItems;
 
   WalletData({
     required this.range,
@@ -4050,7 +4062,7 @@ class WalletData {
     required this.expenses,
     required this.losses,
     required this.settlements,
-    required this.dailyStocks,
+    required this.receivedStockItems,
   });
 
   double get totalSales => orders.fold(0.0, (sum, o) {
@@ -4109,7 +4121,8 @@ class WalletData {
 
   double getSupplierDuesIncurred(List<Product> products) {
     double total = 0.0;
-    for (var ds in dailyStocks) {
+    for (var item in receivedStockItems) {
+      final ds = item.dailyStock;
       if (ds.receivedQuantity > 0) {
         final prod = products.firstWhere(
           (p) => p.id == ds.productId,
@@ -4131,20 +4144,14 @@ class WalletData {
 
   double getUnsoldReceivedStockValue(List<Product> products) {
     double total = 0.0;
-    for (var ds in dailyStocks) {
+    for (var item in receivedStockItems) {
+      final ds = item.dailyStock;
       if (ds.receivedQuantity > 0) {
         final prod = products.firstWhere(
           (p) => p.id == ds.productId,
           orElse: () => Product()..costPrice = 0.0,
         );
-        final soldInPeriod = orders
-            .where((o) => o.productId == ds.productId)
-            .fold(0.0, (sum, o) => sum + o.amount);
-        final unsoldQty = (ds.receivedQuantity - soldInPeriod).clamp(
-          0.0,
-          double.infinity,
-        );
-        total += unsoldQty * prod.costPrice;
+        total += item.unsoldAtEnd * prod.costPrice;
       }
     }
     return total;
