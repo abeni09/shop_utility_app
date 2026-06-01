@@ -10,6 +10,8 @@ import 'package:shopsync/features/products/presentation/daily_stock_providers.da
 import 'package:shopsync/main.dart';
 import 'package:isar/isar.dart';
 import 'package:shopsync/core/utils/receipt_share_service.dart';
+import 'package:shopsync/features/expenses/data/expense_model.dart';
+import 'package:shopsync/features/expenses/presentation/expense_providers.dart';
 
 final selectedSalesDateProvider = StateProvider<DateTime>(
   (ref) => DateTime.now(),
@@ -58,13 +60,14 @@ class SalesScreen extends ConsumerStatefulWidget {
   ConsumerState<SalesScreen> createState() => _SalesScreenState();
 }
 
-class _SalesScreenState extends ConsumerState<SalesScreen> with SingleTickerProviderStateMixin {
+class _SalesScreenState extends ConsumerState<SalesScreen>
+    with SingleTickerProviderStateMixin {
   late final TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) setState(() {});
     });
@@ -83,6 +86,12 @@ class _SalesScreenState extends ConsumerState<SalesScreen> with SingleTickerProv
     final adjustmentsAsync = ref.watch(dailyAdjustmentsProvider);
     final productsAsync = ref.watch(productsProvider);
     final dailyStockAsync = ref.watch(dailyStockProvider(selectedDate));
+    final expensesAsync = ref.watch(expensesStreamProvider);
+    final expensesOnDate = ref.watch(expensesOnDateProvider(selectedDate));
+    final totalExpenses = expensesOnDate.fold<double>(
+      0.0,
+      (sum, e) => sum + e.amount,
+    );
 
     return Container(
       decoration: BoxDecoration(
@@ -126,51 +135,73 @@ class _SalesScreenState extends ConsumerState<SalesScreen> with SingleTickerProv
                     ),
                     tabs: const [
                       Tab(text: 'LOGS'),
+                      Tab(text: 'EXPENSES'),
                       Tab(text: 'ANALYSIS'),
                     ],
                   ),
                   actions: [
-                    Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.05),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.receipt_long_rounded,
-                          color: Color(0xFF10B981),
+                    if (_tabController.index == 0) ...[
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.05),
+                          shape: BoxShape.circle,
                         ),
-                        onPressed: () => _shareDailyLedger(
-                          context,
-                          ref,
-                          selectedDate,
-                          salesAsync.value ?? [],
-                          adjustmentsAsync.value ?? [],
-                          productsAsync.value ?? [],
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.receipt_long_rounded,
+                            color: Color(0xFF10B981),
+                          ),
+                          onPressed: () => _shareDailyLedger(
+                            context,
+                            ref,
+                            selectedDate,
+                            salesAsync.value ?? [],
+                            adjustmentsAsync.value ?? [],
+                            productsAsync.value ?? [],
+                          ),
+                          tooltip: 'Share Daily Ledger',
                         ),
-                        tooltip: 'Share Daily Ledger',
                       ),
-                    ),
-                    Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.05),
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.remove_circle_outline_rounded,
-                          color: Color(0xFFEF4444),
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.05),
+                          shape: BoxShape.circle,
                         ),
-                        onPressed: () => _showRecordLossDialog(context, ref),
-                        tooltip: 'Record Loss',
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.remove_circle_outline_rounded,
+                            color: Color(0xFFEF4444),
+                          ),
+                          onPressed: () => _showRecordLossDialog(context, ref),
+                          tooltip: 'Record Loss',
+                        ),
                       ),
-                    ),
+                    ],
+                    if (_tabController.index == 1)
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.05),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.add_circle_outline_rounded,
+                            color: Color(0xFFF59E0B),
+                          ),
+                          onPressed: () =>
+                              _showAddExpenseDialog(context, ref, selectedDate),
+                          tooltip: 'Add Expense',
+                        ),
+                      ),
                     Container(
                       margin: const EdgeInsets.only(right: 16),
                       decoration: BoxDecoration(
@@ -198,293 +229,326 @@ class _SalesScreenState extends ConsumerState<SalesScreen> with SingleTickerProv
                                 date;
                           }
                         },
+                        tooltip: 'Select Date',
                       ),
                     ),
                   ],
                 ),
 
                 if (_tabController.index == 0) ...[
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          DateFormat(
-                            'EEEE, MMM dd yyyy',
-                          ).format(selectedDate).toUpperCase(),
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.5,
-                            fontSize: 12,
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            DateFormat(
+                              'EEEE, MMM dd yyyy',
+                            ).format(selectedDate).toUpperCase(),
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.5,
+                              fontSize: 12,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 24),
-                        // 2-column summary cards grid
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            final cardWidth =
-                                (constraints.maxWidth - 12) / 2;
-                            Widget card(
-                              String label,
-                              String value,
-                              Color color,
-                              IconData icon,
-                            ) =>
-                                SizedBox(
-                                  width: cardWidth,
-                                  child: _buildSummaryCard(
-                                    label,
-                                    value,
-                                    color,
-                                    icon,
-                                  ),
-                                );
-
-                            return Wrap(
-                              spacing: 12,
-                              runSpacing: 12,
-                              children: [
-                                salesAsync.when(
-                                  data: (sales) {
-                                    final totalRevenue = sales.fold<double>(
-                                      0,
-                                      (sum, item) =>
-                                          sum +
-                                          (item.amount *
-                                              item.sellingPriceAtTime),
-                                    );
-                                    return card(
-                                      'REVENUE',
-                                      totalRevenue.toStringAsFixed(0),
-                                      const Color(0xFF10B981),
-                                      Icons.payments_rounded,
-                                    );
-                                  },
-                                  loading: () => card('REVENUE', '...',
-                                      Colors.grey, Icons.payments_rounded),
-                                  error: (_, _) => card('REVENUE', 'ERR',
-                                      Colors.redAccent, Icons.payments_rounded),
+                          const SizedBox(height: 24),
+                          // 2-column summary cards grid
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              final cardWidth = (constraints.maxWidth - 12) / 2;
+                              Widget card(
+                                String label,
+                                String value,
+                                Color color,
+                                IconData icon,
+                              ) => SizedBox(
+                                width: cardWidth,
+                                child: _buildSummaryCard(
+                                  label,
+                                  value,
+                                  color,
+                                  icon,
                                 ),
-                                salesAsync.when(
-                                  data: (sales) => adjustmentsAsync.when(
-                                    data: (adjustments) =>
-                                        productsAsync.when(
+                              );
+
+                              return Wrap(
+                                spacing: 12,
+                                runSpacing: 12,
+                                children: [
+                                  salesAsync.when(
+                                    data: (sales) {
+                                      final totalRevenue = sales.fold<double>(
+                                        0,
+                                        (sum, item) =>
+                                            sum +
+                                            (item.amount *
+                                                item.sellingPriceAtTime),
+                                      );
+                                      return card(
+                                        'REVENUE',
+                                        totalRevenue.toStringAsFixed(0),
+                                        const Color(0xFF10B981),
+                                        Icons.payments_rounded,
+                                      );
+                                    },
+                                    loading: () => card(
+                                      'REVENUE',
+                                      '...',
+                                      Colors.grey,
+                                      Icons.payments_rounded,
+                                    ),
+                                    error: (_, _) => card(
+                                      'REVENUE',
+                                      'ERR',
+                                      Colors.redAccent,
+                                      Icons.payments_rounded,
+                                    ),
+                                  ),
+                                  salesAsync.when(
+                                    data: (sales) => adjustmentsAsync.when(
+                                      data: (adjustments) => productsAsync.when(
+                                        data: (products) {
+                                          final totalProfitFromSales = sales
+                                              .fold<double>(
+                                                0,
+                                                (sum, item) =>
+                                                    sum +
+                                                    (item.amount *
+                                                        (item.sellingPriceAtTime -
+                                                            item.costPriceAtTime)),
+                                              );
+                                          double totalLoss = 0.0;
+                                          for (var adj in adjustments) {
+                                            final p = products.firstWhere(
+                                              (prod) =>
+                                                  prod.id == adj.productId,
+                                              orElse: () => Product(),
+                                            );
+                                            totalLoss +=
+                                                adj.amount.abs() * p.costPrice;
+                                          }
+                                          final operatingProfit =
+                                              totalProfitFromSales -
+                                              totalLoss -
+                                              totalExpenses;
+                                          return card(
+                                            'OPERATING PROFIT',
+                                            operatingProfit.toStringAsFixed(0),
+                                            const Color(0xFF818CF8),
+                                            Icons.trending_up_rounded,
+                                          );
+                                        },
+                                        loading: () => card(
+                                          'OPERATING PROFIT',
+                                          '...',
+                                          Colors.grey,
+                                          Icons.trending_up_rounded,
+                                        ),
+                                        error: (_, _) => card(
+                                          'OPERATING PROFIT',
+                                          'ERR',
+                                          Colors.redAccent,
+                                          Icons.trending_up_rounded,
+                                        ),
+                                      ),
+                                      loading: () => card(
+                                        'OPERATING PROFIT',
+                                        '...',
+                                        Colors.grey,
+                                        Icons.trending_up_rounded,
+                                      ),
+                                      error: (_, _) => card(
+                                        'OPERATING PROFIT',
+                                        'ERR',
+                                        Colors.redAccent,
+                                        Icons.trending_up_rounded,
+                                      ),
+                                    ),
+                                    loading: () => card(
+                                      'OPERATING PROFIT',
+                                      '...',
+                                      Colors.grey,
+                                      Icons.trending_up_rounded,
+                                    ),
+                                    error: (_, _) => card(
+                                      'OPERATING PROFIT',
+                                      'ERR',
+                                      Colors.redAccent,
+                                      Icons.trending_up_rounded,
+                                    ),
+                                  ),
+                                  expensesAsync.when(
+                                    data: (_) => card(
+                                      'EXPENSES',
+                                      totalExpenses.toStringAsFixed(0),
+                                      const Color(0xFFF59E0B),
+                                      Icons.receipt_rounded,
+                                    ),
+                                    loading: () => card(
+                                      'EXPENSES',
+                                      '...',
+                                      Colors.grey,
+                                      Icons.receipt_rounded,
+                                    ),
+                                    error: (_, _) => card(
+                                      'EXPENSES',
+                                      'ERR',
+                                      Colors.redAccent,
+                                      Icons.receipt_rounded,
+                                    ),
+                                  ),
+                                  adjustmentsAsync.when(
+                                    data: (adjustments) => productsAsync.when(
                                       data: (products) {
-                                        final totalProfitFromSales =
-                                            sales.fold<double>(
-                                          0,
-                                          (sum, item) =>
-                                              sum +
-                                              (item.amount *
-                                                  (item.sellingPriceAtTime -
-                                                      item.costPriceAtTime)),
-                                        );
                                         double totalLoss = 0.0;
                                         for (var adj in adjustments) {
                                           final p = products.firstWhere(
-                                            (prod) =>
-                                                prod.id == adj.productId,
+                                            (prod) => prod.id == adj.productId,
                                             orElse: () => Product(),
                                           );
                                           totalLoss +=
                                               adj.amount.abs() * p.costPrice;
                                         }
-                                        final netProfit =
-                                            totalProfitFromSales - totalLoss;
                                         return card(
-                                          'NET PROFIT',
-                                          netProfit.toStringAsFixed(0),
-                                          const Color(0xFF818CF8),
-                                          Icons.trending_up_rounded,
+                                          'LOSSES',
+                                          totalLoss.toStringAsFixed(0),
+                                          const Color(0xFFEF4444),
+                                          Icons.trending_down_rounded,
                                         );
                                       },
-                                      loading: () => card('NET PROFIT', '...',
-                                          Colors.grey,
-                                          Icons.trending_up_rounded),
-                                      error: (_, _) => card(
-                                          'NET PROFIT',
-                                          'ERR',
-                                          Colors.redAccent,
-                                          Icons.trending_up_rounded),
-                                    ),
-                                    loading: () => card('NET PROFIT', '...',
-                                        Colors.grey, Icons.trending_up_rounded),
-                                    error: (_, _) => card('NET PROFIT', 'ERR',
-                                        Colors.redAccent,
-                                        Icons.trending_up_rounded),
-                                  ),
-                                  loading: () => card('NET PROFIT', '...',
-                                      Colors.grey, Icons.trending_up_rounded),
-                                  error: (_, _) => card('NET PROFIT', 'ERR',
-                                      Colors.redAccent,
-                                      Icons.trending_up_rounded),
-                                ),
-                                adjustmentsAsync.when(
-                                  data: (adjustments) =>
-                                      productsAsync.when(
-                                    data: (products) {
-                                      double totalLoss = 0.0;
-                                      for (var adj in adjustments) {
-                                        final p = products.firstWhere(
-                                          (prod) => prod.id == adj.productId,
-                                          orElse: () => Product(),
-                                        );
-                                        totalLoss +=
-                                            adj.amount.abs() * p.costPrice;
-                                      }
-                                      return card(
+                                      loading: () => card(
                                         'LOSSES',
-                                        totalLoss.toStringAsFixed(0),
-                                        const Color(0xFFEF4444),
-                                        Icons.trending_down_rounded,
-                                      );
-                                    },
-                                    loading: () => card('LOSSES', '...',
+                                        '...',
                                         Colors.grey,
-                                        Icons.trending_down_rounded),
-                                    error: (_, _) => card(
+                                        Icons.trending_down_rounded,
+                                      ),
+                                      error: (_, _) => card(
                                         'LOSSES',
                                         'ERR',
                                         Colors.redAccent,
-                                        Icons.trending_down_rounded),
-                                  ),
-                                  loading: () => card('LOSSES', '...',
-                                      Colors.grey, Icons.trending_down_rounded),
-                                  error: (_, _) => card('LOSSES', 'ERR',
-                                      Colors.redAccent,
-                                      Icons.trending_down_rounded),
-                                ),
-                                dailyStockAsync.when(
-                                  data: (stocks) => productsAsync.when(
-                                    data: (products) {
-                                      double totalStockReceivedCost = 0.0;
-                                      for (var stock in stocks) {
-                                        final p = products.firstWhere(
-                                          (prod) => prod.id == stock.productId,
-                                          orElse: () => Product(),
-                                        );
-                                        totalStockReceivedCost +=
-                                            stock.receivedQuantity *
-                                                p.costPrice;
-                                      }
-                                      return card(
-                                        'STOCK RECEIVED',
-                                        totalStockReceivedCost
-                                            .toStringAsFixed(0),
-                                        const Color(0xFFF59E0B),
-                                        Icons.local_shipping_rounded,
-                                      );
-                                    },
+                                        Icons.trending_down_rounded,
+                                      ),
+                                    ),
                                     loading: () => card(
+                                      'LOSSES',
+                                      '...',
+                                      Colors.grey,
+                                      Icons.trending_down_rounded,
+                                    ),
+                                    error: (_, _) => card(
+                                      'LOSSES',
+                                      'ERR',
+                                      Colors.redAccent,
+                                      Icons.trending_down_rounded,
+                                    ),
+                                  ),
+                                  dailyStockAsync.when(
+                                    data: (stocks) => productsAsync.when(
+                                      data: (products) {
+                                        double totalStockReceivedCost = 0.0;
+                                        for (var stock in stocks) {
+                                          final p = products.firstWhere(
+                                            (prod) =>
+                                                prod.id == stock.productId,
+                                            orElse: () => Product(),
+                                          );
+                                          totalStockReceivedCost +=
+                                              stock.receivedQuantity *
+                                              p.costPrice;
+                                        }
+                                        return card(
+                                          'STOCK RECEIVED',
+                                          totalStockReceivedCost
+                                              .toStringAsFixed(0),
+                                          const Color(0xFFF59E0B),
+                                          Icons.local_shipping_rounded,
+                                        );
+                                      },
+                                      loading: () => card(
                                         'STOCK RECEIVED',
                                         '...',
                                         Colors.grey,
-                                        Icons.local_shipping_rounded),
-                                    error: (_, _) => card(
+                                        Icons.local_shipping_rounded,
+                                      ),
+                                      error: (_, _) => card(
                                         'STOCK RECEIVED',
                                         'ERR',
                                         Colors.redAccent,
-                                        Icons.local_shipping_rounded),
-                                  ),
-                                  loading: () => card(
+                                        Icons.local_shipping_rounded,
+                                      ),
+                                    ),
+                                    loading: () => card(
                                       'STOCK RECEIVED',
                                       '...',
                                       Colors.grey,
-                                      Icons.local_shipping_rounded),
-                                  error: (_, _) => card(
+                                      Icons.local_shipping_rounded,
+                                    ),
+                                    error: (_, _) => card(
                                       'STOCK RECEIVED',
                                       'ERR',
                                       Colors.redAccent,
-                                      Icons.local_shipping_rounded),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 32),
-                        const Text(
-                          'TRANSACTIONS',
-                          style: TextStyle(
-                            letterSpacing: 2.5,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white24,
+                                      Icons.local_shipping_rounded,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
+                          const SizedBox(height: 32),
+                          const Text(
+                            'TRANSACTIONS',
+                            style: TextStyle(
+                              letterSpacing: 2.5,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white24,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                salesAsync.when(
-                  data: (sales) {
-                    final width = MediaQuery.of(context).size.width;
-                    final horizontalPadding = width > 1200
-                        ? width * 0.1
-                        : (width > 800 ? 48.0 : 24.0);
-                    final crossAxisCount = width > 1000
-                        ? 3
-                        : (width > 600 ? 2 : 1);
+                  salesAsync.when(
+                    data: (sales) {
+                      final width = MediaQuery.of(context).size.width;
+                      final horizontalPadding = width > 1200
+                          ? width * 0.1
+                          : (width > 800 ? 48.0 : 24.0);
+                      final crossAxisCount = width > 1000
+                          ? 3
+                          : (width > 600 ? 2 : 1);
 
-                    return sales.isEmpty
-                        ? const SliverFillRemaining(
-                            child: Center(
-                              child: Text(
-                                'No sales recorded for this date.',
-                                style: TextStyle(color: Colors.white24),
+                      return sales.isEmpty
+                          ? const SliverFillRemaining(
+                              child: Center(
+                                child: Text(
+                                  'No sales recorded for this date.',
+                                  style: TextStyle(color: Colors.white24),
+                                ),
                               ),
-                            ),
-                          )
-                        : SliverPadding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: horizontalPadding,
-                            ),
-                            sliver: crossAxisCount > 1
-                                ? SliverGrid(
-                                    gridDelegate:
-                                        SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: crossAxisCount,
-                                          mainAxisSpacing: 16,
-                                          crossAxisSpacing: 16,
-                                          mainAxisExtent: 140,
-                                        ),
-                                    delegate: SliverChildBuilderDelegate((
-                                      context,
-                                      index,
-                                    ) {
-                                      final sale = sales[index];
-                                      return productsAsync.when(
-                                        data: (products) {
-                                          final product = products.firstWhere(
-                                            (p) => p.id == sale.productId,
-                                            orElse: () =>
-                                                Product()..name = 'Unknown',
-                                          );
-                                          return _SaleTile(
-                                            sale: sale,
-                                            productName: product.name,
-                                          );
-                                        },
-                                        loading: () => const SizedBox.shrink(),
-                                        error: (_, _) =>
-                                            const SizedBox.shrink(),
-                                      );
-                                    }, childCount: sales.length),
-                                  )
-                                : SliverList(
-                                    delegate: SliverChildBuilderDelegate((
-                                      context,
-                                      index,
-                                    ) {
-                                      final sale = sales[index];
-                                      return Padding(
-                                        padding: const EdgeInsets.only(
-                                          bottom: 12,
-                                        ),
-                                        child: productsAsync.when(
+                            )
+                          : SliverPadding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: horizontalPadding,
+                              ),
+                              sliver: crossAxisCount > 1
+                                  ? SliverGrid(
+                                      gridDelegate:
+                                          SliverGridDelegateWithFixedCrossAxisCount(
+                                            crossAxisCount: crossAxisCount,
+                                            mainAxisSpacing: 16,
+                                            crossAxisSpacing: 16,
+                                            mainAxisExtent: 140,
+                                          ),
+                                      delegate: SliverChildBuilderDelegate((
+                                        context,
+                                        index,
+                                      ) {
+                                        final sale = sales[index];
+                                        return productsAsync.when(
                                           data: (products) {
                                             final product = products.firstWhere(
                                               (p) => p.id == sale.productId,
@@ -500,117 +564,123 @@ class _SalesScreenState extends ConsumerState<SalesScreen> with SingleTickerProv
                                               const SizedBox.shrink(),
                                           error: (_, _) =>
                                               const SizedBox.shrink(),
-                                        ),
-                                      );
-                                    }, childCount: sales.length),
-                                  ),
-                          );
-                  },
-                  loading: () => const SliverFillRemaining(
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF6366F1),
+                                        );
+                                      }, childCount: sales.length),
+                                    )
+                                  : SliverList(
+                                      delegate: SliverChildBuilderDelegate((
+                                        context,
+                                        index,
+                                      ) {
+                                        final sale = sales[index];
+                                        return Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 12,
+                                          ),
+                                          child: productsAsync.when(
+                                            data: (products) {
+                                              final product = products
+                                                  .firstWhere(
+                                                    (p) =>
+                                                        p.id == sale.productId,
+                                                    orElse: () =>
+                                                        Product()
+                                                          ..name = 'Unknown',
+                                                  );
+                                              return _SaleTile(
+                                                sale: sale,
+                                                productName: product.name,
+                                              );
+                                            },
+                                            loading: () =>
+                                                const SizedBox.shrink(),
+                                            error: (_, _) =>
+                                                const SizedBox.shrink(),
+                                          ),
+                                        );
+                                      }, childCount: sales.length),
+                                    ),
+                            );
+                    },
+                    loading: () => const SliverFillRemaining(
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF6366F1),
+                        ),
+                      ),
+                    ),
+                    error: (err, _) => SliverFillRemaining(
+                      child: Center(
+                        child: Text(
+                          'Error: $err',
+                          style: const TextStyle(color: Colors.redAccent),
+                        ),
                       ),
                     ),
                   ),
-                  error: (err, _) => SliverFillRemaining(
-                    child: Center(
+
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 16,
+                      ),
                       child: Text(
-                        'Error: $err',
-                        style: const TextStyle(color: Colors.redAccent),
+                        'INVENTORY LOSSES',
+                        style: TextStyle(
+                          letterSpacing: 2.5,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white24,
+                        ),
                       ),
                     ),
                   ),
-                ),
 
-                const SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                    child: Text(
-                      'INVENTORY LOSSES',
-                      style: TextStyle(
-                        letterSpacing: 2.5,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white24,
-                      ),
-                    ),
-                  ),
-                ),
+                  adjustmentsAsync.when(
+                    data: (adjustments) {
+                      final width = MediaQuery.of(context).size.width;
+                      final horizontalPadding = width > 1200
+                          ? width * 0.1
+                          : (width > 800 ? 48.0 : 24.0);
+                      final crossAxisCount = width > 1000
+                          ? 3
+                          : (width > 600 ? 2 : 1);
 
-                adjustmentsAsync.when(
-                  data: (adjustments) {
-                    final width = MediaQuery.of(context).size.width;
-                    final horizontalPadding = width > 1200
-                        ? width * 0.1
-                        : (width > 800 ? 48.0 : 24.0);
-                    final crossAxisCount = width > 1000
-                        ? 3
-                        : (width > 600 ? 2 : 1);
-
-                    return adjustments.isEmpty
-                        ? const SliverToBoxAdapter(
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(vertical: 24),
-                              child: Center(
-                                child: Text(
-                                  'No inventory losses recorded for this date.',
-                                  style: TextStyle(
-                                    color: Colors.white24,
-                                    fontSize: 13,
+                      return adjustments.isEmpty
+                          ? const SliverToBoxAdapter(
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(vertical: 24),
+                                child: Center(
+                                  child: Text(
+                                    'No inventory losses recorded for this date.',
+                                    style: TextStyle(
+                                      color: Colors.white24,
+                                      fontSize: 13,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                          )
-                        : SliverPadding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: horizontalPadding,
-                            ),
-                            sliver: crossAxisCount > 1
-                                ? SliverGrid(
-                                    gridDelegate:
-                                        SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: crossAxisCount,
-                                          mainAxisSpacing: 16,
-                                          crossAxisSpacing: 16,
-                                          mainAxisExtent: 140,
-                                        ),
-                                    delegate: SliverChildBuilderDelegate((
-                                      context,
-                                      index,
-                                    ) {
-                                      final adj = adjustments[index];
-                                      return productsAsync.when(
-                                        data: (products) {
-                                          final product = products.firstWhere(
-                                            (p) => p.id == adj.productId,
-                                            orElse: () =>
-                                                Product()..name = 'Unknown',
-                                          );
-                                          return _LossTile(
-                                            adjustment: adj,
-                                            productName: product.name,
-                                            costPrice: product.costPrice,
-                                          );
-                                        },
-                                        loading: () => const SizedBox.shrink(),
-                                        error: (_, _) =>
-                                            const SizedBox.shrink(),
-                                      );
-                                    }, childCount: adjustments.length),
-                                  )
-                                : SliverList(
-                                    delegate: SliverChildBuilderDelegate((
-                                      context,
-                                      index,
-                                    ) {
-                                      final adj = adjustments[index];
-                                      return Padding(
-                                        padding: const EdgeInsets.only(
-                                          bottom: 12,
-                                        ),
-                                        child: productsAsync.when(
+                            )
+                          : SliverPadding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: horizontalPadding,
+                              ),
+                              sliver: crossAxisCount > 1
+                                  ? SliverGrid(
+                                      gridDelegate:
+                                          SliverGridDelegateWithFixedCrossAxisCount(
+                                            crossAxisCount: crossAxisCount,
+                                            mainAxisSpacing: 16,
+                                            crossAxisSpacing: 16,
+                                            mainAxisExtent: 140,
+                                          ),
+                                      delegate: SliverChildBuilderDelegate((
+                                        context,
+                                        index,
+                                      ) {
+                                        final adj = adjustments[index];
+                                        return productsAsync.when(
                                           data: (products) {
                                             final product = products.firstWhere(
                                               (p) => p.id == adj.productId,
@@ -627,36 +697,77 @@ class _SalesScreenState extends ConsumerState<SalesScreen> with SingleTickerProv
                                               const SizedBox.shrink(),
                                           error: (_, _) =>
                                               const SizedBox.shrink(),
-                                        ),
-                                      );
-                                    }, childCount: adjustments.length),
-                                  ),
-                          );
-                  },
-                  loading: () => const SliverToBoxAdapter(
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFFEF4444),
+                                        );
+                                      }, childCount: adjustments.length),
+                                    )
+                                  : SliverList(
+                                      delegate: SliverChildBuilderDelegate((
+                                        context,
+                                        index,
+                                      ) {
+                                        final adj = adjustments[index];
+                                        return Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 12,
+                                          ),
+                                          child: productsAsync.when(
+                                            data: (products) {
+                                              final product = products
+                                                  .firstWhere(
+                                                    (p) =>
+                                                        p.id == adj.productId,
+                                                    orElse: () =>
+                                                        Product()
+                                                          ..name = 'Unknown',
+                                                  );
+                                              return _LossTile(
+                                                adjustment: adj,
+                                                productName: product.name,
+                                                costPrice: product.costPrice,
+                                              );
+                                            },
+                                            loading: () =>
+                                                const SizedBox.shrink(),
+                                            error: (_, _) =>
+                                                const SizedBox.shrink(),
+                                          ),
+                                        );
+                                      }, childCount: adjustments.length),
+                                    ),
+                            );
+                    },
+                    loading: () => const SliverToBoxAdapter(
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFFEF4444),
+                        ),
+                      ),
+                    ),
+                    error: (err, _) => SliverToBoxAdapter(
+                      child: Center(
+                        child: Text(
+                          'Error: $err',
+                          style: const TextStyle(color: Colors.redAccent),
+                        ),
                       ),
                     ),
                   ),
-                  error: (err, _) => SliverToBoxAdapter(
-                    child: Center(
-                      child: Text(
-                        'Error: $err',
-                        style: const TextStyle(color: Colors.redAccent),
-                      ),
-                    ),
-                  ),
-                ),
 
-                const SliverToBoxAdapter(child: SizedBox(height: 120)),
-                ] else ...[  // ANALYSIS tab
+                  const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                ] else if (_tabController.index == 1) ...[
+                  // EXPENSES tab
+                  _buildExpensesSliver(
+                    context,
+                    ref,
+                    selectedDate,
+                    expensesOnDate,
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                ] else ...[
+                  // ANALYSIS tab
                   SliverFillRemaining(
                     hasScrollBody: true,
-                    child: _SalesAnalysisTab(
-                      selectedDate: selectedDate,
-                    ),
+                    child: _SalesAnalysisTab(selectedDate: selectedDate),
                   ),
                 ],
               ],
@@ -664,6 +775,461 @@ class _SalesScreenState extends ConsumerState<SalesScreen> with SingleTickerProv
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildExpensesSliver(
+    BuildContext context,
+    WidgetRef ref,
+    DateTime selectedDate,
+    List<Expense> expenses,
+  ) {
+    if (expenses.isEmpty) {
+      return const SliverFillRemaining(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.receipt_long_rounded, size: 64, color: Colors.white10),
+              SizedBox(height: 16),
+              Text(
+                'No expenses recorded for this date.',
+                style: TextStyle(
+                  color: Colors.white24,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Tap the "+" icon in the top right to log an expense.',
+                style: TextStyle(color: Colors.white12, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final width = MediaQuery.of(context).size.width;
+    final horizontalPadding = width > 1200
+        ? width * 0.1
+        : (width > 800 ? 48.0 : 24.0);
+    final crossAxisCount = width > 1000 ? 3 : (width > 600 ? 2 : 1);
+
+    return SliverPadding(
+      padding: EdgeInsets.symmetric(
+        horizontal: horizontalPadding,
+        vertical: 16,
+      ),
+      sliver: crossAxisCount > 1
+          ? SliverGrid(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                mainAxisExtent: 100,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) =>
+                    _buildExpenseCard(context, ref, expenses[index]),
+                childCount: expenses.length,
+              ),
+            )
+          : SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildExpenseCard(context, ref, expenses[index]),
+                ),
+                childCount: expenses.length,
+              ),
+            ),
+    );
+  }
+
+  Widget _buildExpenseCard(
+    BuildContext context,
+    WidgetRef ref,
+    Expense expense,
+  ) {
+    String recurrenceText = '';
+    switch (expense.recurrence) {
+      case ExpenseRecurrence.none:
+        recurrenceText = 'One-time';
+        break;
+      case ExpenseRecurrence.daily:
+        recurrenceText = 'Daily';
+        break;
+      case ExpenseRecurrence.weekly:
+        final weekdayName = DateFormat('EEEE').format(expense.date);
+        recurrenceText = 'Weekly on ${weekdayName}s';
+        break;
+      case ExpenseRecurrence.monthly:
+        recurrenceText = 'Monthly on day ${expense.date.day}';
+        break;
+      case ExpenseRecurrence.yearly:
+        final monthDay = DateFormat('MMM dd').format(expense.date);
+        recurrenceText = 'Yearly on $monthDay';
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E2E),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.receipt_long_rounded,
+              color: Color(0xFFF59E0B),
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  expense.description,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  recurrenceText,
+                  style: const TextStyle(color: Colors.white30, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Text(
+            'ETB ${expense.amount.toStringAsFixed(0)}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+            ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: const Icon(
+              Icons.delete_outline_rounded,
+              color: Color(0xFFEF4444),
+              size: 20,
+            ),
+            onPressed: () async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  backgroundColor: const Color(0xFF1A1A2E),
+                  title: const Text(
+                    'Delete Expense',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  content: Text(
+                    'Are you sure you want to delete "${expense.description}"?',
+                    style: const TextStyle(color: Colors.white70),
+                  ),
+                  actions: [
+                    TextButton(
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(color: Colors.white30),
+                      ),
+                      onPressed: () => Navigator.of(context).pop(false),
+                    ),
+                    TextButton(
+                      child: const Text(
+                        'Delete',
+                        style: TextStyle(color: Color(0xFFEF4444)),
+                      ),
+                      onPressed: () => Navigator.of(context).pop(true),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirmed == true) {
+                await ref
+                    .read(expenseRepositoryProvider)
+                    .deleteExpense(expense.id);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Expense deleted successfully'),
+                      backgroundColor: Color(0xFFEF4444),
+                    ),
+                  );
+                }
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddExpenseDialog(
+    BuildContext context,
+    WidgetRef ref,
+    DateTime selectedDate,
+  ) {
+    final formKey = GlobalKey<FormState>();
+    final descriptionController = TextEditingController();
+    final amountController = TextEditingController();
+    ExpenseRecurrence selectedRecurrence = ExpenseRecurrence.none;
+    DateTime pickedDate = selectedDate;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF131324),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              title: const Text(
+                'RECORD OPERATIONAL EXPENSE',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              content: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextFormField(
+                        controller: descriptionController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          labelText: 'Description',
+                          labelStyle: const TextStyle(color: Colors.white30),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(color: Colors.white10),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF6366F1),
+                            ),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter a description';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: amountController,
+                        style: const TextStyle(color: Colors.white),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: InputDecoration(
+                          labelText: 'Amount (ETB)',
+                          labelStyle: const TextStyle(color: Colors.white30),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(color: Colors.white10),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF6366F1),
+                            ),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null ||
+                              double.tryParse(value) == null ||
+                              double.parse(value) <= 0) {
+                            return 'Please enter a valid amount';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      InkWell(
+                        onTap: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: pickedDate,
+                            firstDate: DateTime.now().subtract(
+                              const Duration(days: 365),
+                            ),
+                            lastDate: DateTime.now().add(
+                              const Duration(days: 365),
+                            ),
+                          );
+                          if (date != null) {
+                            setState(() {
+                              pickedDate = date;
+                            });
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.white10),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Date: ${DateFormat('yyyy-MM-dd').format(pickedDate)}',
+                                style: const TextStyle(color: Colors.white70),
+                              ),
+                              const Icon(
+                                Icons.calendar_today,
+                                color: Colors.white30,
+                                size: 20,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'RECURRENCE',
+                        style: TextStyle(
+                          color: Colors.white30,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.white10),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<ExpenseRecurrence>(
+                            value: selectedRecurrence,
+                            dropdownColor: const Color(0xFF131324),
+                            style: const TextStyle(color: Colors.white),
+                            isExpanded: true,
+                            items: ExpenseRecurrence.values.map((recurrence) {
+                              String label = '';
+                              switch (recurrence) {
+                                case ExpenseRecurrence.none:
+                                  label = 'One-time';
+                                  break;
+                                case ExpenseRecurrence.daily:
+                                  label = 'Daily';
+                                  break;
+                                case ExpenseRecurrence.weekly:
+                                  label = 'Weekly';
+                                  break;
+                                case ExpenseRecurrence.monthly:
+                                  label = 'Monthly';
+                                  break;
+                                case ExpenseRecurrence.yearly:
+                                  label = 'Yearly';
+                                  break;
+                              }
+                              return DropdownMenuItem<ExpenseRecurrence>(
+                                value: recurrence,
+                                child: Text(label),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setState(() {
+                                  selectedRecurrence = val;
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  child: const Text(
+                    'CANCEL',
+                    style: TextStyle(color: Colors.white30),
+                  ),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+                TextButton(
+                  child: const Text(
+                    'SAVE',
+                    style: TextStyle(
+                      color: Color(0xFF6366F1),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  onPressed: () async {
+                    if (formKey.currentState!.validate()) {
+                      final newExpense = Expense()
+                        ..description = descriptionController.text.trim()
+                        ..amount = double.parse(amountController.text)
+                        ..date = pickedDate
+                        ..recurrence = selectedRecurrence
+                        ..lastUpdated = DateTime.now();
+
+                      await ref
+                          .read(expenseRepositoryProvider)
+                          .saveExpense(newExpense);
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Expense recorded successfully'),
+                            backgroundColor: Color(0xFF10B981),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -1386,108 +1952,311 @@ class _SalesAnalysisTabState extends ConsumerState<_SalesAnalysisTab> {
         // Toggle Row
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
-            child: Row(
-              children: [
-                const Text(
-                  'PROFITABILITY',
-                  style: TextStyle(
-                    color: Colors.white24,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 2.0,
-                    fontSize: 10,
-                  ),
+          child: Row(
+            children: [
+              const Text(
+                'PROFITABILITY',
+                style: TextStyle(
+                  color: Colors.white24,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2.0,
+                  fontSize: 10,
                 ),
-                const Spacer(),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _toggleChip('TODAY', !_showAllTime, () => setState(() => _showAllTime = false)),
-                      _toggleChip('ALL TIME', _showAllTime, () => setState(() => _showAllTime = true)),
-                    ],
-                  ),
+              ),
+              const Spacer(),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              ],
-            ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _toggleChip(
+                      'TODAY',
+                      !_showAllTime,
+                      () => setState(() => _showAllTime = false),
+                    ),
+                    _toggleChip(
+                      'ALL TIME',
+                      _showAllTime,
+                      () => setState(() => _showAllTime = true),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          // Content
-          Expanded(
-            child: productsAsync.when(
-              data: (products) {
-                final salesAsync = _showAllTime ? allTimeAsync : dailyAsync;
-                return salesAsync.when(
-                  data: (orders) {
-                    // Build per-product profitability data
-                    final Map<int, _ProductProfitData> profitMap = {};
-                    for (final o in orders) {
-                      if (_showAllTime || _isSameDay(o.fulfilledAt ?? o.dueDate, widget.selectedDate)) {
-                        profitMap.putIfAbsent(o.productId, () => _ProductProfitData());
-                        final data = profitMap[o.productId]!;
-                        data.revenue += o.amount * o.sellingPriceAtTime;
-                        data.cogs += o.amount * o.costPriceAtTime;
-                        data.unitsSold += o.amount;
-                      }
+        ),
+        // Content
+        Expanded(
+          child: productsAsync.when(
+            data: (products) {
+              final salesAsync = _showAllTime ? allTimeAsync : dailyAsync;
+              return salesAsync.when(
+                data: (orders) {
+                  // Build per-product profitability data
+                  final Map<int, _ProductProfitData> profitMap = {};
+                  for (final o in orders) {
+                    if (_showAllTime ||
+                        _isSameDay(
+                          o.fulfilledAt ?? o.dueDate,
+                          widget.selectedDate,
+                        )) {
+                      profitMap.putIfAbsent(
+                        o.productId,
+                        () => _ProductProfitData(),
+                      );
+                      final data = profitMap[o.productId]!;
+                      data.revenue += o.amount * o.sellingPriceAtTime;
+                      data.cogs += o.amount * o.costPriceAtTime;
+                      data.unitsSold += o.amount;
                     }
+                  }
 
-                    // Merge with product info and compute margin
-                    final List<_ProductMarginEntry> entries = [];
-                    for (final p in products) {
-                      if (p.isVoid) continue;
-                      final data = profitMap[p.id];
-                      if (data == null || data.unitsSold == 0) continue;
-                      final grossProfit = data.revenue - data.cogs;
-                      final margin = data.revenue > 0 ? (grossProfit / data.revenue) * 100 : 0.0;
-                      entries.add(_ProductMarginEntry(
+                  // Merge with product info and compute margin
+                  final List<_ProductMarginEntry> entries = [];
+                  for (final p in products) {
+                    if (p.isVoid) continue;
+                    final data = profitMap[p.id];
+                    if (data == null || data.unitsSold == 0) continue;
+                    final grossProfit = data.revenue - data.cogs;
+                    final margin = data.revenue > 0
+                        ? (grossProfit / data.revenue) * 100
+                        : 0.0;
+                    entries.add(
+                      _ProductMarginEntry(
                         product: p,
                         revenue: data.revenue,
                         grossProfit: grossProfit,
                         marginPct: margin,
                         unitsSold: data.unitsSold,
-                      ));
-                    }
-
-                    // Sort by gross profit descending
-                    entries.sort((a, b) => b.grossProfit.compareTo(a.grossProfit));
-
-                    if (entries.isEmpty) {
-                      return const Center(
-                        child: Text(
-                          'No sales data to analyze.',
-                          style: TextStyle(color: Colors.white24),
-                        ),
-                      );
-                    }
-
-                    final maxRevenue = entries.fold(0.0, (m, e) => m > e.revenue ? m : e.revenue);
-
-                    return ListView.separated(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      itemCount: entries.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        return _ProductMarginTile(
-                          entry: entries[index],
-                          rank: index + 1,
-                          maxRevenue: maxRevenue,
-                        );
-                      },
+                      ),
                     );
-                  },
-                  loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF6366F1))),
-                  error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: Colors.redAccent))),
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF6366F1))),
-              error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: Colors.redAccent))),
+                  }
+
+                  // Sort by gross profit descending
+                  entries.sort(
+                    (a, b) => b.grossProfit.compareTo(a.grossProfit),
+                  );
+
+                  // Calculate cash collected vs outstanding credit
+                  double cashCollected = 0.0;
+                  double outstandingCredit = 0.0;
+                  for (final o in orders) {
+                    if (_showAllTime ||
+                        _isSameDay(
+                          o.fulfilledAt ?? o.dueDate,
+                          widget.selectedDate,
+                        )) {
+                      final totalOrderValue = o.amount * o.sellingPriceAtTime;
+                      if (o.paymentMethod == PaymentMethod.credit) {
+                        cashCollected += o.advancePayment;
+                        outstandingCredit +=
+                            (totalOrderValue - o.advancePayment);
+                      } else {
+                        cashCollected += totalOrderValue;
+                      }
+                    }
+                  }
+
+                  final maxRevenue = entries.fold(
+                    0.0,
+                    (m, e) => m > e.revenue ? m : e.revenue,
+                  );
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Cash Flow & Customer Credit card
+                      Container(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 8,
+                        ),
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFF1E1E38), Color(0xFF131324)],
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: const Color(
+                              0xFF6366F1,
+                            ).withValues(alpha: 0.15),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'REAL CASH FLOW & CUSTOMER CREDIT',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 10,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Container(
+                                            width: 8,
+                                            height: 8,
+                                            decoration: const BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: Color(0xFF10B981),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          const Text(
+                                            'Cash Collected',
+                                            style: TextStyle(
+                                              color: Colors.white30,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'ETB ${cashCollected.toStringAsFixed(0)}',
+                                        style: const TextStyle(
+                                          color: Color(0xFF10B981),
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  width: 1,
+                                  height: 40,
+                                  color: Colors.white10,
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Container(
+                                            width: 8,
+                                            height: 8,
+                                            decoration: const BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: Color(0xFFEF4444),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          const Text(
+                                            'Outstanding Credit',
+                                            style: TextStyle(
+                                              color: Colors.white30,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'ETB ${outstandingCredit.toStringAsFixed(0)}',
+                                        style: const TextStyle(
+                                          color: Color(0xFFEF4444),
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 24),
+                        child: Text(
+                          'PRODUCT PERFORMANCE',
+                          style: TextStyle(
+                            color: Colors.white24,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 2.0,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      if (entries.isEmpty)
+                        const Expanded(
+                          child: Center(
+                            child: Text(
+                              'No sales data to analyze.',
+                              style: TextStyle(color: Colors.white24),
+                            ),
+                          ),
+                        )
+                      else
+                        Expanded(
+                          child: ListView.separated(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            itemCount: entries.length,
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              return _ProductMarginTile(
+                                entry: entries[index],
+                                rank: index + 1,
+                                maxRevenue: maxRevenue,
+                              );
+                            },
+                          ),
+                        ),
+                    ],
+                  );
+                },
+                loading: () => const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF6366F1)),
+                ),
+                error: (e, _) => Center(
+                  child: Text(
+                    'Error: $e',
+                    style: const TextStyle(color: Colors.redAccent),
+                  ),
+                ),
+              );
+            },
+            loading: () => const Center(
+              child: CircularProgressIndicator(color: Color(0xFF6366F1)),
+            ),
+            error: (e, _) => Center(
+              child: Text(
+                'Error: $e',
+                style: const TextStyle(color: Colors.redAccent),
+              ),
             ),
           ),
-          const SizedBox(height: 24),
-        ],
-      );
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
   }
 
   bool _isSameDay(DateTime a, DateTime b) =>
@@ -1563,7 +2332,9 @@ class _ProductMarginTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final barFraction = maxRevenue > 0 ? (entry.revenue / maxRevenue).clamp(0.0, 1.0) : 0.0;
+    final barFraction = maxRevenue > 0
+        ? (entry.revenue / maxRevenue).clamp(0.0, 1.0)
+        : 0.0;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1640,17 +2411,34 @@ class _ProductMarginTile extends StatelessWidget {
               value: barFraction,
               minHeight: 5,
               backgroundColor: Colors.white.withValues(alpha: 0.05),
-              valueColor: AlwaysStoppedAnimation<Color>(_marginColor.withValues(alpha: 0.7)),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                _marginColor.withValues(alpha: 0.7),
+              ),
             ),
           ),
           const SizedBox(height: 10),
           Row(
             children: [
-              _statChip(Icons.payments_rounded, 'ETB ${entry.revenue.toStringAsFixed(0)}', Colors.white54, 'Revenue'),
+              _statChip(
+                Icons.payments_rounded,
+                'ETB ${entry.revenue.toStringAsFixed(0)}',
+                Colors.white54,
+                'Revenue',
+              ),
               const SizedBox(width: 12),
-              _statChip(Icons.trending_up_rounded, 'ETB ${entry.grossProfit.toStringAsFixed(0)}', const Color(0xFF10B981), 'Profit'),
+              _statChip(
+                Icons.trending_up_rounded,
+                'ETB ${entry.grossProfit.toStringAsFixed(0)}',
+                const Color(0xFF10B981),
+                'Profit',
+              ),
               const SizedBox(width: 12),
-              _statChip(Icons.shopping_basket_rounded, '${entry.unitsSold.toStringAsFixed(0)} units', Colors.white38, 'Sold'),
+              _statChip(
+                Icons.shopping_basket_rounded,
+                '${entry.unitsSold.toStringAsFixed(0)} units',
+                Colors.white38,
+                'Sold',
+              ),
             ],
           ),
         ],
