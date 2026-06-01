@@ -2675,6 +2675,7 @@ void _showRecordLossDialog(BuildContext context, WidgetRef ref) {
   int? selectedProductId;
   String selectedReason = 'Damage';
   final quantityController = TextEditingController();
+  DateTime selectedLossDate = ref.read(selectedSalesDateProvider);
 
   showDialog(
     context: context,
@@ -2696,134 +2697,214 @@ void _showRecordLossDialog(BuildContext context, WidgetRef ref) {
                 color: Color(0xFFEF4444),
               ),
             ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'PRODUCT',
-                  style: TextStyle(
-                    color: Colors.white38,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.1),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'PRODUCT',
+                    style: TextStyle(
+                      color: Colors.white38,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
                     ),
                   ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<int>(
-                      value: selectedProductId,
-                      dropdownColor: const Color(0xFF0F172A),
-                      isExpanded: true,
-                      hint: const Text(
-                        'Select Product',
-                        style: TextStyle(color: Colors.white30, fontSize: 14),
-                      ),
-                      items: products.map((p) {
-                        return DropdownMenuItem<int>(
-                          value: p.id,
-                          child: Text(
-                            p.name,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (val) =>
-                          setState(() => selectedProductId = val),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                const Text(
-                  'LOSS REASON',
-                  style: TextStyle(
-                    color: Colors.white38,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.1),
-                    ),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: selectedReason,
-                      dropdownColor: const Color(0xFF0F172A),
-                      isExpanded: true,
-                      items: ['Damage', 'Self-Consumption'].map((r) {
-                        return DropdownMenuItem<String>(
-                          value: r,
-                          child: Text(
-                            r,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (val) =>
-                          setState(() => selectedReason = val ?? 'Damage'),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                const Text(
-                  'QUANTITY LOST',
-                  style: TextStyle(
-                    color: Colors.white38,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: quantityController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    hintText: 'e.g. 5',
-                    hintStyle: const TextStyle(color: Colors.white30),
-                    filled: true,
-                    fillColor: Colors.white.withValues(alpha: 0.05),
-                    border: OutlineInputBorder(
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(
+                      border: Border.all(
                         color: Colors.white.withValues(alpha: 0.1),
                       ),
                     ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: const BorderSide(color: Color(0xFFEF4444)),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: selectedProductId,
+                        dropdownColor: const Color(0xFF0F172A),
+                        isExpanded: true,
+                        hint: const Text(
+                          'Select Product',
+                          style: TextStyle(color: Colors.white30, fontSize: 14),
+                        ),
+                        items: products.map((p) {
+                          return DropdownMenuItem<int>(
+                            value: p.id,
+                            child: Text(
+                              p.name,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (val) =>
+                            setState(() => selectedProductId = val),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+
+                  const Text(
+                    'LOSS REASON',
+                    style: TextStyle(
+                      color: Colors.white38,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedReason,
+                        dropdownColor: const Color(0xFF0F172A),
+                        isExpanded: true,
+                        items: ['Damage', 'Self-Consumption'].map((r) {
+                          return DropdownMenuItem<String>(
+                            value: r,
+                            child: Text(
+                              r,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (val) =>
+                            setState(() => selectedReason = val ?? 'Damage'),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  const Text(
+                    'QUANTITY LOST',
+                    style: TextStyle(
+                      color: Colors.white38,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: quantityController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'e.g. 5',
+                      hintStyle: const TextStyle(color: Colors.white30),
+                      filled: true,
+                      fillColor: Colors.white.withValues(alpha: 0.05),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.1),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Color(0xFFEF4444)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  const Text(
+                    'LOSS DATE',
+                    style: TextStyle(
+                      color: Colors.white38,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: selectedLossDate,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2100),
+                        builder: (context, child) {
+                          return Theme(
+                            data: Theme.of(context).copyWith(
+                              colorScheme: const ColorScheme.dark(
+                                primary: Color(0xFFEF4444),
+                                onPrimary: Colors.white,
+                                surface: Color(0xFF0F172A),
+                                onSurface: Colors.white,
+                              ),
+                              dialogBackgroundColor: const Color(0xFF0F172A),
+                            ),
+                            child: child!,
+                          );
+                        },
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          selectedLossDate = picked;
+                        });
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.1),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.calendar_month_rounded,
+                            color: Color(0xFFEF4444),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            DateFormat('yyyy-MM-dd').format(selectedLossDate),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const Spacer(),
+                          const Icon(
+                            Icons.arrow_drop_down_rounded,
+                            color: Colors.white,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             actions: [
               TextButton(
@@ -2845,7 +2926,7 @@ void _showRecordLossDialog(BuildContext context, WidgetRef ref) {
 
                   final adj = StockAdjustment()
                     ..productId = selectedProductId!
-                    ..date = ref.read(selectedSalesDateProvider)
+                    ..date = selectedLossDate
                     ..amount = -qty
                     ..reason = selectedReason.toLowerCase();
 

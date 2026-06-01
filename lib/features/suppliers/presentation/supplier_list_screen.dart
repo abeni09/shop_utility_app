@@ -1252,6 +1252,7 @@ class _SupplierCard extends ConsumerWidget {
   ) {
     final amountController = TextEditingController();
     String? selectedImagePath;
+    DateTime selectedSettlementDate = DateTime.now();
 
     showModalBottomSheet(
       context: context,
@@ -1399,6 +1400,85 @@ class _SupplierCard extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
               const Text(
+                'PAYMENT DATE',
+                style: TextStyle(
+                  color: Colors.white38,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: selectedSettlementDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2100),
+                    builder: (context, child) {
+                      return Theme(
+                        data: Theme.of(context).copyWith(
+                          colorScheme: const ColorScheme.dark(
+                            primary: Color(0xFF818CF8),
+                            onPrimary: Colors.white,
+                            surface: Color(0xFF0F172A),
+                            onSurface: Colors.white,
+                          ),
+                          dialogBackgroundColor: const Color(0xFF0F172A),
+                        ),
+                        child: child!,
+                      );
+                    },
+                  );
+                  if (picked != null) {
+                    setDialogState(() {
+                      selectedSettlementDate = picked;
+                    });
+                  }
+                },
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.calendar_month_rounded,
+                        color: Color(0xFF818CF8),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        DateFormat(
+                          'MMM dd, yyyy',
+                        ).format(selectedSettlementDate),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                      const Icon(
+                        Icons.edit_calendar_rounded,
+                        color: Colors.white38,
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
                 'PROOF OF PAYMENT (OPTIONAL)',
                 style: TextStyle(
                   color: Colors.white38,
@@ -1515,7 +1595,7 @@ class _SupplierCard extends ConsumerWidget {
                     final settlement = SupplierSettlement()
                       ..supplierId = supplier.id
                       ..amount = amount
-                      ..date = DateTime.now()
+                      ..date = selectedSettlementDate
                       ..imagePath = selectedImagePath;
 
                     await ref
