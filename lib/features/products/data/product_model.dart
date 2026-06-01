@@ -19,4 +19,6 @@ class Product {
   bool isVoid = false;
 
   int minStockThreshold = 5;
+
+  int shelfLifeDays = 30;
 }

@@ -900,7 +900,8 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
                           (p) => p.id == ds.productId,
                           orElse: () => Product()
                             ..name = 'Unknown Product'
-                            ..costPrice = 0.0,
+                            ..costPrice = 0.0
+                            ..shelfLifeDays = 30,
                         );
                         final unsoldQty = item.unsoldAtEnd;
                         final currentUnsoldQty = item.unsoldCurrently;
@@ -921,6 +922,24 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
                           final unsoldText = unsoldQty == currentUnsoldQty
                               ? '${unsoldQty.toStringAsFixed(0)} / ${ds.receivedQuantity.toStringAsFixed(0)} rec.'
                               : '${unsoldQty.toStringAsFixed(0)} (currently ${currentUnsoldQty.toStringAsFixed(0)}) / ${ds.receivedQuantity.toStringAsFixed(0)} rec.';
+
+                          final daysOld = DateTime.now()
+                              .difference(ds.date)
+                              .inDays
+                              .clamp(0, 9999);
+                          final limit = prod.shelfLifeDays;
+                          final String statusText;
+                          final Color statusColor;
+                          if (daysOld < limit * 0.5) {
+                            statusText = 'Fresh (${daysOld}d old)';
+                            statusColor = const Color(0xFF10B981);
+                          } else if (daysOld <= limit) {
+                            statusText = 'Warning (${daysOld}d old)';
+                            statusColor = const Color(0xFFF59E0B);
+                          } else {
+                            statusText = 'Critical / Expired (${daysOld}d old)';
+                            statusColor = const Color(0xFFEF4444);
+                          }
 
                           unsoldItemsList.add(
                             Container(
@@ -947,13 +966,45 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
                                     size: 20,
                                   ),
                                 ),
-                                title: Text(
-                                  prod.name,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
+                                title: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        prod.name,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: statusColor.withValues(
+                                          alpha: 0.15,
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: statusColor.withValues(
+                                            alpha: 0.3,
+                                          ),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        statusText,
+                                        style: TextStyle(
+                                          color: statusColor,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 subtitle: Text(
                                   'Unsold: $unsoldText • $supName',

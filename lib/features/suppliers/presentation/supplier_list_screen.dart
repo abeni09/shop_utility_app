@@ -33,6 +33,12 @@ final suppliersProvider = StreamProvider<List<Supplier>>((ref) {
   return repository.watchSuppliers(includeVoided: showArchived);
 });
 
+final supplierSettlementsProvider =
+    StreamProvider.family<List<SupplierSettlement>, int>((ref, supplierId) {
+      final repository = ref.watch(supplierRepositoryProvider);
+      return repository.watchSettlements(supplierId);
+    });
+
 class SupplierListScreen extends ConsumerWidget {
   const SupplierListScreen({super.key});
 
@@ -618,6 +624,9 @@ void _showSupplierDialog(
   final nameController = TextEditingController(text: existing?.name);
   final contactController = TextEditingController(text: existing?.contact);
   final accountController = TextEditingController(text: existing?.account);
+  final paymentTermsController = TextEditingController(
+    text: (existing?.paymentTermsDays ?? 30).toString(),
+  );
 
   showModalBottomSheet(
     context: context,
@@ -655,11 +664,27 @@ void _showSupplierDialog(
               context,
             ),
             const SizedBox(height: 16),
-            _buildTextField(
-              contactController,
-              'Phone Number',
-              Icons.phone_rounded,
-              context,
+            Row(
+              children: [
+                Expanded(
+                  child: _buildTextField(
+                    contactController,
+                    'Phone Number',
+                    Icons.phone_rounded,
+                    context,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildTextField(
+                    paymentTermsController,
+                    'Payment Terms (Days)',
+                    Icons.hourglass_bottom_rounded,
+                    context,
+                    isNumber: true,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             _buildTextField(
@@ -700,12 +725,14 @@ void _showSupplierDialog(
                     return;
                   }
 
+                  final terms = int.tryParse(paymentTermsController.text) ?? 30;
                   final supplier = existing ?? Supplier();
                   supplier.name = nameController.text.trim();
                   supplier.contact = contactController.text.trim();
                   supplier.account = accountController.text.trim().isEmpty
                       ? null
                       : accountController.text.trim();
+                  supplier.paymentTermsDays = terms;
 
                   await ref
                       .read(supplierRepositoryProvider)
@@ -734,10 +761,12 @@ Widget _buildTextField(
   TextEditingController controller,
   String label,
   IconData icon,
-  BuildContext context,
-) {
+  BuildContext context, {
+  bool isNumber = false,
+}) {
   return TextField(
     controller: controller,
+    keyboardType: isNumber ? TextInputType.number : TextInputType.text,
     style: const TextStyle(fontWeight: FontWeight.w600),
     decoration: InputDecoration(
       labelText: label,
@@ -772,6 +801,58 @@ class _SupplierCard extends ConsumerWidget {
     final hasBalance = supplier.balance > 0;
     final isActive = supplier.isActive;
 
+    final products = ref.watch(productsProvider).value ?? [];
+    final dailyStocks = ref.watch(allDailyStockProvider).value ?? [];
+    final settlements =
+        ref.watch(supplierSettlementsProvider(supplier.id)).value ?? [];
+
+    bool isOverdue = false;
+    int ageDays = 0;
+
+    if (hasBalance) {
+      final supplierProductIds = products
+          .where((p) => p.supplierId == supplier.id)
+          .map((p) => p.id)
+          .toSet();
+
+      final sortedDailyStocks =
+          dailyStocks
+              .where(
+                (ds) =>
+                    supplierProductIds.contains(ds.productId) &&
+                    ds.receivedQuantity > 0,
+              )
+              .toList()
+            ..sort((a, b) => a.date.compareTo(b.date));
+
+      final totalSettled = settlements.fold(0.0, (sum, s) => sum + s.amount);
+      var settledDebt = totalSettled;
+      DateTime? oldestUnpaidDate;
+
+      for (var ds in sortedDailyStocks) {
+        final prod = products.firstWhere(
+          (p) => p.id == ds.productId,
+          orElse: () => Product()..costPrice = 0.0,
+        );
+        final cost = ds.receivedQuantity * prod.costPrice;
+        if (cost <= 0) continue;
+        if (settledDebt >= cost) {
+          settledDebt -= cost;
+        } else {
+          oldestUnpaidDate = ds.date;
+          break;
+        }
+      }
+
+      if (oldestUnpaidDate != null) {
+        ageDays = DateTime.now()
+            .difference(oldestUnpaidDate)
+            .inDays
+            .clamp(0, 9999);
+        isOverdue = ageDays > supplier.paymentTermsDays;
+      }
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
@@ -792,13 +873,16 @@ class _SupplierCard extends ConsumerWidget {
           ),
           if (hasBalance && isActive)
             BoxShadow(
-              color: Colors.redAccent.withValues(alpha: 0.05),
+              color: (isOverdue ? Colors.redAccent : Colors.orangeAccent)
+                  .withValues(alpha: 0.05),
               blurRadius: 30,
               spreadRadius: 5,
             ),
         ],
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.1),
+          color: (isOverdue && isActive)
+              ? Colors.redAccent.withValues(alpha: 0.3)
+              : Colors.white.withValues(alpha: 0.1),
           width: 1.5,
         ),
       ),
@@ -823,24 +907,32 @@ class _SupplierCard extends ConsumerWidget {
                           decoration: BoxDecoration(
                             color:
                                 (isActive
-                                        ? const Color(0xFF6366F1)
+                                        ? (isOverdue
+                                              ? Colors.redAccent
+                                              : const Color(0xFF6366F1))
                                         : Colors.white10)
                                     .withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                             border: Border.all(
                               color:
                                   (isActive
-                                          ? const Color(0xFF6366F1)
+                                          ? (isOverdue
+                                                ? Colors.redAccent
+                                                : const Color(0xFF6366F1))
                                           : Colors.white10)
                                       .withValues(alpha: 0.2),
                             ),
                           ),
                           child: Icon(
                             isActive
-                                ? Icons.local_shipping_rounded
+                                ? (isOverdue
+                                      ? Icons.warning_rounded
+                                      : Icons.local_shipping_rounded)
                                 : Icons.pause_circle_rounded,
                             color: isActive
-                                ? const Color(0xFF818CF8)
+                                ? (isOverdue
+                                      ? Colors.redAccent
+                                      : const Color(0xFF818CF8))
                                 : Colors.white24,
                             size: 24,
                           ),
@@ -850,13 +942,78 @@ class _SupplierCard extends ConsumerWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                supplier.name.toUpperCase(),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 14,
-                                  letterSpacing: 1,
-                                ),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      supplier.name.toUpperCase(),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 14,
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
+                                  ),
+                                  if (isOverdue && isActive) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.redAccent.withValues(
+                                          alpha: 0.15,
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Colors.redAccent.withValues(
+                                            alpha: 0.3,
+                                          ),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'OVERDUE (${ageDays}d)',
+                                        style: const TextStyle(
+                                          color: Colors.redAccent,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ] else if (hasBalance &&
+                                      ageDays > 0 &&
+                                      isActive) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.orangeAccent.withValues(
+                                          alpha: 0.15,
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Colors.orangeAccent.withValues(
+                                            alpha: 0.3,
+                                          ),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'DUE IN ${supplier.paymentTermsDays - ageDays}d',
+                                        style: const TextStyle(
+                                          color: Colors.orangeAccent,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                               const SizedBox(height: 4),
                               Row(

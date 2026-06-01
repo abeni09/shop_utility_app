@@ -357,6 +357,9 @@ void _showProductDialog(
   final minStockController = TextEditingController(
     text: (existing?.minStockThreshold ?? 5).toString(),
   );
+  final shelfLifeController = TextEditingController(
+    text: (existing?.shelfLifeDays ?? 30).toString(),
+  );
   int? selectedSupplierId = existing?.supplierId;
   var suppliers = ref.read(suppliersProvider).value ?? [];
   // Only show active and non-void suppliers
@@ -433,12 +436,28 @@ void _showProductDialog(
                 ],
               ),
               const SizedBox(height: 16),
-              _buildTextField(
-                minStockController,
-                'Min Stock Threshold (Alert Limit)',
-                Icons.warning_amber_rounded,
-                context,
-                isNumber: true,
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      minStockController,
+                      'Min Stock Alert Limit',
+                      Icons.warning_amber_rounded,
+                      context,
+                      isNumber: true,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildTextField(
+                      shelfLifeController,
+                      'Shelf Life (Days)',
+                      Icons.hourglass_bottom_rounded,
+                      context,
+                      isNumber: true,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               const Text(
@@ -518,12 +537,15 @@ void _showProductDialog(
 
                     final threshold =
                         int.tryParse(minStockController.text) ?? 5;
+                    final shelfLife =
+                        int.tryParse(shelfLifeController.text) ?? 30;
                     final product = existing ?? Product();
                     product.name = nameController.text.trim();
                     product.costPrice = cost;
                     product.sellingPrice = sale;
                     product.supplierId = selectedSupplierId;
                     product.minStockThreshold = threshold;
+                    product.shelfLifeDays = shelfLife;
 
                     await ref
                         .read(productRepositoryProvider)

@@ -20,4 +20,6 @@ class Supplier {
 
   bool isActive = true;
   bool isVoid = false;
+
+  int paymentTermsDays = 30;
 }
