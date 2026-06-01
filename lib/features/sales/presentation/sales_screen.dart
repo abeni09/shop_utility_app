@@ -889,23 +889,21 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
                       ),
                     ),
                     builder: (context) {
-                      final receivedStocks = wallet.dailyStocks
-                          .where((ds) => ds.receivedQuantity > 0)
+                      final receivedItems = wallet.receivedStockItems
+                          .where((item) => item.dailyStock.receivedQuantity > 0)
                           .toList();
                       final unsoldItemsList = <Widget>[];
 
-                      for (var ds in receivedStocks) {
+                      for (var item in receivedItems) {
+                        final ds = item.dailyStock;
                         final prod = products.firstWhere(
                           (p) => p.id == ds.productId,
                           orElse: () => Product()
                             ..name = 'Unknown Product'
                             ..costPrice = 0.0,
                         );
-                        final soldInPeriod = wallet.orders
-                            .where((o) => o.productId == ds.productId)
-                            .fold(0.0, (sum, o) => sum + o.amount);
-                        final unsoldQty = (ds.receivedQuantity - soldInPeriod)
-                            .clamp(0.0, double.infinity);
+                        final unsoldQty = item.unsoldAtEnd;
+                        final currentUnsoldQty = item.unsoldCurrently;
 
                         if (unsoldQty > 0) {
                           final suppliers =
@@ -919,6 +917,10 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
                                     )
                                     .name
                               : 'No Supplier';
+
+                          final unsoldText = unsoldQty == currentUnsoldQty
+                              ? '${unsoldQty.toStringAsFixed(0)} / ${ds.receivedQuantity.toStringAsFixed(0)} rec.'
+                              : '${unsoldQty.toStringAsFixed(0)} (currently ${currentUnsoldQty.toStringAsFixed(0)}) / ${ds.receivedQuantity.toStringAsFixed(0)} rec.';
 
                           unsoldItemsList.add(
                             Container(
@@ -954,7 +956,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
                                   ),
                                 ),
                                 subtitle: Text(
-                                  'Unsold: ${unsoldQty.toStringAsFixed(0)} / ${ds.receivedQuantity.toStringAsFixed(0)} rec. • $supName',
+                                  'Unsold: $unsoldText • $supName',
                                   style: const TextStyle(
                                     color: Colors.white30,
                                     fontSize: 11,
@@ -1413,8 +1415,8 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
     WalletData wallet,
     List<Product> products,
   ) {
-    final receivedStocks = wallet.dailyStocks
-        .where((ds) => ds.receivedQuantity > 0)
+    final receivedItems = wallet.receivedStockItems
+        .where((item) => item.dailyStock.receivedQuantity > 0)
         .toList();
 
     return Column(
@@ -1541,10 +1543,10 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
         const SizedBox(height: 16),
         _buildWalletExpansionCard(
           title: 'SUPPLIER DUES INCURRED (Daily Receives)',
-          count: receivedStocks.length,
+          count: receivedItems.length,
           color: const Color(0xFFEC4899),
           icon: Icons.local_shipping_rounded,
-          children: receivedStocks.isEmpty
+          children: receivedItems.isEmpty
               ? [
                   const Padding(
                     padding: EdgeInsets.all(24),
@@ -1556,7 +1558,8 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
                     ),
                   ),
                 ]
-              : receivedStocks.map((ds) {
+              : receivedItems.map((item) {
+                  final ds = item.dailyStock;
                   final df = DateFormat('MMM dd, yyyy');
                   final prod = products.firstWhere(
                     (p) => p.id == ds.productId,
@@ -4282,6 +4285,101 @@ final walletDataProvider = Provider<AsyncValue<WalletData>>((ref) {
     }
   }
 
+  // FIFO Stock Calculation Helpers
+  double getPhysicalRemainingAt(int productId, DateTime targetDate) {
+    final calcLimit = DateTime(
+      targetDate.year,
+      targetDate.month,
+      targetDate.day,
+      23,
+      59,
+      59,
+      999,
+    );
+
+    final received = allDailyStocks
+        .where(
+          (s) =>
+              s.productId == productId &&
+              s.date.isBefore(calcLimit.add(const Duration(seconds: 1))),
+        )
+        .fold(0.0, (sum, s) => sum + s.receivedQuantity);
+
+    final sold = allOrders
+        .where(
+          (o) =>
+              o.productId == productId &&
+              o.status == OrderStatus.sold &&
+              (o.fulfilledAt ?? o.dueDate).isBefore(
+                calcLimit.add(const Duration(seconds: 1)),
+              ),
+        )
+        .fold(0.0, (sum, o) => sum + o.amount);
+
+    final adjustments = allLosses
+        .where(
+          (a) =>
+              a.productId == productId &&
+              a.date.isBefore(calcLimit.add(const Duration(seconds: 1))),
+        )
+        .fold(0.0, (sum, a) => sum + a.amount);
+
+    return (received - sold + adjustments).clamp(0.0, double.infinity);
+  }
+
+  double myMin(double a, double b) => a < b ? a : b;
+
+  final receivedStockItems = <ReceivedStockItem>[];
+  for (var ds in rangeDailyStocks) {
+    // 1. Calculate unsold stock at the end of the range
+    final stockAtEnd = getPhysicalRemainingAt(ds.productId, endOfDay);
+    final receivesUpToEnd =
+        allDailyStocks
+            .where(
+              (s) =>
+                  s.productId == ds.productId &&
+                  s.date.isBefore(endOfDay.add(const Duration(seconds: 1))),
+            )
+            .toList()
+          ..sort((a, b) => b.date.compareTo(a.date));
+
+    double remainingEnd = stockAtEnd;
+    double unsoldAtEndVal = 0.0;
+    for (var r in receivesUpToEnd) {
+      final u = myMin(r.receivedQuantity, remainingEnd);
+      remainingEnd -= u;
+      if (r.id == ds.id) {
+        unsoldAtEndVal = u;
+        break;
+      }
+    }
+
+    // 2. Calculate unsold stock currently (real-time)
+    final stockCurrently = getPhysicalRemainingAt(ds.productId, DateTime.now());
+    final receivesUpToNow =
+        allDailyStocks.where((s) => s.productId == ds.productId).toList()
+          ..sort((a, b) => b.date.compareTo(a.date));
+
+    double remainingNow = stockCurrently;
+    double unsoldCurrentlyVal = 0.0;
+    for (var r in receivesUpToNow) {
+      final u = myMin(r.receivedQuantity, remainingNow);
+      remainingNow -= u;
+      if (r.id == ds.id) {
+        unsoldCurrentlyVal = u;
+        break;
+      }
+    }
+
+    receivedStockItems.add(
+      ReceivedStockItem(
+        dailyStock: ds,
+        unsoldAtEnd: unsoldAtEndVal,
+        unsoldCurrently: unsoldCurrentlyVal,
+      ),
+    );
+  }
+
   return AsyncValue.data(
     WalletData(
       range: range,
@@ -4289,7 +4387,7 @@ final walletDataProvider = Provider<AsyncValue<WalletData>>((ref) {
       expenses: rangeExpenses,
       losses: rangeLosses,
       settlements: rangeSettlements,
-      dailyStocks: rangeDailyStocks,
+      receivedStockItems: receivedStockItems,
     ),
   );
 });
