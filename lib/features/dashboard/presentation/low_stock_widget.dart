@@ -14,7 +14,7 @@ class LowStockAlertWidget extends ConsumerStatefulWidget {
 }
 
 class _LowStockAlertWidgetState extends ConsumerState<LowStockAlertWidget> {
-  bool _isCollapsed = false;
+  bool _isCollapsed = true;
 
   @override
   Widget build(BuildContext context) {
@@ -79,16 +79,19 @@ class _LowStockAlertWidgetState extends ConsumerState<LowStockAlertWidget> {
                       size: 20,
                     ),
                     const SizedBox(width: 10),
-                    const Text(
-                      'LOW STOCK WARNING',
-                      style: TextStyle(
-                        color: Color(0xFFF87171),
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 2.0,
-                        fontSize: 12,
+                    const Expanded(
+                      child: Text(
+                        'LOW STOCK WARNING',
+                        style: TextStyle(
+                          color: Color(0xFFF87171),
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2.0,
+                          fontSize: 12,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
