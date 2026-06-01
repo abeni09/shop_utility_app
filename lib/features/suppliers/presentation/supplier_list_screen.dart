@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopsync/features/backup/presentation/backup_providers.dart';
+import 'package:shopsync/features/orders/data/customer_order_model.dart';
+import 'package:shopsync/features/orders/presentation/order_providers.dart';
 import 'package:shopsync/features/suppliers/data/supplier_model.dart';
 import 'package:shopsync/features/suppliers/data/supplier_settlement_model.dart';
 import 'package:shopsync/features/suppliers/data/supplier_repository.dart';
@@ -112,6 +114,24 @@ class SupplierListScreen extends ConsumerWidget {
                         ),
                       ),
                       Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.05),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.bar_chart_rounded,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          onPressed: () =>
+                              _showWeeklyReportDialog(context, ref),
+                          tooltip: 'Weekly Report',
+                        ),
+                      ),
+                      Container(
                         margin: const EdgeInsets.only(right: 16),
                         decoration: BoxDecoration(
                           color: Theme.of(
@@ -211,6 +231,385 @@ class SupplierListScreen extends ConsumerWidget {
   }
 }
 
+Future<void> _showWeeklyReportDialog(
+  BuildContext context,
+  WidgetRef ref,
+) async {
+  // Default: current week Mon–today
+  final now = DateTime.now();
+  final monday = now.subtract(Duration(days: now.weekday - 1));
+  DateTime from = DateTime(monday.year, monday.month, monday.day);
+  DateTime to = DateTime(now.year, now.month, now.day, 23, 59, 59);
+  bool isGenerating = false;
+
+  await showDialog(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'WEEKLY REPORT',
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            letterSpacing: 2,
+            fontSize: 14,
+            color: Color(0xFF818CF8),
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Select date range for supplier dues and sales report.',
+              style: TextStyle(color: Colors.white54, fontSize: 12),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () async {
+                      final d = await showDatePicker(
+                        context: context,
+                        initialDate: from,
+                        firstDate: DateTime.now().subtract(
+                          const Duration(days: 365),
+                        ),
+                        lastDate: DateTime.now(),
+                      );
+                      if (d != null) {
+                        setState(() => from = DateTime(d.year, d.month, d.day));
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'FROM',
+                            style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            DateFormat('MMM dd').format(from),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: Icon(
+                    Icons.arrow_forward_rounded,
+                    color: Colors.white30,
+                    size: 16,
+                  ),
+                ),
+                Expanded(
+                  child: InkWell(
+                    onTap: () async {
+                      final d = await showDatePicker(
+                        context: context,
+                        initialDate: to,
+                        firstDate: from,
+                        lastDate: DateTime.now(),
+                      );
+                      if (d != null) {
+                        setState(
+                          () =>
+                              to = DateTime(d.year, d.month, d.day, 23, 59, 59),
+                        );
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'TO',
+                            style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            DateFormat('MMM dd').format(to),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'CANCEL',
+              style: TextStyle(color: Colors.white38),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF6366F1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: isGenerating
+                ? null
+                : () async {
+                    setState(() => isGenerating = true);
+                    try {
+                      await _generateWeeklyReport(context, ref, from, to);
+                      if (context.mounted) Navigator.pop(context);
+                    } catch (e) {
+                      if (context.mounted) {
+                        setState(() => isGenerating = false);
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                      }
+                    }
+                  },
+            child: isGenerating
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text(
+                    'GENERATE',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+Future<void> _generateWeeklyReport(
+  BuildContext context,
+  WidgetRef ref,
+  DateTime from,
+  DateTime to,
+) async {
+  final supplierRepo = ref.read(supplierRepositoryProvider);
+  final orderRepo = ref.read(orderRepositoryProvider);
+
+  final suppliers = (await supplierRepo.getAllSuppliers())
+      .where((s) => !s.isVoid)
+      .toList();
+  final settlements = await supplierRepo.getSettlementsInRange(from, to);
+  final allOrders = await orderRepo.getAllOrdersInRange(from, to);
+  final soldOrders = allOrders
+      .where((o) => o.status == OrderStatus.sold)
+      .toList();
+
+  // Build list of days in range
+  final days = <DateTime>[];
+  var cur = DateTime(from.year, from.month, from.day);
+  final lastDay = DateTime(to.year, to.month, to.day);
+  while (!cur.isAfter(lastDay)) {
+    days.add(cur);
+    cur = cur.add(const Duration(days: 1));
+  }
+
+  final df = DateFormat('EEE, MMM dd');
+  final rangeLabel =
+      '${DateFormat('MMM dd').format(from)} – ${DateFormat('MMM dd yyyy').format(to)}';
+
+  double revenueOnDay(DateTime day) {
+    return soldOrders
+        .where((o) => _isSameDay(o.fulfilledAt ?? o.dueDate, day))
+        .fold(0.0, (s, o) => s + o.amount * o.sellingPriceAtTime);
+  }
+
+  double settlementsOnDayForSupplier(DateTime day, int supplierId) {
+    return settlements
+        .where((s) => s.supplierId == supplierId && _isSameDay(s.date, day))
+        .fold(0.0, (s, e) => s + e.amount);
+  }
+
+  final pages = <pw.Widget>[];
+
+  // ── Combined Summary Page ──────────────────────────────────────────────
+  final combinedRows = days.map((day) {
+    final rev = revenueOnDay(day);
+    final dues = settlements
+        .where((s) => _isSameDay(s.date, day))
+        .fold(0.0, (s, e) => s + e.amount);
+    return [df.format(day), rev.toStringAsFixed(2), dues.toStringAsFixed(2)];
+  }).toList();
+  final totalRev = soldOrders.fold(
+    0.0,
+    (s, o) => s + o.amount * o.sellingPriceAtTime,
+  );
+  final totalDues = settlements.fold(0.0, (s, e) => s + e.amount);
+  combinedRows.add([
+    'TOTAL',
+    totalRev.toStringAsFixed(2),
+    totalDues.toStringAsFixed(2),
+  ]);
+
+  pages.addAll([
+    pw.Center(
+      child: pw.Text(
+        'SHOPSYNC — WEEKLY REPORT',
+        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18),
+      ),
+    ),
+    pw.Center(
+      child: pw.Text(
+        rangeLabel,
+        style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
+      ),
+    ),
+    pw.SizedBox(height: 16),
+    pw.Divider(thickness: 1.5),
+    pw.Text(
+      'ALL SUPPLIERS — COMBINED',
+      style: pw.TextStyle(
+        fontWeight: pw.FontWeight.bold,
+        fontSize: 11,
+        color: PdfColors.indigo700,
+      ),
+    ),
+    pw.SizedBox(height: 8),
+    pw.TableHelper.fromTextArray(
+      headers: ['Date', 'Revenue (ETB)', 'Dues Paid (ETB)'],
+      headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8),
+      cellStyle: const pw.TextStyle(fontSize: 8),
+      headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
+      data: combinedRows,
+      border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+    ),
+    pw.SizedBox(height: 24),
+  ]);
+
+  // ── Per Supplier Pages ─────────────────────────────────────────────────
+  for (final supplier in suppliers) {
+    final supplierSettlements = settlements
+        .where((s) => s.supplierId == supplier.id)
+        .toList();
+    if (supplierSettlements.isEmpty) continue; // skip suppliers with no dues
+
+    final supplierRows = days.map((day) {
+      final rev = revenueOnDay(day);
+      final dues = settlementsOnDayForSupplier(day, supplier.id);
+      return [df.format(day), rev.toStringAsFixed(2), dues.toStringAsFixed(2)];
+    }).toList();
+    final supplierTotal = supplierSettlements.fold(0.0, (s, e) => s + e.amount);
+    supplierRows.add([
+      'TOTAL',
+      totalRev.toStringAsFixed(2),
+      supplierTotal.toStringAsFixed(2),
+    ]);
+
+    pages.addAll([
+      pw.Divider(thickness: 0.5, color: PdfColors.grey400),
+      pw.Text(
+        supplier.name.toUpperCase(),
+        style: pw.TextStyle(
+          fontWeight: pw.FontWeight.bold,
+          fontSize: 11,
+          color: PdfColors.teal700,
+        ),
+      ),
+      if (supplier.account != null && supplier.account!.isNotEmpty)
+        pw.Text(
+          'Account: ${supplier.account}',
+          style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
+        ),
+      pw.SizedBox(height: 8),
+      pw.TableHelper.fromTextArray(
+        headers: ['Date', 'Sales Revenue (ETB)', 'Dues Paid to Supplier (ETB)'],
+        headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8),
+        cellStyle: const pw.TextStyle(fontSize: 8),
+        headerDecoration: const pw.BoxDecoration(color: PdfColors.teal50),
+        data: supplierRows,
+        border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+      ),
+      pw.SizedBox(height: 20),
+    ]);
+  }
+
+  pages.add(
+    pw.Center(
+      child: pw.Text(
+        'Generated by ShopSync',
+        style: pw.TextStyle(
+          fontSize: 8,
+          fontStyle: pw.FontStyle.italic,
+          color: PdfColors.grey500,
+        ),
+      ),
+    ),
+  );
+
+  final pdf = pw.Document();
+  pdf.addPage(
+    pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(32),
+      build: (ctx) => pages,
+    ),
+  );
+
+  final dir = await getTemporaryDirectory();
+  final fileName =
+      'weekly_report_${DateFormat('yyyyMMdd').format(from)}_${DateFormat('yyyyMMdd').format(to)}.pdf';
+  final file = File('${dir.path}/$fileName');
+  await file.writeAsBytes(await pdf.save());
+
+  await SharePlus.instance.share(
+    ShareParams(
+      files: [XFile(file.path)],
+      subject: 'ShopSync Weekly Report — $rangeLabel',
+      text: 'Weekly dues and sales report',
+    ),
+  );
+}
+
+bool _isSameDay(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
+
 void _showSupplierDialog(
   BuildContext context,
   WidgetRef ref, [
@@ -304,7 +703,9 @@ void _showSupplierDialog(
                   final supplier = existing ?? Supplier();
                   supplier.name = nameController.text.trim();
                   supplier.contact = contactController.text.trim();
-                  supplier.account = accountController.text.trim().isEmpty ? null : accountController.text.trim();
+                  supplier.account = accountController.text.trim().isEmpty
+                      ? null
+                      : accountController.text.trim();
 
                   await ref
                       .read(supplierRepositoryProvider)
@@ -328,7 +729,6 @@ void _showSupplierDialog(
     ),
   );
 }
-
 
 Widget _buildTextField(
   TextEditingController controller,
@@ -544,20 +944,35 @@ class _SupplierCard extends ConsumerWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton(
-                                icon: const Icon(Icons.history_rounded, size: 16),
+                                icon: const Icon(
+                                  Icons.history_rounded,
+                                  size: 16,
+                                ),
                                 color: Colors.white30,
                                 constraints: const BoxConstraints(),
                                 padding: const EdgeInsets.all(8),
-                                onPressed: () =>
-                                    _showSettlementHistory(context, ref, supplier),
+                                onPressed: () => _showSettlementHistory(
+                                  context,
+                                  ref,
+                                  supplier,
+                                ),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.description_rounded, size: 16),
-                                color: isActive ? const Color(0xFF818CF8) : Colors.white12,
+                                icon: const Icon(
+                                  Icons.description_rounded,
+                                  size: 16,
+                                ),
+                                color: isActive
+                                    ? const Color(0xFF818CF8)
+                                    : Colors.white12,
                                 constraints: const BoxConstraints(),
                                 padding: const EdgeInsets.all(8),
                                 onPressed: isActive
-                                    ? () => _showPurchaseOrderDialog(context, ref, supplier)
+                                    ? () => _showPurchaseOrderDialog(
+                                        context,
+                                        ref,
+                                        supplier,
+                                      )
                                     : null,
                               ),
                               IconButton(
@@ -594,7 +1009,6 @@ class _SupplierCard extends ConsumerWidget {
                               ),
                             ],
                           ),
-
                         ),
                       ],
                     ),
@@ -675,10 +1089,11 @@ class _SupplierCard extends ConsumerWidget {
                                   style: TextStyle(
                                     fontSize: 9,
                                     fontWeight: FontWeight.w900,
-                                    color: (hasBalance
-                                            ? Colors.redAccent
-                                            : Colors.greenAccent)
-                                        .withValues(alpha: 0.5),
+                                    color:
+                                        (hasBalance
+                                                ? Colors.redAccent
+                                                : Colors.greenAccent)
+                                            .withValues(alpha: 0.5),
                                     letterSpacing: 1,
                                   ),
                                 ),
@@ -879,7 +1294,10 @@ class _SupplierCard extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: Theme.of(
                     context,
@@ -922,9 +1340,8 @@ class _SupplierCard extends ConsumerWidget {
                     width: double.infinity,
                     child: TextButton.icon(
                       onPressed: () {
-                        amountController.text = supplier.balance.toStringAsFixed(
-                          0,
-                        );
+                        amountController.text = supplier.balance
+                            .toStringAsFixed(0);
                       },
                       icon: const Icon(Icons.auto_fix_high_rounded, size: 18),
                       label: const Text('SETTLE FULL BALANCE'),
@@ -1008,10 +1425,14 @@ class _SupplierCard extends ConsumerWidget {
                   ElevatedButton.icon(
                     onPressed: () async {
                       final picker = ImagePicker();
-                      final image = await picker.pickImage(source: ImageSource.gallery);
+                      final image = await picker.pickImage(
+                        source: ImageSource.gallery,
+                      );
                       if (image != null) {
                         final appDir = await getApplicationDocumentsDirectory();
-                        final localFile = File('${appDir.path}/receipt_${DateTime.now().millisecondsSinceEpoch}.jpg');
+                        final localFile = File(
+                          '${appDir.path}/receipt_${DateTime.now().millisecondsSinceEpoch}.jpg',
+                        );
                         await File(image.path).copy(localFile.path);
 
                         setDialogState(() {
@@ -1020,11 +1441,18 @@ class _SupplierCard extends ConsumerWidget {
                       }
                     },
                     icon: const Icon(Icons.add_a_photo_rounded, size: 18),
-                    label: Text(selectedImagePath == null ? 'ATTACH RECEIPT' : 'CHANGE RECEIPT'),
+                    label: Text(
+                      selectedImagePath == null
+                          ? 'ATTACH RECEIPT'
+                          : 'CHANGE RECEIPT',
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white.withValues(alpha: 0.05),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -1033,7 +1461,10 @@ class _SupplierCard extends ConsumerWidget {
                   if (selectedImagePath != null) ...[
                     const Spacer(),
                     IconButton(
-                      icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                      icon: const Icon(
+                        Icons.delete_outline_rounded,
+                        color: Colors.redAccent,
+                      ),
                       onPressed: () {
                         setDialogState(() {
                           selectedImagePath = null;
@@ -1153,7 +1584,10 @@ class _SupplierCard extends ConsumerWidget {
               final settlements = snapshot.data ?? [];
 
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 24,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1236,14 +1670,20 @@ class _SupplierCard extends ConsumerWidget {
                                   decoration: BoxDecoration(
                                     color: Colors.white.withValues(alpha: 0.02),
                                     borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                                    border: Border.all(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.05,
+                                      ),
+                                    ),
                                   ),
                                   child: Row(
                                     children: [
                                       Container(
                                         padding: const EdgeInsets.all(10),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                                          color: const Color(
+                                            0xFF10B981,
+                                          ).withValues(alpha: 0.1),
                                           shape: BoxShape.circle,
                                         ),
                                         child: const Icon(
@@ -1255,7 +1695,8 @@ class _SupplierCard extends ConsumerWidget {
                                       const SizedBox(width: 16),
                                       Expanded(
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Text(
                                               '${settlement.amount.toStringAsFixed(0)} ETB',
@@ -1279,17 +1720,24 @@ class _SupplierCard extends ConsumerWidget {
                                       if (settlement.imagePath != null) ...[
                                         GestureDetector(
                                           onTap: () {
-                                            _viewReceiptPhoto(context, settlement.imagePath!);
+                                            _viewReceiptPhoto(
+                                              context,
+                                              settlement.imagePath!,
+                                            );
                                           },
                                           child: Container(
                                             width: 48,
                                             height: 48,
                                             decoration: BoxDecoration(
-                                              borderRadius: BorderRadius.circular(10),
-                                              border: Border.all(color: Colors.white10),
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              border: Border.all(
+                                                color: Colors.white10,
+                                              ),
                                             ),
                                             child: ClipRRect(
-                                              borderRadius: BorderRadius.circular(10),
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
                                               child: Image.file(
                                                 File(settlement.imagePath!),
                                                 fit: BoxFit.cover,
@@ -1381,7 +1829,9 @@ class _SupplierCard extends ConsumerWidget {
       builder: (context) => Consumer(
         builder: (context, ref, child) {
           final productsAsync = ref.watch(productsProvider);
-          final availabilityAsync = ref.watch(walkInAvailabilityProvider(DateTime.now()));
+          final availabilityAsync = ref.watch(
+            walkInAvailabilityProvider(DateTime.now()),
+          );
 
           return productsAsync.when(
             data: (products) => availabilityAsync.when(
@@ -1459,7 +1909,10 @@ class _SupplierCard extends ConsumerWidget {
               ),
               error: (err, _) => Padding(
                 padding: const EdgeInsets.all(24.0),
-                child: Text('Error loading availability: $err', style: const TextStyle(color: Colors.redAccent)),
+                child: Text(
+                  'Error loading availability: $err',
+                  style: const TextStyle(color: Colors.redAccent),
+                ),
               ),
             ),
             loading: () => const SizedBox(
@@ -1470,7 +1923,10 @@ class _SupplierCard extends ConsumerWidget {
             ),
             error: (err, _) => Padding(
               padding: const EdgeInsets.all(24.0),
-              child: Text('Error loading products: $err', style: const TextStyle(color: Colors.redAccent)),
+              child: Text(
+                'Error loading products: $err',
+                style: const TextStyle(color: Colors.redAccent),
+              ),
             ),
           );
         },
@@ -1493,7 +1949,8 @@ class _PurchaseOrderDialogBody extends StatefulWidget {
   });
 
   @override
-  State<_PurchaseOrderDialogBody> createState() => _PurchaseOrderDialogBodyState();
+  State<_PurchaseOrderDialogBody> createState() =>
+      _PurchaseOrderDialogBodyState();
 }
 
 class _PurchaseOrderDialogBodyState extends State<_PurchaseOrderDialogBody> {
@@ -1507,9 +1964,14 @@ class _PurchaseOrderDialogBodyState extends State<_PurchaseOrderDialogBody> {
     for (var p in widget.products) {
       final status = widget.availability[p.id];
       final currentStock = status?.walkInAvailable ?? 0.0;
-      final defaultQty = (p.minStockThreshold * 2 - currentStock).clamp(1.0, 999.0);
+      final defaultQty = (p.minStockThreshold * 2 - currentStock).clamp(
+        1.0,
+        999.0,
+      );
       _orderQuantities[p.id] = defaultQty;
-      _controllers[p.id] = TextEditingController(text: defaultQty.toStringAsFixed(0));
+      _controllers[p.id] = TextEditingController(
+        text: defaultQty.toStringAsFixed(0),
+      );
     }
   }
 
@@ -1583,11 +2045,17 @@ class _PurchaseOrderDialogBodyState extends State<_PurchaseOrderDialogBody> {
                         children: [
                           pw.Text(
                             'Date: ${DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())}',
-                            style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+                            style: const pw.TextStyle(
+                              fontSize: 10,
+                              color: PdfColors.grey700,
+                            ),
                           ),
                           pw.Text(
                             'PO Number: PO-${DateTime.now().millisecondsSinceEpoch.toString().substring(6)}',
-                            style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                            style: pw.TextStyle(
+                              fontSize: 10,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
@@ -1596,13 +2064,34 @@ class _PurchaseOrderDialogBodyState extends State<_PurchaseOrderDialogBody> {
                   pw.Divider(thickness: 1, color: PdfColors.grey300),
                   pw.SizedBox(height: 20),
 
-                  pw.Text('TO SUPPLIER:', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
+                  pw.Text(
+                    'TO SUPPLIER:',
+                    style: pw.TextStyle(
+                      fontSize: 10,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.grey700,
+                    ),
+                  ),
                   pw.SizedBox(height: 4),
-                  pw.Text(widget.supplier.name.toUpperCase(), style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-                  if (widget.supplier.contact != null && widget.supplier.contact!.isNotEmpty)
-                    pw.Text('Phone: ${widget.supplier.contact}', style: const pw.TextStyle(fontSize: 10)),
-                  if (widget.supplier.account != null && widget.supplier.account!.isNotEmpty)
-                    pw.Text('Account Details: ${widget.supplier.account}', style: const pw.TextStyle(fontSize: 10)),
+                  pw.Text(
+                    widget.supplier.name.toUpperCase(),
+                    style: pw.TextStyle(
+                      fontSize: 14,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  if (widget.supplier.contact != null &&
+                      widget.supplier.contact!.isNotEmpty)
+                    pw.Text(
+                      'Phone: ${widget.supplier.contact}',
+                      style: const pw.TextStyle(fontSize: 10),
+                    ),
+                  if (widget.supplier.account != null &&
+                      widget.supplier.account!.isNotEmpty)
+                    pw.Text(
+                      'Account Details: ${widget.supplier.account}',
+                      style: const pw.TextStyle(fontSize: 10),
+                    ),
                   pw.SizedBox(height: 24),
 
                   pw.TableHelper.fromTextArray(
@@ -1610,8 +2099,13 @@ class _PurchaseOrderDialogBodyState extends State<_PurchaseOrderDialogBody> {
                       color: PdfColors.grey300,
                       width: 0.5,
                     ),
-                    headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
-                    headerDecoration: const pw.BoxDecoration(color: PdfColors.indigo),
+                    headerStyle: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.white,
+                    ),
+                    headerDecoration: const pw.BoxDecoration(
+                      color: PdfColors.indigo,
+                    ),
                     cellAlignment: pw.Alignment.centerLeft,
                     headerAlignment: pw.Alignment.centerLeft,
                     columnWidths: {
@@ -1621,20 +2115,29 @@ class _PurchaseOrderDialogBodyState extends State<_PurchaseOrderDialogBody> {
                       3: const pw.FixedColumnWidth(80),
                       4: const pw.FixedColumnWidth(90),
                     },
-                    headers: ['Product Item', 'Unit Cost', 'Current Stock', 'Order Qty', 'Total Cost'],
-                    data: widget.products.where((p) => (_orderQuantities[p.id] ?? 0) > 0).map((p) {
-                      final qty = _orderQuantities[p.id] ?? 0.0;
-                      final status = widget.availability[p.id];
-                      final currentStock = status?.walkInAvailable ?? 0.0;
-                      final total = qty * p.costPrice;
-                      return [
-                        p.name,
-                        'ETB ${p.costPrice.toStringAsFixed(0)}',
-                        currentStock.toStringAsFixed(0),
-                        qty.toStringAsFixed(0),
-                        'ETB ${total.toStringAsFixed(0)}',
-                      ];
-                    }).toList(),
+                    headers: [
+                      'Product Item',
+                      'Unit Cost',
+                      'Current Stock',
+                      'Order Qty',
+                      'Total Cost',
+                    ],
+                    data: widget.products
+                        .where((p) => (_orderQuantities[p.id] ?? 0) > 0)
+                        .map((p) {
+                          final qty = _orderQuantities[p.id] ?? 0.0;
+                          final status = widget.availability[p.id];
+                          final currentStock = status?.walkInAvailable ?? 0.0;
+                          final total = qty * p.costPrice;
+                          return [
+                            p.name,
+                            'ETB ${p.costPrice.toStringAsFixed(0)}',
+                            currentStock.toStringAsFixed(0),
+                            qty.toStringAsFixed(0),
+                            'ETB ${total.toStringAsFixed(0)}',
+                          ];
+                        })
+                        .toList(),
                   ),
                   pw.SizedBox(height: 20),
 
@@ -1645,25 +2148,52 @@ class _PurchaseOrderDialogBodyState extends State<_PurchaseOrderDialogBody> {
                       padding: const pw.EdgeInsets.all(8),
                       decoration: pw.BoxDecoration(
                         color: PdfColors.grey100,
-                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+                        borderRadius: const pw.BorderRadius.all(
+                          pw.Radius.circular(4),
+                        ),
                       ),
                       child: pw.Column(
                         children: [
                           pw.Row(
-                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment:
+                                pw.MainAxisAlignment.spaceBetween,
                             children: [
-                              pw.Text('Total Items:', style: const pw.TextStyle(fontSize: 10)),
-                              pw.Text('$_totalItemsCount', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                              pw.Text(
+                                'Total Items:',
+                                style: const pw.TextStyle(fontSize: 10),
+                              ),
+                              pw.Text(
+                                '$_totalItemsCount',
+                                style: pw.TextStyle(
+                                  fontWeight: pw.FontWeight.bold,
+                                  fontSize: 10,
+                                ),
+                              ),
                             ],
                           ),
                           pw.SizedBox(height: 4),
                           pw.Divider(thickness: 0.5, color: PdfColors.grey400),
                           pw.SizedBox(height: 4),
                           pw.Row(
-                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment:
+                                pw.MainAxisAlignment.spaceBetween,
                             children: [
-                              pw.Text('Est. Total Cost:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11, color: PdfColors.indigo)),
-                              pw.Text('ETB ${_totalEstimatedCost.toStringAsFixed(0)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11, color: PdfColors.indigo)),
+                              pw.Text(
+                                'Est. Total Cost:',
+                                style: pw.TextStyle(
+                                  fontWeight: pw.FontWeight.bold,
+                                  fontSize: 11,
+                                  color: PdfColors.indigo,
+                                ),
+                              ),
+                              pw.Text(
+                                'ETB ${_totalEstimatedCost.toStringAsFixed(0)}',
+                                style: pw.TextStyle(
+                                  fontWeight: pw.FontWeight.bold,
+                                  fontSize: 11,
+                                  color: PdfColors.indigo,
+                                ),
+                              ),
                             ],
                           ),
                         ],
@@ -1675,7 +2205,10 @@ class _PurchaseOrderDialogBodyState extends State<_PurchaseOrderDialogBody> {
                   pw.Center(
                     child: pw.Text(
                       'Generated automatically by ShopSync. Thank you for your business.',
-                      style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey500),
+                      style: const pw.TextStyle(
+                        fontSize: 8,
+                        color: PdfColors.grey500,
+                      ),
                     ),
                   ),
                 ],
@@ -1686,19 +2219,26 @@ class _PurchaseOrderDialogBodyState extends State<_PurchaseOrderDialogBody> {
       );
 
       final tempDir = await getTemporaryDirectory();
-      final file = File('${tempDir.path}/PO_${widget.supplier.name.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf');
+      final file = File(
+        '${tempDir.path}/PO_${widget.supplier.name.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf',
+      );
       await file.writeAsBytes(await pdf.save());
 
       if (mounted) {
-        await Share.shareXFiles(
-          [XFile(file.path)],
-          text: 'Purchase Order from ShopSync for ${widget.supplier.name}',
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [XFile(file.path)],
+            text: 'Purchase Order from ShopSync for ${widget.supplier.name}',
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error generating PDF: $e'), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text('Error generating PDF: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     } finally {
@@ -1759,10 +2299,7 @@ class _PurchaseOrderDialogBodyState extends State<_PurchaseOrderDialogBody> {
           const SizedBox(height: 6),
           const Text(
             'The following items are currently below their minimum safety thresholds. Adjust reorder quantities below.',
-            style: TextStyle(
-              color: Colors.white38,
-              fontSize: 11,
-            ),
+            style: TextStyle(color: Colors.white38, fontSize: 11),
           ),
           const SizedBox(height: 20),
           ConstrainedBox(
@@ -1772,7 +2309,7 @@ class _PurchaseOrderDialogBodyState extends State<_PurchaseOrderDialogBody> {
             child: ListView.separated(
               shrinkWrap: true,
               itemCount: widget.products.length,
-              separatorBuilder: (_, __) => Divider(
+              separatorBuilder: (context, index) => Divider(
                 color: Colors.white.withValues(alpha: 0.05),
                 height: 20,
               ),
@@ -1830,7 +2367,9 @@ class _PurchaseOrderDialogBodyState extends State<_PurchaseOrderDialogBody> {
                               final currentVal = _orderQuantities[p.id] ?? 0.0;
                               final newVal = (currentVal - 1).clamp(0.0, 999.0);
                               _orderQuantities[p.id] = newVal;
-                              _controllers[p.id]?.text = newVal.toStringAsFixed(0);
+                              _controllers[p.id]?.text = newVal.toStringAsFixed(
+                                0,
+                              );
                             });
                           },
                           child: Container(
@@ -1839,7 +2378,11 @@ class _PurchaseOrderDialogBodyState extends State<_PurchaseOrderDialogBody> {
                               color: Colors.white.withValues(alpha: 0.05),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Icon(Icons.remove, size: 14, color: Colors.white60),
+                            child: const Icon(
+                              Icons.remove,
+                              size: 14,
+                              color: Colors.white60,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -1874,7 +2417,9 @@ class _PurchaseOrderDialogBodyState extends State<_PurchaseOrderDialogBody> {
                               final currentVal = _orderQuantities[p.id] ?? 0.0;
                               final newVal = (currentVal + 1).clamp(0.0, 999.0);
                               _orderQuantities[p.id] = newVal;
-                              _controllers[p.id]?.text = newVal.toStringAsFixed(0);
+                              _controllers[p.id]?.text = newVal.toStringAsFixed(
+                                0,
+                              );
                             });
                           },
                           child: Container(
@@ -1883,7 +2428,11 @@ class _PurchaseOrderDialogBodyState extends State<_PurchaseOrderDialogBody> {
                               color: Colors.white.withValues(alpha: 0.05),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Icon(Icons.add, size: 14, color: Colors.white60),
+                            child: const Icon(
+                              Icons.add,
+                              size: 14,
+                              color: Colors.white60,
+                            ),
                           ),
                         ),
                       ],
@@ -1898,7 +2447,9 @@ class _PurchaseOrderDialogBodyState extends State<_PurchaseOrderDialogBody> {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
-                            color: cost > 0 ? const Color(0xFF10B981) : Colors.white24,
+                            color: cost > 0
+                                ? const Color(0xFF10B981)
+                                : Colors.white24,
                           ),
                         ),
                       ),
@@ -1999,4 +2550,3 @@ class _PurchaseOrderDialogBodyState extends State<_PurchaseOrderDialogBody> {
     );
   }
 }
-

@@ -140,6 +140,30 @@ class _SalesScreenState extends ConsumerState<SalesScreen> with SingleTickerProv
                       ),
                       child: IconButton(
                         icon: const Icon(
+                          Icons.receipt_long_rounded,
+                          color: Color(0xFF10B981),
+                        ),
+                        onPressed: () => _shareDailyLedger(
+                          context,
+                          ref,
+                          selectedDate,
+                          salesAsync.value ?? [],
+                          adjustmentsAsync.value ?? [],
+                          productsAsync.value ?? [],
+                        ),
+                        tooltip: 'Share Daily Ledger',
+                      ),
+                    ),
+                    Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.05),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: const Icon(
                           Icons.remove_circle_outline_rounded,
                           color: Color(0xFFEF4444),
                         ),
@@ -198,208 +222,187 @@ class _SalesScreenState extends ConsumerState<SalesScreen> with SingleTickerProv
                           ),
                         ),
                         const SizedBox(height: 24),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          physics: const BouncingScrollPhysics(),
-                          child: Row(
-                            children: [
-                              salesAsync.when(
-                                data: (sales) {
-                                  final totalRevenue = sales.fold<double>(
-                                    0,
-                                    (sum, item) =>
-                                        sum +
-                                        (item.amount * item.sellingPriceAtTime),
-                                  );
-                                  return _buildSummaryCard(
-                                    'REVENUE',
-                                    totalRevenue.toStringAsFixed(0),
-                                    const Color(0xFF10B981),
-                                    Icons.payments_rounded,
-                                  );
-                                },
-                                loading: () => _buildSummaryCard(
-                                  'REVENUE',
-                                  '...',
-                                  Colors.grey,
-                                  Icons.payments_rounded,
-                                ),
-                                error: (_, _) => _buildSummaryCard(
-                                  'REVENUE',
-                                  'ERR',
-                                  Colors.redAccent,
-                                  Icons.payments_rounded,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              salesAsync.when(
-                                data: (sales) {
-                                  return adjustmentsAsync.when(
-                                    data: (adjustments) => productsAsync.when(
-                                      data: (products) {
-                                        final totalProfitFromSales = sales
-                                            .fold<double>(
-                                              0,
-                                              (sum, item) =>
-                                                  sum +
-                                                  (item.amount *
-                                                      (item.sellingPriceAtTime -
-                                                          item.costPriceAtTime)),
-                                            );
+                        // 2-column summary cards grid
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final cardWidth =
+                                (constraints.maxWidth - 12) / 2;
+                            Widget card(
+                              String label,
+                              String value,
+                              Color color,
+                              IconData icon,
+                            ) =>
+                                SizedBox(
+                                  width: cardWidth,
+                                  child: _buildSummaryCard(
+                                    label,
+                                    value,
+                                    color,
+                                    icon,
+                                  ),
+                                );
 
+                            return Wrap(
+                              spacing: 12,
+                              runSpacing: 12,
+                              children: [
+                                salesAsync.when(
+                                  data: (sales) {
+                                    final totalRevenue = sales.fold<double>(
+                                      0,
+                                      (sum, item) =>
+                                          sum +
+                                          (item.amount *
+                                              item.sellingPriceAtTime),
+                                    );
+                                    return card(
+                                      'REVENUE',
+                                      totalRevenue.toStringAsFixed(0),
+                                      const Color(0xFF10B981),
+                                      Icons.payments_rounded,
+                                    );
+                                  },
+                                  loading: () => card('REVENUE', '...',
+                                      Colors.grey, Icons.payments_rounded),
+                                  error: (_, _) => card('REVENUE', 'ERR',
+                                      Colors.redAccent, Icons.payments_rounded),
+                                ),
+                                salesAsync.when(
+                                  data: (sales) => adjustmentsAsync.when(
+                                    data: (adjustments) =>
+                                        productsAsync.when(
+                                      data: (products) {
+                                        final totalProfitFromSales =
+                                            sales.fold<double>(
+                                          0,
+                                          (sum, item) =>
+                                              sum +
+                                              (item.amount *
+                                                  (item.sellingPriceAtTime -
+                                                      item.costPriceAtTime)),
+                                        );
                                         double totalLoss = 0.0;
                                         for (var adj in adjustments) {
                                           final p = products.firstWhere(
-                                            (prod) => prod.id == adj.productId,
+                                            (prod) =>
+                                                prod.id == adj.productId,
                                             orElse: () => Product(),
                                           );
                                           totalLoss +=
                                               adj.amount.abs() * p.costPrice;
                                         }
-
                                         final netProfit =
                                             totalProfitFromSales - totalLoss;
-                                        return _buildSummaryCard(
+                                        return card(
                                           'NET PROFIT',
                                           netProfit.toStringAsFixed(0),
                                           const Color(0xFF818CF8),
                                           Icons.trending_up_rounded,
                                         );
                                       },
-                                      loading: () => _buildSummaryCard(
-                                        'NET PROFIT',
-                                        '...',
+                                      loading: () => card('NET PROFIT', '...',
+                                          Colors.grey,
+                                          Icons.trending_up_rounded),
+                                      error: (_, _) => card(
+                                          'NET PROFIT',
+                                          'ERR',
+                                          Colors.redAccent,
+                                          Icons.trending_up_rounded),
+                                    ),
+                                    loading: () => card('NET PROFIT', '...',
+                                        Colors.grey, Icons.trending_up_rounded),
+                                    error: (_, _) => card('NET PROFIT', 'ERR',
+                                        Colors.redAccent,
+                                        Icons.trending_up_rounded),
+                                  ),
+                                  loading: () => card('NET PROFIT', '...',
+                                      Colors.grey, Icons.trending_up_rounded),
+                                  error: (_, _) => card('NET PROFIT', 'ERR',
+                                      Colors.redAccent,
+                                      Icons.trending_up_rounded),
+                                ),
+                                adjustmentsAsync.when(
+                                  data: (adjustments) =>
+                                      productsAsync.when(
+                                    data: (products) {
+                                      double totalLoss = 0.0;
+                                      for (var adj in adjustments) {
+                                        final p = products.firstWhere(
+                                          (prod) => prod.id == adj.productId,
+                                          orElse: () => Product(),
+                                        );
+                                        totalLoss +=
+                                            adj.amount.abs() * p.costPrice;
+                                      }
+                                      return card(
+                                        'LOSSES',
+                                        totalLoss.toStringAsFixed(0),
+                                        const Color(0xFFEF4444),
+                                        Icons.trending_down_rounded,
+                                      );
+                                    },
+                                    loading: () => card('LOSSES', '...',
                                         Colors.grey,
-                                        Icons.trending_up_rounded,
-                                      ),
-                                      error: (_, _) => _buildSummaryCard(
-                                        'NET PROFIT',
+                                        Icons.trending_down_rounded),
+                                    error: (_, _) => card(
+                                        'LOSSES',
                                         'ERR',
                                         Colors.redAccent,
-                                        Icons.trending_up_rounded,
-                                      ),
-                                    ),
-                                    loading: () => _buildSummaryCard(
-                                      'NET PROFIT',
+                                        Icons.trending_down_rounded),
+                                  ),
+                                  loading: () => card('LOSSES', '...',
+                                      Colors.grey, Icons.trending_down_rounded),
+                                  error: (_, _) => card('LOSSES', 'ERR',
+                                      Colors.redAccent,
+                                      Icons.trending_down_rounded),
+                                ),
+                                dailyStockAsync.when(
+                                  data: (stocks) => productsAsync.when(
+                                    data: (products) {
+                                      double totalStockReceivedCost = 0.0;
+                                      for (var stock in stocks) {
+                                        final p = products.firstWhere(
+                                          (prod) => prod.id == stock.productId,
+                                          orElse: () => Product(),
+                                        );
+                                        totalStockReceivedCost +=
+                                            stock.receivedQuantity *
+                                                p.costPrice;
+                                      }
+                                      return card(
+                                        'STOCK RECEIVED',
+                                        totalStockReceivedCost
+                                            .toStringAsFixed(0),
+                                        const Color(0xFFF59E0B),
+                                        Icons.local_shipping_rounded,
+                                      );
+                                    },
+                                    loading: () => card(
+                                        'STOCK RECEIVED',
+                                        '...',
+                                        Colors.grey,
+                                        Icons.local_shipping_rounded),
+                                    error: (_, _) => card(
+                                        'STOCK RECEIVED',
+                                        'ERR',
+                                        Colors.redAccent,
+                                        Icons.local_shipping_rounded),
+                                  ),
+                                  loading: () => card(
+                                      'STOCK RECEIVED',
                                       '...',
                                       Colors.grey,
-                                      Icons.trending_up_rounded,
-                                    ),
-                                    error: (_, _) => _buildSummaryCard(
-                                      'NET PROFIT',
+                                      Icons.local_shipping_rounded),
+                                  error: (_, _) => card(
+                                      'STOCK RECEIVED',
                                       'ERR',
                                       Colors.redAccent,
-                                      Icons.trending_up_rounded,
-                                    ),
-                                  );
-                                },
-                                loading: () => _buildSummaryCard(
-                                  'NET PROFIT',
-                                  '...',
-                                  Colors.grey,
-                                  Icons.trending_up_rounded,
+                                      Icons.local_shipping_rounded),
                                 ),
-                                error: (_, _) => _buildSummaryCard(
-                                  'NET PROFIT',
-                                  'ERR',
-                                  Colors.redAccent,
-                                  Icons.trending_up_rounded,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              adjustmentsAsync.when(
-                                data: (adjustments) => productsAsync.when(
-                                  data: (products) {
-                                    double totalLoss = 0.0;
-                                    for (var adj in adjustments) {
-                                      final p = products.firstWhere(
-                                        (prod) => prod.id == adj.productId,
-                                        orElse: () => Product(),
-                                      );
-                                      totalLoss +=
-                                          adj.amount.abs() * p.costPrice;
-                                    }
-                                    return _buildSummaryCard(
-                                      'LOSSES',
-                                      totalLoss.toStringAsFixed(0),
-                                      const Color(0xFFEF4444),
-                                      Icons.trending_down_rounded,
-                                    );
-                                  },
-                                  loading: () => _buildSummaryCard(
-                                    'LOSSES',
-                                    '...',
-                                    Colors.grey,
-                                    Icons.trending_down_rounded,
-                                  ),
-                                  error: (_, _) => _buildSummaryCard(
-                                    'LOSSES',
-                                    'ERR',
-                                    Colors.redAccent,
-                                    Icons.trending_down_rounded,
-                                  ),
-                                ),
-                                loading: () => _buildSummaryCard(
-                                  'LOSSES',
-                                  '...',
-                                  Colors.grey,
-                                  Icons.trending_down_rounded,
-                                ),
-                                error: (_, _) => _buildSummaryCard(
-                                  'LOSSES',
-                                  'ERR',
-                                  Colors.redAccent,
-                                  Icons.trending_down_rounded,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              dailyStockAsync.when(
-                                data: (stocks) => productsAsync.when(
-                                  data: (products) {
-                                    double totalStockReceivedCost = 0.0;
-                                    for (var stock in stocks) {
-                                      final p = products.firstWhere(
-                                        (prod) => prod.id == stock.productId,
-                                        orElse: () => Product(),
-                                      );
-                                      totalStockReceivedCost +=
-                                          stock.receivedQuantity * p.costPrice;
-                                    }
-                                    return _buildSummaryCard(
-                                      'STOCK RECEIVED',
-                                      totalStockReceivedCost.toStringAsFixed(0),
-                                      const Color(0xFFF59E0B),
-                                      Icons.local_shipping_rounded,
-                                    );
-                                  },
-                                  loading: () => _buildSummaryCard(
-                                    'STOCK RECEIVED',
-                                    '...',
-                                    Colors.grey,
-                                    Icons.local_shipping_rounded,
-                                  ),
-                                  error: (_, _) => _buildSummaryCard(
-                                    'STOCK RECEIVED',
-                                    'ERR',
-                                    Colors.redAccent,
-                                    Icons.local_shipping_rounded,
-                                  ),
-                                ),
-                                loading: () => _buildSummaryCard(
-                                  'STOCK RECEIVED',
-                                  '...',
-                                  Colors.grey,
-                                  Icons.local_shipping_rounded,
-                                ),
-                                error: (_, _) => _buildSummaryCard(
-                                  'STOCK RECEIVED',
-                                  'ERR',
-                                  Colors.redAccent,
-                                  Icons.local_shipping_rounded,
-                                ),
-                              ),
-                            ],
-                          ),
+                              ],
+                            );
+                          },
                         ),
                         const SizedBox(height: 32),
                         const Text(
@@ -672,7 +675,6 @@ Widget _buildSummaryCard(
   IconData icon,
 ) {
   return Container(
-    width: 160,
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
       gradient: LinearGradient(
@@ -1127,6 +1129,36 @@ class _LossTile extends ConsumerWidget {
   }
 }
 
+Future<void> _shareDailyLedger(
+  BuildContext context,
+  WidgetRef ref,
+  DateTime date,
+  List<CustomerOrder> sales,
+  List<StockAdjustment> adjustments,
+  List<Product> products,
+) async {
+  if (sales.isEmpty && adjustments.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('No transactions to share for this day.')),
+    );
+    return;
+  }
+  try {
+    await ReceiptShareService.shareDailyLedger(
+      date: date,
+      sales: sales,
+      adjustments: adjustments,
+      products: products,
+    );
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error generating ledger: $e')));
+    }
+  }
+}
+
 void _showRecordLossDialog(BuildContext context, WidgetRef ref) {
   final productsAsync = ref.read(productsProvider);
   final products = productsAsync.value ?? [];
@@ -1435,7 +1467,7 @@ class _SalesAnalysisTabState extends ConsumerState<_SalesAnalysisTab> {
                     return ListView.separated(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       itemCount: entries.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      separatorBuilder: (context, index) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         return _ProductMarginTile(
                           entry: entries[index],

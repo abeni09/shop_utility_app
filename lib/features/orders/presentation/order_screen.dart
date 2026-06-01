@@ -443,7 +443,7 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
   }
 
   void _onCreateOrder(BuildContext context, WidgetRef ref) {
-    _showOrderDialog(context, ref);
+    _showCartOrderDialog(context, ref);
   }
 }
 
@@ -494,6 +494,420 @@ class _FilterChip extends StatelessWidget {
     );
   }
 }
+
+// ─── Cart Item Data ──────────────────────────────────────────────────────────
+
+class _CartItem {
+  Product product;
+  double amount;
+  _CartItem({required this.product, this.amount = 1});
+}
+
+// ─── Cart Order Dialog ────────────────────────────────────────────────────────
+
+void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
+  final orderRepo = ref.read(orderRepositoryProvider);
+  var allProducts = (ref.read(productsProvider).value ?? [])
+      .where((p) => !p.isVoid)
+      .toList();
+
+  if (allProducts.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please add products first!')),
+    );
+    return;
+  }
+
+  final List<_CartItem> cartItems = [_CartItem(product: allProducts.first)];
+  final customerController = TextEditingController();
+  final phoneController = TextEditingController();
+  final advanceController = TextEditingController(text: '0');
+  PaymentMethod selectedPayment = PaymentMethod.cash;
+  DateTime selectedDate = ref.read(selectedDateProvider);
+  bool isSaving = false;
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: const Color(0xFF0F172A).withValues(alpha: 0.98),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+    ),
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) {
+        double cartTotal() => cartItems.fold(
+              0,
+              (s, item) => s + item.amount * item.product.sellingPrice,
+            );
+
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 24,
+            right: 24,
+            top: 24,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Handle
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white10,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                // Title
+                const Text(
+                  'NEW ORDER CART',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2.5,
+                    fontSize: 14,
+                    color: Color(0xFF818CF8),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // Customer Info Block
+                _buildTextField(customerController, 'Customer Name',
+                    Icons.person_rounded, context),
+                const SizedBox(height: 12),
+                _buildTextField(phoneController, 'Phone (Optional)',
+                    Icons.phone_rounded, context),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTextField(advanceController, 'Advance',
+                          Icons.payments_rounded, context,
+                          isNumber: true),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DropdownButtonFormField<PaymentMethod>(
+                        initialValue: selectedPayment,
+                        isExpanded: true,
+                        dropdownColor: const Color(0xFF1E293B),
+                        items: PaymentMethod.values
+                            .map((p) => DropdownMenuItem(
+                                  value: p,
+                                  child: Text(
+                                    p.name.toUpperCase(),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ))
+                            .toList(),
+                        onChanged: (val) => setState(
+                            () => selectedPayment = val ?? selectedPayment),
+                        decoration: _fieldDecoration(
+                          'Payment',
+                          Icons.account_balance_wallet_rounded,
+                          context,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Items Section
+                const Text(
+                  'ORDER ITEMS',
+                  style: TextStyle(
+                    color: Colors.white24,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2,
+                    fontSize: 10,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ...cartItems.asMap().entries.map((entry) {
+                  final idx = entry.key;
+                  final item = entry.value;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.03),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.06)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: DropdownButtonFormField<int>(
+                              initialValue: item.product.id,
+                              isExpanded: true,
+                              dropdownColor: const Color(0xFF1E293B),
+                              items: allProducts
+                                  .map((p) => DropdownMenuItem(
+                                        value: p.id,
+                                        child: Text(
+                                          p.name,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ))
+                                  .toList(),
+                              onChanged: (val) {
+                                if (val == null) return;
+                                final p = allProducts
+                                    .firstWhere((pr) => pr.id == val);
+                                setState(() => cartItems[idx].product = p);
+                              },
+                              decoration: _fieldDecoration(
+                                'Product',
+                                Icons.inventory_2_rounded,
+                                context,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Qty stepper
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black26,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.remove_rounded,
+                                      size: 16, color: Colors.white54),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(
+                                      minWidth: 28, minHeight: 28),
+                                  onPressed: () {
+                                    if (item.amount > 1) {
+                                      setState(() => cartItems[idx].amount--);
+                                    }
+                                  },
+                                ),
+                                Text(
+                                  item.amount.toStringAsFixed(0),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 13,
+                                      color: Colors.white),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.add_rounded,
+                                      size: 16, color: Colors.white54),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(
+                                      minWidth: 28, minHeight: 28),
+                                  onPressed: () =>
+                                      setState(() => cartItems[idx].amount++),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (cartItems.length > 1) ...[
+                            const SizedBox(width: 4),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline_rounded,
+                                  size: 18, color: Colors.red),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                  minWidth: 28, minHeight: 28),
+                              onPressed: () =>
+                                  setState(() => cartItems.removeAt(idx)),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+                // Add Item Button
+                TextButton.icon(
+                  onPressed: () => setState(
+                    () => cartItems.add(_CartItem(product: allProducts.first)),
+                  ),
+                  icon: const Icon(Icons.add_rounded,
+                      color: Color(0xFF6366F1), size: 18),
+                  label: const Text(
+                    'ADD ITEM',
+                    style: TextStyle(
+                      color: Color(0xFF6366F1),
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Total Preview
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6366F1).withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                        color: const Color(0xFF6366F1).withValues(alpha: 0.2)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${cartItems.length} item${cartItems.length > 1 ? 's' : ''}',
+                        style: const TextStyle(
+                            color: Colors.white54, fontSize: 12),
+                      ),
+                      Text(
+                        'TOTAL: ${cartTotal().toStringAsFixed(2)} ETB',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF818CF8),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Due date
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    'Due: ${DateFormat('yyyy-MM-dd').format(selectedDate)}',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.calendar_month_rounded,
+                        color: Colors.indigoAccent),
+                  ),
+                  trailing: const Icon(Icons.edit_rounded,
+                      size: 20, color: Colors.white24),
+                  onTap: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate,
+                      firstDate:
+                          DateTime.now().subtract(const Duration(days: 30)),
+                      lastDate: DateTime.now().add(const Duration(days: 90)),
+                    );
+                    if (date != null) setState(() => selectedDate = date);
+                  },
+                ),
+                const SizedBox(height: 20),
+                // Place Order Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6366F1),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    onPressed: isSaving
+                        ? null
+                        : () async {
+                            final customer = customerController.text.trim();
+                            if (customer.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text(
+                                        'Please enter customer name')),
+                              );
+                              return;
+                            }
+                            final advance =
+                                double.tryParse(advanceController.text) ?? 0;
+                            setState(() => isSaving = true);
+                            try {
+                              for (final item in cartItems) {
+                                final o = CustomerOrder()
+                                  ..productId = item.product.id
+                                  ..customerName = customer
+                                  ..phoneNumber =
+                                      phoneController.text.trim().isEmpty
+                                          ? null
+                                          : phoneController.text.trim()
+                                  ..amount = item.amount
+                                  ..advancePayment =
+                                      advance / cartItems.length
+                                  ..paymentMethod = selectedPayment
+                                  ..dueDate = selectedDate
+                                  ..sellingPriceAtTime =
+                                      item.product.sellingPrice
+                                  ..costPriceAtTime = item.product.costPrice
+                                  ..status = OrderStatus.pending;
+                                await orderRepo.saveOrder(o);
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                setState(() => isSaving = false);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Error: $e')),
+                                );
+                              }
+                              return;
+                            }
+                            if (context.mounted && Navigator.canPop(context)) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: const Color(0xFF10B981),
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  content: Text(
+                                    '${cartItems.length} order${cartItems.length > 1 ? 's' : ''} created!',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w700),
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                    child: isSaving
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 3, color: Colors.white),
+                          )
+                        : Text(
+                            'PLACE ${cartItems.length} ORDER${cartItems.length > 1 ? 'S' : ''}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        );
+      },
+    ),
+  );
+}
+
+// ─── Single Order Dialog (for edits) ─────────────────────────────────────────
 
 void _showOrderDialog(
   BuildContext context,

@@ -7,7 +7,6 @@ import 'package:shopsync/features/products/presentation/daily_stock_providers.da
 import 'package:shopsync/features/products/data/stock_adjustment_model.dart';
 import 'package:shopsync/features/suppliers/presentation/supplier_list_screen.dart';
 import 'package:shopsync/features/orders/data/customer_order_model.dart';
-import 'package:shopsync/features/orders/presentation/order_providers.dart';
 
 import 'package:shopsync/features/dashboard/presentation/ui_providers.dart';
 
@@ -1042,6 +1041,7 @@ class _SafetyStockRecommenderBody extends ConsumerStatefulWidget {
 class _SafetyStockRecommenderBodyState
     extends ConsumerState<_SafetyStockRecommenderBody> {
   double _leadTimeDays = 3.0;
+  bool _useDayOfWeekMode = false;
 
   @override
   Widget build(BuildContext context) {
@@ -1091,11 +1091,24 @@ class _SafetyStockRecommenderBodyState
             ],
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Recommendations are based on 14-day sales velocity × supplier lead time.',
-            style: TextStyle(color: Colors.white38, fontSize: 11),
+          Text(
+            _useDayOfWeekMode
+                ? 'Based on avg sales for ${["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][DateTime.now().weekday - 1]} over the last 90 days × lead time.'
+                : 'Based on 14-day average daily sales velocity × lead time.',
+            style: const TextStyle(color: Colors.white38, fontSize: 11),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
+          // Mode toggle
+          Row(
+            children: [
+              _modeChip('AVG VELOCITY', !_useDayOfWeekMode,
+                  () => setState(() => _useDayOfWeekMode = false)),
+              const SizedBox(width: 8),
+              _modeChip('DAY PATTERN', _useDayOfWeekMode,
+                  () => setState(() => _useDayOfWeekMode = true)),
+            ],
+          ),
+          const SizedBox(height: 16),
           // Lead time slider
           Row(
             children: [
@@ -1142,20 +1155,56 @@ class _SafetyStockRecommenderBodyState
             data: (products) => allOrdersAsync.when(
               data: (orders) => availabilityAsync.when(
                 data: (availability) {
-                  final cutoff =
-                      DateTime.now().subtract(const Duration(days: 14));
+                  final cutoff = _useDayOfWeekMode
+                      ? DateTime.now().subtract(const Duration(days: 90))
+                      : DateTime.now().subtract(const Duration(days: 14));
+                  final todayWeekday = DateTime.now().weekday; // 1=Mon..7=Sun
                   final activeProducts =
                       products.where((p) => !p.isVoid).toList();
 
-                  // Compute velocity per product over last 14 days
+                  // Compute velocity per product
                   final Map<int, double> velocity = {};
-                  for (final o in orders) {
-                    if (o.status != OrderStatus.sold) continue;
-                    final saleDate =
-                        o.fulfilledAt ?? o.dueDate;
-                    if (saleDate.isAfter(cutoff)) {
-                      velocity[o.productId] =
-                          (velocity[o.productId] ?? 0.0) + o.amount;
+                  if (_useDayOfWeekMode) {
+                    // Group by weekday: sum amounts sold on the same weekday
+                    final Map<int, Map<int, double>> weekdaySales = {};
+                    for (final o in orders) {
+                      if (o.status != OrderStatus.sold) continue;
+                      final saleDate = o.fulfilledAt ?? o.dueDate;
+                      if (saleDate.isBefore(cutoff)) continue;
+                      if (saleDate.weekday != todayWeekday) continue;
+                      weekdaySales
+                          .putIfAbsent(o.productId, () => {})
+                          .update(
+                            saleDate.weekday,
+                            (v) => v + o.amount,
+                            ifAbsent: () => o.amount,
+                          );
+                    }
+                    // Count occurrences of todayWeekday in last 90 days
+                    int weekdayCount = 0;
+                    for (int d = 0; d < 90; d++) {
+                      if (DateTime.now()
+                              .subtract(Duration(days: d))
+                              .weekday ==
+                          todayWeekday) {
+                        weekdayCount++;
+                      }
+                    }
+                    for (final p in activeProducts) {
+                      final totalOnWeekday =
+                          weekdaySales[p.id]?.values.fold(0.0, (a, b) => a + b) ?? 0.0;
+                      velocity[p.id] = weekdayCount > 0
+                          ? totalOnWeekday / weekdayCount
+                          : 0.0;
+                    }
+                  } else {
+                    for (final o in orders) {
+                      if (o.status != OrderStatus.sold) continue;
+                      final saleDate = o.fulfilledAt ?? o.dueDate;
+                      if (saleDate.isAfter(cutoff)) {
+                        velocity[o.productId] =
+                            (velocity[o.productId] ?? 0.0) + o.amount;
+                      }
                     }
                   }
 
@@ -1204,7 +1253,7 @@ class _SafetyStockRecommenderBodyState
                         child: ListView.separated(
                           shrinkWrap: true,
                           itemCount: entries.length,
-                          separatorBuilder: (_, __) => Divider(
+                          separatorBuilder: (context, index) => Divider(
                             color: Colors.white.withValues(alpha: 0.05),
                             height: 16,
                           ),
@@ -1444,6 +1493,36 @@ class _SafetyStockRecommenderBodyState
             error: (e, _) => const SizedBox.shrink(),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _modeChip(String label, bool selected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? const Color(0xFF10B981).withValues(alpha: 0.15)
+              : Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected
+                ? const Color(0xFF10B981)
+                : Colors.white.withValues(alpha: 0.1),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.2,
+            color: selected ? const Color(0xFF10B981) : Colors.white38,
+          ),
+        ),
       ),
     );
   }

@@ -98,5 +98,13 @@ class SupplierRepository {
         .sortByDateDesc()
         .watch(fireImmediately: true);
   }
+
+  Future<List<SupplierSettlement>> getSettlementsInRange(
+      DateTime from, DateTime to) async {
+    return await isar.supplierSettlements
+        .filter()
+        .dateBetween(from, to)
+        .findAll();
+  }
 }
 

@@ -7,6 +7,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:shopsync/features/orders/data/customer_order_model.dart';
 import 'package:shopsync/features/suppliers/data/supplier_settlement_model.dart';
 import 'package:shopsync/features/suppliers/data/supplier_model.dart';
+import 'package:shopsync/features/products/data/stock_adjustment_model.dart';
+import 'package:shopsync/features/products/data/product_model.dart';
 
 class ReceiptShareService {
   static String _formatCurrency(double amount) {
@@ -66,7 +68,12 @@ class ReceiptShareService {
     required String productName,
   }) async {
     final text = _generateTextReceipt(order: order, productName: productName);
-    await Share.share(text, subject: 'ShopSync Receipt #${order.id}');
+    await SharePlus.instance.share(
+      ShareParams(
+        text: text,
+        subject: 'ShopSync Receipt #${order.id}',
+      ),
+    );
   }
 
   static Future<void> sharePdfReceipt({
@@ -181,10 +188,12 @@ class ReceiptShareService {
     final file = File('${dir.path}/receipt_${order.id}.pdf');
     await file.writeAsBytes(await pdf.save());
 
-    await Share.shareXFiles(
-      [XFile(file.path)],
-      text: 'Here is your receipt from ShopSync.',
-      subject: 'ShopSync Receipt #${order.id}',
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path)],
+        text: 'Here is your receipt from ShopSync.',
+        subject: 'ShopSync Receipt #${order.id}',
+      ),
     );
   }
 
@@ -211,18 +220,211 @@ class ReceiptShareService {
     if (settlement.imagePath != null && settlement.imagePath!.isNotEmpty) {
       final file = File(settlement.imagePath!);
       if (await file.exists()) {
-        await Share.shareXFiles(
-          [XFile(file.path)],
-          text: buffer.toString(),
-          subject: 'Settlement Proof - ${supplier.name}',
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [XFile(file.path)],
+            text: buffer.toString(),
+            subject: 'Settlement Proof - ${supplier.name}',
+          ),
         );
         return;
       }
     }
 
-    await Share.share(
-      buffer.toString(),
-      subject: 'Settlement Details - ${supplier.name}',
+    await SharePlus.instance.share(
+      ShareParams(
+        text: buffer.toString(),
+        subject: 'Settlement Details - ${supplier.name}',
+      ),
+    );
+  }
+
+  static Future<void> shareDailyLedger({
+    required DateTime date,
+    required List<CustomerOrder> sales,
+    required List<StockAdjustment> adjustments,
+    required List<Product> products,
+  }) async {
+    final df = DateFormat('yyyy-MM-dd');
+    final dtf = DateFormat('HH:mm');
+    final dateLabel = df.format(date);
+
+    // Compute totals
+    final totalRevenue = sales.fold<double>(
+      0,
+      (s, o) => s + o.amount * o.sellingPriceAtTime,
+    );
+    final totalCogs = sales.fold<double>(
+      0,
+      (s, o) => s + o.amount * o.costPriceAtTime,
+    );
+    final grossProfit = totalRevenue - totalCogs;
+
+    double totalLoss = 0.0;
+    for (final adj in adjustments) {
+      final p = products.firstWhere(
+        (pr) => pr.id == adj.productId,
+        orElse: () => Product(),
+      );
+      totalLoss += adj.amount.abs() * p.costPrice;
+    }
+
+    String productNameFor(int productId) {
+      return products
+          .firstWhere((p) => p.id == productId, orElse: () => Product()..name = 'Unknown')
+          .name;
+    }
+
+    final pdf = pw.Document();
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        build: (pw.Context ctx) => [
+          // Header
+          pw.Center(
+            child: pw.Text(
+              'SHOPSYNC — DAILY LEDGER',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18),
+            ),
+          ),
+          pw.Center(
+            child: pw.Text(
+              dateLabel,
+              style: pw.TextStyle(fontSize: 11, color: PdfColors.grey700),
+            ),
+          ),
+          pw.SizedBox(height: 16),
+          pw.Divider(thickness: 1.5),
+          // Summary
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              _summaryBox('REVENUE', totalRevenue, PdfColors.green800),
+              _summaryBox('GROSS PROFIT', grossProfit,
+                  grossProfit >= 0 ? PdfColors.indigo700 : PdfColors.red700),
+              _summaryBox('LOSSES', totalLoss, PdfColors.red700),
+              _summaryBox('NET', grossProfit - totalLoss,
+                  (grossProfit - totalLoss) >= 0
+                      ? PdfColors.teal700
+                      : PdfColors.red900),
+            ],
+          ),
+          pw.SizedBox(height: 20),
+          pw.Divider(),
+          pw.Text(
+            'TRANSACTIONS (${sales.length})',
+            style: pw.TextStyle(
+                fontWeight: pw.FontWeight.bold,
+                fontSize: 10,
+                color: PdfColors.grey600),
+          ),
+          pw.SizedBox(height: 8),
+          pw.TableHelper.fromTextArray(
+            headers: ['Time', 'Customer', 'Product', 'Qty', 'Price', 'Total'],
+            headerStyle: pw.TextStyle(
+                fontWeight: pw.FontWeight.bold, fontSize: 8),
+            cellStyle: const pw.TextStyle(fontSize: 8),
+            headerDecoration:
+                const pw.BoxDecoration(color: PdfColors.grey200),
+            data: sales
+                .map(
+                  (o) => [
+                    dtf.format(o.fulfilledAt ?? o.dueDate),
+                    o.customerName.isEmpty ? '-' : o.customerName,
+                    productNameFor(o.productId),
+                    o.amount.toStringAsFixed(0),
+                    o.sellingPriceAtTime.toStringAsFixed(2),
+                    (o.amount * o.sellingPriceAtTime).toStringAsFixed(2),
+                  ],
+                )
+                .toList(),
+            border: pw.TableBorder.all(
+                color: PdfColors.grey300, width: 0.5),
+          ),
+          if (adjustments.isNotEmpty) ...[
+            pw.SizedBox(height: 16),
+            pw.Divider(),
+            pw.Text(
+              'INVENTORY LOSSES (${adjustments.length})',
+              style: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  fontSize: 10,
+                  color: PdfColors.red700),
+            ),
+            pw.SizedBox(height: 8),
+            pw.TableHelper.fromTextArray(
+              headers: ['Product', 'Qty Lost', 'Cost/Unit', 'Loss Value'],
+              headerStyle: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold, fontSize: 8),
+              cellStyle: const pw.TextStyle(fontSize: 8),
+              headerDecoration:
+                  const pw.BoxDecoration(color: PdfColors.red50),
+              data: adjustments.map((adj) {
+                final p = products.firstWhere(
+                  (pr) => pr.id == adj.productId,
+                  orElse: () => Product()..name = 'Unknown',
+                );
+                return [
+                  p.name,
+                  adj.amount.abs().toStringAsFixed(0),
+                  p.costPrice.toStringAsFixed(2),
+                  (adj.amount.abs() * p.costPrice).toStringAsFixed(2),
+                ];
+              }).toList(),
+              border: pw.TableBorder.all(
+                  color: PdfColors.grey300, width: 0.5),
+            ),
+          ],
+          pw.SizedBox(height: 20),
+          pw.Center(
+            child: pw.Text(
+              'Generated by ShopSync',
+              style: pw.TextStyle(
+                  fontSize: 8,
+                  fontStyle: pw.FontStyle.italic,
+                  color: PdfColors.grey500),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/ledger_$dateLabel.pdf');
+    await file.writeAsBytes(await pdf.save());
+
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path)],
+        subject: 'ShopSync Daily Ledger — $dateLabel',
+        text: 'Daily ledger for $dateLabel',
+      ),
+    );
+  }
+
+  static pw.Widget _summaryBox(String label, double amount, PdfColor color) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: color, width: 0.8),
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+      ),
+      child: pw.Column(
+        children: [
+          pw.Text(
+            label,
+            style: pw.TextStyle(
+                fontSize: 7, color: color, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.SizedBox(height: 2),
+          pw.Text(
+            amount.toStringAsFixed(2),
+            style: pw.TextStyle(
+                fontSize: 10, color: color, fontWeight: pw.FontWeight.bold),
+          ),
+        ],
+      ),
     );
   }
 }

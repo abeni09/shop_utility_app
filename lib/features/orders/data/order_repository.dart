@@ -220,4 +220,13 @@ class OrderRepository {
     });
     await backupService.markLocalChanged();
   }
+
+  Future<List<CustomerOrder>> getAllOrdersInRange(
+      DateTime from, DateTime to) async {
+    return await isar.customerOrders
+        .filter()
+        .dueDateBetween(from, to)
+        .isVoidEqualTo(false)
+        .findAll();
+  }
 }
