@@ -2335,7 +2335,9 @@ class _PurchaseOrderDialogBodyState extends State<_PurchaseOrderDialogBody> {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Row(
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
                             children: [
                               Text(
                                 'Stock: ${currentStock.toStringAsFixed(0)} / Min: ${p.minStockThreshold}',
@@ -2344,7 +2346,6 @@ class _PurchaseOrderDialogBodyState extends State<_PurchaseOrderDialogBody> {
                                   fontSize: 11,
                                 ),
                               ),
-                              const SizedBox(width: 8),
                               Text(
                                 '• Cost: ETB ${p.costPrice.toStringAsFixed(0)}',
                                 style: const TextStyle(
