@@ -55,6 +55,9 @@ final dailyAdjustmentsProvider = StreamProvider<List<StockAdjustment>>((ref) {
       .filter()
       .dateBetween(startOfDay, endOfDay)
       .amountLessThan(0)
+      .and()
+      .not()
+      .reasonEqualTo('correction', caseSensitive: false)
       .watch(fireImmediately: true);
 });
 
@@ -4357,6 +4360,7 @@ final walletDataProvider = Provider<AsyncValue<WalletData>>((ref) {
       .where(
         (adj) =>
             adj.amount < 0 &&
+            adj.reason.toLowerCase() != 'correction' &&
             adj.date.isAfter(
               startOfDay.subtract(const Duration(milliseconds: 1)),
             ) &&

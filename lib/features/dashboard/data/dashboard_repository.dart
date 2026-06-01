@@ -57,11 +57,14 @@ class DashboardRepository {
       totalProfit += ((baseRevenue + addonRevenue) - (baseCost + addonExpense));
     }
 
-    // Process negative stock adjustments
+    // Process negative stock adjustments (excluding corrections)
     final adjustments = await isar.stockAdjustments
         .filter()
         .dateBetween(startOfDay, endOfDay)
         .amountLessThan(0)
+        .and()
+        .not()
+        .reasonEqualTo('correction', caseSensitive: false)
         .findAll();
 
     double adjustmentLoss = 0.0;

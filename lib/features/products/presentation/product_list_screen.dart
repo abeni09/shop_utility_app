@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/products/data/product_model.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
@@ -748,6 +749,20 @@ class _ProductCard extends ConsumerWidget {
                                   product,
                                 ),
                               ),
+                            if (!isVoid)
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.restart_alt_rounded,
+                                  size: 18,
+                                ),
+                                color: const Color(0xFFF59E0B),
+                                tooltip: 'Reset Stock',
+                                onPressed: () => _showResetStockDialog(
+                                  context,
+                                  ref,
+                                  product,
+                                ),
+                              ),
                             IconButton(
                               icon: Icon(
                                 isVoid
@@ -1084,6 +1099,219 @@ class _ProductCard extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showResetStockDialog(
+    BuildContext context,
+    WidgetRef ref,
+    Product product,
+  ) {
+    final amountController = TextEditingController();
+    DateTime selectedDate = DateTime.now();
+
+    // Get current stock
+    final availability = ref
+        .read(walkInAvailabilityProvider(DateTime.now()))
+        .value;
+    final currentStock = availability?[product.id]?.physicalRemaining ?? 0.0;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF0F172A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          final target = double.tryParse(amountController.text);
+          String previewText = 'Enter new stock level above.';
+          if (target != null) {
+            final diff = target - currentStock;
+            if (diff == 0) {
+              previewText = 'No adjustment needed (stock matches).';
+            } else if (diff > 0) {
+              previewText =
+                  'This will add a correction of +${diff.toStringAsFixed(1)} units.';
+            } else {
+              previewText =
+                  'This will add a correction of ${diff.toStringAsFixed(1)} units.';
+            }
+          }
+
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+              left: 24,
+              right: 24,
+              top: 24,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'RESET STOCK: ${product.name.toUpperCase()}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2,
+                    fontSize: 14,
+                    color: Color(0xFFF59E0B),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Current Stock: ${currentStock.toStringAsFixed(1)} units',
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+                const SizedBox(height: 24),
+                TextField(
+                  controller: amountController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  onChanged: (_) => setModalState(() {}),
+                  decoration: InputDecoration(
+                    labelText: 'New Stock Level',
+                    helperText: previewText,
+                    helperStyle: TextStyle(
+                      color: target != null && target - currentStock != 0
+                          ? const Color(0xFFF59E0B)
+                          : Colors.white38,
+                    ),
+                    prefixIcon: const Icon(Icons.inventory_2_rounded),
+                    filled: true,
+                    fillColor: Colors.white.withValues(alpha: 0.05),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'ADJUSTMENT DATE',
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                      builder: (context, child) {
+                        return Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: const ColorScheme.dark(
+                              primary: Color(0xFFF59E0B),
+                              onPrimary: Colors.white,
+                              surface: Color(0xFF0F172A),
+                              onSurface: Colors.white,
+                            ),
+                            dialogBackgroundColor: const Color(0xFF0F172A),
+                          ),
+                          child: child!,
+                        );
+                      },
+                    );
+                    if (picked != null) {
+                      setModalState(() {
+                        selectedDate = picked;
+                      });
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.calendar_today_rounded,
+                          color: Color(0xFFF59E0B),
+                          size: 18,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          DateFormat('yyyy-MM-dd').format(selectedDate),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const Spacer(),
+                        const Icon(
+                          Icons.arrow_drop_down_rounded,
+                          color: Colors.white,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  height: 60,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF59E0B),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                    onPressed: () async {
+                      final targetVal = double.tryParse(amountController.text);
+                      if (targetVal == null || targetVal < 0) return;
+
+                      final diff = targetVal - currentStock;
+                      if (diff == 0) {
+                        Navigator.pop(context);
+                        return;
+                      }
+
+                      final adj = StockAdjustment()
+                        ..productId = product.id
+                        ..amount = diff
+                        ..reason = 'correction'
+                        ..date = selectedDate;
+
+                      await ref
+                          .read(stockAdjustmentRepositoryProvider)
+                          .saveAdjustment(adj);
+
+                      if (context.mounted) Navigator.pop(context);
+                    },
+                    child: const Text(
+                      'RESET STOCK',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 40),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
