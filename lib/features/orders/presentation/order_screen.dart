@@ -521,6 +521,7 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
   final List<_CartItem> cartItems = [_CartItem(product: allProducts.first)];
   final customerController = TextEditingController();
   final phoneController = TextEditingController();
+  final noteController = TextEditingController();
   final advanceController = TextEditingController(text: '0');
   PaymentMethod selectedPayment = PaymentMethod.cash;
   DateTime selectedDate = ref.read(selectedDateProvider);
@@ -587,6 +588,13 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
                   phoneController,
                   'Phone (Optional)',
                   Icons.phone_rounded,
+                  context,
+                ),
+                const SizedBox(height: 12),
+                _buildTextField(
+                  noteController,
+                  'Order Note (Optional)',
+                  Icons.sticky_note_2_rounded,
                   context,
                 ),
                 const SizedBox(height: 12),
@@ -894,6 +902,9 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
                                       phoneController.text.trim().isEmpty
                                       ? null
                                       : phoneController.text.trim()
+                                  ..note = noteController.text.trim().isEmpty
+                                      ? null
+                                      : noteController.text.trim()
                                   ..amount = item.amount
                                   ..advancePayment = advance / cartItems.length
                                   ..paymentMethod = selectedPayment
@@ -1000,6 +1011,7 @@ void _showOrderDialog(
     text: existing?.advancePayment.toStringAsFixed(0) ?? '0',
   );
   final phoneController = TextEditingController(text: existing?.phoneNumber);
+  final noteController = TextEditingController(text: existing?.note);
   PaymentMethod selectedPayment = existing?.paymentMethod ?? PaymentMethod.cash;
   DateTime selectedDate = existing?.dueDate ?? ref.read(selectedDateProvider);
   bool isSaving = false;
@@ -1097,6 +1109,13 @@ void _showOrderDialog(
                       phoneController,
                       'Phone Number (Optional)',
                       Icons.phone_rounded,
+                      context,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      noteController,
+                      'Order Note (Optional)',
+                      Icons.sticky_note_2_rounded,
                       context,
                     ),
                     const SizedBox(height: 16),
@@ -1421,6 +1440,9 @@ void _showOrderDialog(
 
                                 final order = existing ?? CustomerOrder();
                                 order.productId = selectedProductId!;
+                                order.note = noteController.text.trim().isEmpty
+                                    ? null
+                                    : noteController.text.trim();
                                 order.customerName = customerController.text
                                     .trim();
                                 order.phoneNumber =
@@ -1957,6 +1979,42 @@ class _OrderCard extends ConsumerWidget {
                   ],
                 ),
               ),
+              if (order.note != null && order.note!.trim().isNotEmpty)
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.amberAccent.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.amberAccent.withValues(alpha: 0.1),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.sticky_note_2_rounded,
+                        size: 14,
+                        color: Colors.amberAccent,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          order.note!,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.white70,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
               // FINANCIAL PROGRESS SECTION
               if (!isVoid)

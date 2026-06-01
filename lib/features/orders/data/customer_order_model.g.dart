@@ -72,29 +72,34 @@ const CustomerOrderSchema = CollectionSchema(
       name: r'isVoid',
       type: IsarType.bool,
     ),
-    r'paymentMethod': PropertySchema(
+    r'note': PropertySchema(
       id: 11,
+      name: r'note',
+      type: IsarType.string,
+    ),
+    r'paymentMethod': PropertySchema(
+      id: 12,
       name: r'paymentMethod',
       type: IsarType.byte,
       enumMap: _CustomerOrderpaymentMethodEnumValueMap,
     ),
     r'phoneNumber': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'phoneNumber',
       type: IsarType.string,
     ),
     r'productId': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'productId',
       type: IsarType.long,
     ),
     r'sellingPriceAtTime': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'sellingPriceAtTime',
       type: IsarType.double,
     ),
     r'status': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'status',
       type: IsarType.byte,
       enumMap: _CustomerOrderstatusEnumValueMap,
@@ -142,6 +147,12 @@ int _customerOrderEstimateSize(
   }
   bytesCount += 3 + object.customerName.length * 3;
   {
+    final value = object.note;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.phoneNumber;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -167,11 +178,12 @@ void _customerOrderSerialize(
   writer.writeDateTime(offsets[8], object.dueDate);
   writer.writeDateTime(offsets[9], object.fulfilledAt);
   writer.writeBool(offsets[10], object.isVoid);
-  writer.writeByte(offsets[11], object.paymentMethod.index);
-  writer.writeString(offsets[12], object.phoneNumber);
-  writer.writeLong(offsets[13], object.productId);
-  writer.writeDouble(offsets[14], object.sellingPriceAtTime);
-  writer.writeByte(offsets[15], object.status.index);
+  writer.writeString(offsets[11], object.note);
+  writer.writeByte(offsets[12], object.paymentMethod.index);
+  writer.writeString(offsets[13], object.phoneNumber);
+  writer.writeLong(offsets[14], object.productId);
+  writer.writeDouble(offsets[15], object.sellingPriceAtTime);
+  writer.writeByte(offsets[16], object.status.index);
 }
 
 CustomerOrder _customerOrderDeserialize(
@@ -193,14 +205,15 @@ CustomerOrder _customerOrderDeserialize(
   object.fulfilledAt = reader.readDateTimeOrNull(offsets[9]);
   object.id = id;
   object.isVoid = reader.readBool(offsets[10]);
+  object.note = reader.readStringOrNull(offsets[11]);
   object.paymentMethod = _CustomerOrderpaymentMethodValueEnumMap[
-          reader.readByteOrNull(offsets[11])] ??
+          reader.readByteOrNull(offsets[12])] ??
       PaymentMethod.cash;
-  object.phoneNumber = reader.readStringOrNull(offsets[12]);
-  object.productId = reader.readLong(offsets[13]);
-  object.sellingPriceAtTime = reader.readDouble(offsets[14]);
+  object.phoneNumber = reader.readStringOrNull(offsets[13]);
+  object.productId = reader.readLong(offsets[14]);
+  object.sellingPriceAtTime = reader.readDouble(offsets[15]);
   object.status =
-      _CustomerOrderstatusValueEnumMap[reader.readByteOrNull(offsets[15])] ??
+      _CustomerOrderstatusValueEnumMap[reader.readByteOrNull(offsets[16])] ??
           OrderStatus.pending;
   return object;
 }
@@ -235,16 +248,18 @@ P _customerOrderDeserializeProp<P>(
     case 10:
       return (reader.readBool(offset)) as P;
     case 11:
+      return (reader.readStringOrNull(offset)) as P;
+    case 12:
       return (_CustomerOrderpaymentMethodValueEnumMap[
               reader.readByteOrNull(offset)] ??
           PaymentMethod.cash) as P;
-    case 12:
-      return (reader.readStringOrNull(offset)) as P;
     case 13:
-      return (reader.readLong(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 14:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 15:
+      return (reader.readDouble(offset)) as P;
+    case 16:
       return (_CustomerOrderstatusValueEnumMap[reader.readByteOrNull(offset)] ??
           OrderStatus.pending) as P;
     default:
@@ -1403,6 +1418,159 @@ extension CustomerOrderQueryFilter
   }
 
   QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      noteIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'note',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      noteIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'note',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition> noteEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'note',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      noteGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'note',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      noteLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'note',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition> noteBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'note',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      noteStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'note',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      noteEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'note',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      noteContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'note',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition> noteMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'note',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      noteIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'note',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
+      noteIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'note',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterFilterCondition>
       paymentMethodEqualTo(PaymentMethod value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -1942,6 +2110,18 @@ extension CustomerOrderQuerySortBy
     });
   }
 
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy> sortByNote() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'note', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy> sortByNoteDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'note', Sort.desc);
+    });
+  }
+
   QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy>
       sortByPaymentMethod() {
     return QueryBuilder.apply(this, (query) {
@@ -2166,6 +2346,18 @@ extension CustomerOrderQuerySortThenBy
     });
   }
 
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy> thenByNote() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'note', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy> thenByNoteDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'note', Sort.desc);
+    });
+  }
+
   QueryBuilder<CustomerOrder, CustomerOrder, QAfterSortBy>
       thenByPaymentMethod() {
     return QueryBuilder.apply(this, (query) {
@@ -2307,6 +2499,13 @@ extension CustomerOrderQueryWhereDistinct
     });
   }
 
+  QueryBuilder<CustomerOrder, CustomerOrder, QDistinct> distinctByNote(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'note', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<CustomerOrder, CustomerOrder, QDistinct>
       distinctByPaymentMethod() {
     return QueryBuilder.apply(this, (query) {
@@ -2415,6 +2614,12 @@ extension CustomerOrderQueryProperty
   QueryBuilder<CustomerOrder, bool, QQueryOperations> isVoidProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isVoid');
+    });
+  }
+
+  QueryBuilder<CustomerOrder, String?, QQueryOperations> noteProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'note');
     });
   }
 

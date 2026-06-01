@@ -37,4 +37,6 @@ class CustomerOrder {
   double? addonPrice;
   double? addonCost;
   double? addonAmount;
+
+  String? note;
 }
