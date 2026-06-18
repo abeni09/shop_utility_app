@@ -23,6 +23,7 @@ class QuickSaleDialog extends ConsumerStatefulWidget {
 class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
   final Map<int, TextEditingController> _quantityControllers = {};
   final Map<int, bool> _addBag = {};
+  final Map<int, bool> _breakEven = {};
   final TextEditingController _customerController = TextEditingController(
     text: 'Walk-in',
   );
@@ -442,6 +443,7 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
     StockStatus status,
   ) {
     final hasBag = _addBag[product.id] ?? false;
+    final isBreakEven = _breakEven[product.id] ?? false;
     final isAnyBag = allBagProducts.any((p) => p.id == product.id);
     final walkInAvailable = status.walkInAvailable;
     final isOutOfStock = walkInAvailable <= 0;
@@ -523,13 +525,34 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                     Row(
                       children: [
                         Text(
-                          '${product.sellingPrice} ETB',
-                          style: const TextStyle(
-                            color: Color(0xFF818CF8),
+                          '${isBreakEven ? product.costPrice : product.sellingPrice} ETB',
+                          style: TextStyle(
+                            color: isBreakEven ? Colors.orangeAccent : const Color(0xFF818CF8),
                             fontWeight: FontWeight.w700,
                             fontSize: 13,
                           ),
                         ),
+                        if (isBreakEven) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.orangeAccent.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'BREAK-EVEN',
+                              style: TextStyle(
+                                color: Colors.orangeAccent,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 8,
+                              ),
+                            ),
+                          ),
+                        ],
                         const SizedBox(width: 8),
                         if (status.reserved > 0)
                           Container(
@@ -670,8 +693,33 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                 ),
               ),
               const SizedBox(width: 12),
+              // Break-Even Toggle
+              GestureDetector(
+                onTap: () => setState(() => _breakEven[product.id] = !isBreakEven),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isBreakEven
+                        ? Colors.orangeAccent.withValues(alpha: 0.1)
+                        : Colors.white.withValues(alpha: 0.03),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isBreakEven
+                          ? Colors.orangeAccent.withValues(alpha: 0.3)
+                          : Colors.white.withValues(alpha: 0.05),
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.balance_rounded,
+                    color: isBreakEven ? Colors.orangeAccent : Colors.white24,
+                    size: 20,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
               // Bag Toggle
-              if (!isAnyBag && bagProduct != null)
+              if (!isAnyBag && bagProduct != null) ...[
                 GestureDetector(
                   onTap: () => setState(() => _addBag[product.id] = !hasBag),
                   child: AnimatedContainer(
@@ -695,6 +743,8 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
+              ],
               const Spacer(),
               // Sell Button
               Flexible(
@@ -843,8 +893,10 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
 
     // 1. Process the main product sale
     final customerName = _customerController.text.trim();
+    final isBreakEven = _breakEven[product.id] ?? false;
+    final sellPrice = isBreakEven ? product.costPrice : product.sellingPrice;
     final totalPrice =
-        quantity * product.sellingPrice +
+        quantity * sellPrice +
         (_addonName != null ? _addonAmount * (_addonPrice ?? 0.0) : 0.0);
     final order = CustomerOrder()
       ..productId = product.id
@@ -854,7 +906,7 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
       ..status = OrderStatus.sold
       ..paymentMethod = PaymentMethod.cash
       ..costPriceAtTime = product.costPrice
-      ..sellingPriceAtTime = product.sellingPrice
+      ..sellingPriceAtTime = sellPrice
       ..advancePayment = totalPrice
       ..fulfilledAt = now
       ..addonName = _addonName

@@ -4,6 +4,7 @@ import 'package:shopsync/features/orders/data/customer_order_model.dart';
 import 'package:shopsync/features/products/data/daily_stock_model.dart';
 import 'package:shopsync/features/products/data/product_model.dart';
 import 'package:shopsync/features/products/data/stock_adjustment_model.dart';
+import 'package:shopsync/features/expenses/data/expense_model.dart';
 
 class DashboardRepository {
   final Isar isar;
@@ -76,6 +77,43 @@ class DashboardRepository {
     }
 
     totalProfit -= adjustmentLoss;
+
+    final allExpenses = await isar.expenses.where().findAll();
+    double totalExpenses = 0.0;
+    final target = DateTime(date.year, date.month, date.day);
+    for (var expense in allExpenses) {
+      final expDate = DateTime(
+        expense.date.year,
+        expense.date.month,
+        expense.date.day,
+      );
+      if (target.isBefore(expDate)) continue;
+
+      bool isActive = false;
+      switch (expense.recurrence) {
+        case ExpenseRecurrence.none:
+          isActive = target.year == expDate.year &&
+              target.month == expDate.month &&
+              target.day == expDate.day;
+          break;
+        case ExpenseRecurrence.daily:
+          isActive = true;
+          break;
+        case ExpenseRecurrence.weekly:
+          isActive = target.weekday == expDate.weekday;
+          break;
+        case ExpenseRecurrence.monthly:
+          isActive = target.day == expDate.day;
+          break;
+        case ExpenseRecurrence.yearly:
+          isActive = target.day == expDate.day && target.month == expDate.month;
+          break;
+      }
+      if (isActive) {
+        totalExpenses += expense.amount;
+      }
+    }
+    totalProfit -= totalExpenses;
 
     final log = await getOrCreateDailyLog(date);
     log.totalSales = totalSales;

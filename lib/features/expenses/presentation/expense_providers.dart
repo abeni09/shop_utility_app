@@ -2,10 +2,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopsync/main.dart';
 import 'package:shopsync/features/expenses/data/expense_model.dart';
 import 'package:shopsync/features/expenses/data/expense_repository.dart';
+import 'package:shopsync/features/dashboard/presentation/dashboard_providers.dart';
 
 final expenseRepositoryProvider = Provider<ExpenseRepository>((ref) {
   final dbService = ref.watch(databaseServiceProvider);
-  return ExpenseRepository(dbService.isar);
+  final dashboardRepo = ref.watch(dashboardRepositoryProvider);
+  return ExpenseRepository(dbService.isar, dashboardRepo);
 });
 
 final expensesStreamProvider = StreamProvider<List<Expense>>((ref) async* {

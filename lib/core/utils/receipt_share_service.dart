@@ -9,6 +9,7 @@ import 'package:shopsync/features/suppliers/data/supplier_settlement_model.dart'
 import 'package:shopsync/features/suppliers/data/supplier_model.dart';
 import 'package:shopsync/features/products/data/stock_adjustment_model.dart';
 import 'package:shopsync/features/products/data/product_model.dart';
+import 'package:shopsync/features/expenses/data/expense_model.dart';
 
 class ReceiptShareService {
   static String _formatCurrency(double amount) {
@@ -321,6 +322,7 @@ class ReceiptShareService {
     required List<CustomerOrder> sales,
     required List<StockAdjustment> adjustments,
     required List<Product> products,
+    required List<Expense> expenses,
   }) async {
     final df = DateFormat('yyyy-MM-dd');
     final dtf = DateFormat('HH:mm');
@@ -345,6 +347,12 @@ class ReceiptShareService {
       );
       totalLoss += adj.amount.abs() * p.costPrice;
     }
+
+    final totalExpenses = expenses.fold<double>(
+      0,
+      (s, e) => s + e.amount,
+    );
+    final netProfit = grossProfit - totalLoss - totalExpenses;
 
     String productNameFor(int productId) {
       return products
@@ -386,13 +394,12 @@ class ReceiptShareService {
                 grossProfit,
                 grossProfit >= 0 ? PdfColors.indigo700 : PdfColors.red700,
               ),
+              _summaryBox('EXPENSES', totalExpenses, PdfColors.orange800),
               _summaryBox('LOSSES', totalLoss, PdfColors.red700),
               _summaryBox(
                 'NET',
-                grossProfit - totalLoss,
-                (grossProfit - totalLoss) >= 0
-                    ? PdfColors.teal700
-                    : PdfColors.red900,
+                netProfit,
+                netProfit >= 0 ? PdfColors.teal700 : PdfColors.red900,
               ),
             ],
           ),
@@ -429,6 +436,36 @@ class ReceiptShareService {
                 .toList(),
             border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
           ),
+          if (expenses.isNotEmpty) ...[
+            pw.SizedBox(height: 16),
+            pw.Divider(),
+            pw.Text(
+              'OPERATIONAL EXPENSES (${expenses.length})',
+              style: pw.TextStyle(
+                fontWeight: pw.FontWeight.bold,
+                fontSize: 10,
+                color: PdfColors.orange800,
+              ),
+            ),
+            pw.SizedBox(height: 8),
+            pw.TableHelper.fromTextArray(
+              headers: ['Description', 'Recurrence', 'Amount'],
+              headerStyle: pw.TextStyle(
+                fontWeight: pw.FontWeight.bold,
+                fontSize: 8,
+              ),
+              cellStyle: const pw.TextStyle(fontSize: 8),
+              headerDecoration: const pw.BoxDecoration(color: PdfColors.orange50),
+              data: expenses.map((e) {
+                return [
+                  e.description,
+                  e.recurrence.name.toUpperCase(),
+                  e.amount.toStringAsFixed(2),
+                ];
+              }).toList(),
+              border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+            ),
+          ],
           if (adjustments.isNotEmpty) ...[
             pw.SizedBox(height: 16),
             pw.Divider(),

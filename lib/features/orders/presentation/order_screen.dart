@@ -500,7 +500,8 @@ class _FilterChip extends StatelessWidget {
 class _CartItem {
   Product product;
   double amount;
-  _CartItem({required this.product, this.amount = 1});
+  bool isBreakEven;
+  _CartItem({required this.product, this.amount = 1, this.isBreakEven = false});
 }
 
 // ─── Cart Order Dialog ────────────────────────────────────────────────────────
@@ -538,7 +539,7 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
       builder: (context, setState) {
         double cartTotal() => cartItems.fold(
           0,
-          (s, item) => s + item.amount * item.product.sellingPrice,
+          (s, item) => s + item.amount * (item.isBreakEven ? item.product.costPrice : item.product.sellingPrice),
         );
 
         return Padding(
@@ -752,6 +753,31 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
                               ],
                             ),
                           ),
+                          const SizedBox(width: 8),
+                          // Break-Even Toggle
+                          GestureDetector(
+                            onTap: () => setState(() => cartItems[idx].isBreakEven = !item.isBreakEven),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: item.isBreakEven
+                                    ? Colors.orangeAccent.withValues(alpha: 0.1)
+                                    : Colors.white.withValues(alpha: 0.03),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: item.isBreakEven
+                                      ? Colors.orangeAccent.withValues(alpha: 0.3)
+                                      : Colors.white.withValues(alpha: 0.05),
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.balance_rounded,
+                                color: item.isBreakEven ? Colors.orangeAccent : Colors.white24,
+                                size: 16,
+                              ),
+                            ),
+                          ),
                           if (cartItems.length > 1) ...[
                             const SizedBox(width: 4),
                             IconButton(
@@ -909,8 +935,9 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
                                   ..advancePayment = advance / cartItems.length
                                   ..paymentMethod = selectedPayment
                                   ..dueDate = selectedDate
-                                  ..sellingPriceAtTime =
-                                      item.product.sellingPrice
+                                  ..sellingPriceAtTime = item.isBreakEven
+                                      ? item.product.costPrice
+                                      : item.product.sellingPrice
                                   ..costPriceAtTime = item.product.costPrice
                                   ..status = OrderStatus.pending;
                                 await orderRepo.saveOrder(o);
@@ -1015,6 +1042,7 @@ void _showOrderDialog(
   PaymentMethod selectedPayment = existing?.paymentMethod ?? PaymentMethod.cash;
   DateTime selectedDate = existing?.dueDate ?? ref.read(selectedDateProvider);
   bool isSaving = false;
+  bool isBreakEven = existing != null && existing.sellingPriceAtTime == existing.costPriceAtTime;
 
   int? selectedAddonId = existing?.addonName != null ? 0 : 0;
   String? selectedAddonName = existing?.addonName;
@@ -1078,24 +1106,55 @@ void _showOrderDialog(
                       ),
                     ),
                     const SizedBox(height: 24),
-                    DropdownButtonFormField<int>(
-                      initialValue: selectedProductId,
-                      dropdownColor: const Color(0xFF1E293B),
-                      items: products
-                          .map(
-                            (p) => DropdownMenuItem(
-                              value: p.id,
-                              child: Text(p.name),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<int>(
+                            initialValue: selectedProductId,
+                            dropdownColor: const Color(0xFF1E293B),
+                            items: products
+                                .map(
+                                  (p) => DropdownMenuItem(
+                                    value: p.id,
+                                    child: Text(p.name),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (val) =>
+                                setState(() => selectedProductId = val),
+                            decoration: _fieldDecoration(
+                              'Product',
+                              Icons.inventory_2_rounded,
+                              context,
                             ),
-                          )
-                          .toList(),
-                      onChanged: (val) =>
-                          setState(() => selectedProductId = val),
-                      decoration: _fieldDecoration(
-                        'Product',
-                        Icons.inventory_2_rounded,
-                        context,
-                      ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Break-Even Toggle Button
+                        GestureDetector(
+                          onTap: () => setState(() => isBreakEven = !isBreakEven),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: isBreakEven
+                                  ? Colors.orangeAccent.withValues(alpha: 0.1)
+                                  : Colors.white.withValues(alpha: 0.03),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: isBreakEven
+                                    ? Colors.orangeAccent.withValues(alpha: 0.3)
+                                    : Colors.white.withValues(alpha: 0.05),
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.balance_rounded,
+                              color: isBreakEven ? Colors.orangeAccent : Colors.white24,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     _buildTextField(
@@ -1421,8 +1480,9 @@ void _showOrderDialog(
                                   (p) => p.id == selectedProductId,
                                 );
 
+                                final sellPrice = isBreakEven ? product.costPrice : product.sellingPrice;
                                 final total =
-                                    amount * product.sellingPrice +
+                                    amount * sellPrice +
                                     (selectedAddonName != null
                                         ? addonAmount *
                                               (selectedAddonPrice ?? 0.0)
@@ -1455,7 +1515,7 @@ void _showOrderDialog(
                                 order.advancePayment = advance;
                                 order.paymentMethod = selectedPayment;
                                 order.dueDate = selectedDate;
-                                order.sellingPriceAtTime = product.sellingPrice;
+                                order.sellingPriceAtTime = sellPrice;
                                 order.costPriceAtTime = product.costPrice;
 
                                 order.addonName = selectedAddonName;

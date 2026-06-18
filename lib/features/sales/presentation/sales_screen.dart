@@ -194,6 +194,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
                               salesAsync.value ?? [],
                               adjustmentsAsync.value ?? [],
                               productsAsync.value ?? [],
+                              expensesOnDate,
                             ),
                             tooltip: 'Share Daily Ledger',
                           ),
@@ -1969,7 +1970,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
               if (confirmed == true) {
                 await ref
                     .read(expenseRepositoryProvider)
-                    .deleteExpense(expense.id);
+                    .deleteExpense(expense.id, expense.date);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -2699,8 +2700,9 @@ Future<void> _shareDailyLedger(
   List<CustomerOrder> sales,
   List<StockAdjustment> adjustments,
   List<Product> products,
+  List<Expense> expenses,
 ) async {
-  if (sales.isEmpty && adjustments.isEmpty) {
+  if (sales.isEmpty && adjustments.isEmpty && expenses.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('No transactions to share for this day.')),
     );
@@ -2712,6 +2714,7 @@ Future<void> _shareDailyLedger(
       sales: sales,
       adjustments: adjustments,
       products: products,
+      expenses: expenses,
     );
   } catch (e) {
     if (context.mounted) {
