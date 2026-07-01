@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:share_plus/share_plus.dart';
 
 class BackupService {
   final Isar isar;
@@ -265,6 +266,39 @@ class BackupService {
       await _setLastSyncedId(fileId);
     } catch (e) {
       print('Restore error: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> restoreFromLocalFile(String filePath) async {
+    try {
+      final tempFile = File(filePath);
+      if (!await tempFile.exists()) {
+        throw Exception('Selected backup file does not exist.');
+      }
+
+      final dir = await getApplicationDocumentsDirectory();
+      final dbPath = '${dir.path}/shopsync_db.isar';
+      await tempFile.copy(dbPath);
+    } catch (e) {
+      print('Local restore error: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> shareLocalBackup() async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final backupFile = File('${dir.path}/temp_backup.isar');
+      if (await backupFile.exists()) await backupFile.delete();
+      await isar.copyToFile(backupFile.path);
+
+      await Share.shareXFiles(
+        [XFile(backupFile.path)],
+        text: 'ShopSync Database Backup',
+      );
+    } catch (e) {
+      print('Share backup error: $e');
       rethrow;
     }
   }

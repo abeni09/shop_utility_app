@@ -9,6 +9,7 @@ import 'package:shopsync/features/products/data/product_model.dart';
 import 'package:shopsync/features/suppliers/data/supplier_model.dart';
 import 'package:shopsync/features/orders/data/customer_order_model.dart';
 import 'package:shopsync/features/suppliers/data/supplier_settlement_model.dart';
+import 'package:file_picker/file_picker.dart';
 
 class SyncManagerDialog extends ConsumerStatefulWidget {
   const SyncManagerDialog({super.key});
@@ -58,6 +59,135 @@ class _SyncManagerDialogState extends ConsumerState<SyncManagerDialog> {
       }
     } catch (e) {
       debugPrint('Error loading db stats: $e');
+    }
+  }
+
+  Future<void> _handleLocalExport() async {
+    setState(() {
+      _isLoading = true;
+      _statusMessage = 'Preparing local backup file...';
+    });
+    try {
+      await ref.read(backupServiceProvider).shareLocalBackup();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _statusMessage = null;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleLocalImport() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+          side: const BorderSide(color: Color(0xFFEF4444), width: 1.5),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Color(0xFFEF4444)),
+            SizedBox(width: 10),
+            Text(
+              'OVERWRITE DATABASE?',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 16,
+                letterSpacing: 1.5,
+                color: Color(0xFFEF4444),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'This will completely replace all your local inventory, orders, sales, and supplier data with the imported backup file. This action cannot be undone.',
+          style: TextStyle(color: Colors.white70, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text(
+              'CANCEL',
+              style: TextStyle(
+                color: Colors.white24,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'OVERWRITE',
+              style: TextStyle(fontWeight: FontWeight.w900),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+      );
+
+      if (result == null || result.files.single.path == null) {
+        return;
+      }
+
+      setState(() {
+        _isLoading = true;
+        _statusMessage = 'Restoring database from selected file...';
+      });
+
+      await ref.read(backupServiceProvider).restoreFromLocalFile(
+        result.files.single.path!,
+      );
+
+      ref.invalidate(cloudSyncStatusProvider);
+      ref.invalidate(localAheadProvider);
+      await _loadStats();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Database restored successfully! Restart app if changes don\'t display immediately.',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Import failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _statusMessage = null;
+        });
+      }
     }
   }
 
@@ -229,6 +359,8 @@ class _SyncManagerDialogState extends ConsumerState<SyncManagerDialog> {
                       ),
                       const SizedBox(height: 20),
                       _buildStatsSection(),
+                      const SizedBox(height: 20),
+                      _buildLocalBackupSection(),
                       const SizedBox(height: 24),
                       _buildActionsSection(userAsync),
                     ],
@@ -557,6 +689,89 @@ class _SyncManagerDialogState extends ConsumerState<SyncManagerDialog> {
             'Settlements',
             '$_settlementCount records',
             Icons.payment_outlined,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLocalBackupSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.02),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'LOCAL BACKUP & RESTORE',
+            style: TextStyle(
+              color: Color(0xFF818CF8),
+              fontWeight: FontWeight.w900,
+              fontSize: 10,
+              letterSpacing: 1.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Transfer data directly using local files without Google Drive.',
+            style: TextStyle(color: Colors.white30, fontSize: 11),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF818CF8),
+                    side: BorderSide(
+                      color: const Color(0xFF818CF8).withValues(alpha: 0.5),
+                      width: 1.5,
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  onPressed: _handleLocalExport,
+                  icon: const Icon(Icons.share_rounded, size: 16),
+                  label: const Text(
+                    'EXPORT FILE',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 11,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6366F1),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  onPressed: _handleLocalImport,
+                  icon: const Icon(Icons.file_open_rounded, size: 16),
+                  label: const Text(
+                    'IMPORT FILE',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 11,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
