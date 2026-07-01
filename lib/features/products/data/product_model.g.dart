@@ -22,40 +22,65 @@ const ProductSchema = CollectionSchema(
       name: r'costPrice',
       type: IsarType.double,
     ),
-    r'isVoid': PropertySchema(
+    r'hasQuota': PropertySchema(
       id: 1,
+      name: r'hasQuota',
+      type: IsarType.bool,
+    ),
+    r'holidayQuota': PropertySchema(
+      id: 2,
+      name: r'holidayQuota',
+      type: IsarType.double,
+    ),
+    r'isVoid': PropertySchema(
+      id: 3,
       name: r'isVoid',
       type: IsarType.bool,
     ),
     r'lastUpdated': PropertySchema(
-      id: 2,
+      id: 4,
       name: r'lastUpdated',
       type: IsarType.dateTime,
     ),
     r'minStockThreshold': PropertySchema(
-      id: 3,
+      id: 5,
       name: r'minStockThreshold',
       type: IsarType.long,
     ),
     r'name': PropertySchema(
-      id: 4,
+      id: 6,
       name: r'name',
       type: IsarType.string,
     ),
+    r'overQuotaCostPrice': PropertySchema(
+      id: 7,
+      name: r'overQuotaCostPrice',
+      type: IsarType.double,
+    ),
     r'sellingPrice': PropertySchema(
-      id: 5,
+      id: 8,
       name: r'sellingPrice',
       type: IsarType.double,
     ),
     r'shelfLifeDays': PropertySchema(
-      id: 6,
+      id: 9,
       name: r'shelfLifeDays',
       type: IsarType.long,
     ),
     r'supplierId': PropertySchema(
-      id: 7,
+      id: 10,
       name: r'supplierId',
       type: IsarType.long,
+    ),
+    r'weekdayQuota': PropertySchema(
+      id: 11,
+      name: r'weekdayQuota',
+      type: IsarType.double,
+    ),
+    r'weekendQuota': PropertySchema(
+      id: 12,
+      name: r'weekendQuota',
+      type: IsarType.double,
     )
   },
   estimateSize: _productEstimateSize,
@@ -103,13 +128,18 @@ void _productSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeDouble(offsets[0], object.costPrice);
-  writer.writeBool(offsets[1], object.isVoid);
-  writer.writeDateTime(offsets[2], object.lastUpdated);
-  writer.writeLong(offsets[3], object.minStockThreshold);
-  writer.writeString(offsets[4], object.name);
-  writer.writeDouble(offsets[5], object.sellingPrice);
-  writer.writeLong(offsets[6], object.shelfLifeDays);
-  writer.writeLong(offsets[7], object.supplierId);
+  writer.writeBool(offsets[1], object.hasQuota);
+  writer.writeDouble(offsets[2], object.holidayQuota);
+  writer.writeBool(offsets[3], object.isVoid);
+  writer.writeDateTime(offsets[4], object.lastUpdated);
+  writer.writeLong(offsets[5], object.minStockThreshold);
+  writer.writeString(offsets[6], object.name);
+  writer.writeDouble(offsets[7], object.overQuotaCostPrice);
+  writer.writeDouble(offsets[8], object.sellingPrice);
+  writer.writeLong(offsets[9], object.shelfLifeDays);
+  writer.writeLong(offsets[10], object.supplierId);
+  writer.writeDouble(offsets[11], object.weekdayQuota);
+  writer.writeDouble(offsets[12], object.weekendQuota);
 }
 
 Product _productDeserialize(
@@ -120,14 +150,19 @@ Product _productDeserialize(
 ) {
   final object = Product();
   object.costPrice = reader.readDouble(offsets[0]);
+  object.hasQuota = reader.readBool(offsets[1]);
+  object.holidayQuota = reader.readDoubleOrNull(offsets[2]);
   object.id = id;
-  object.isVoid = reader.readBool(offsets[1]);
-  object.lastUpdated = reader.readDateTimeOrNull(offsets[2]);
-  object.minStockThreshold = reader.readLong(offsets[3]);
-  object.name = reader.readString(offsets[4]);
-  object.sellingPrice = reader.readDouble(offsets[5]);
-  object.shelfLifeDays = reader.readLong(offsets[6]);
-  object.supplierId = reader.readLongOrNull(offsets[7]);
+  object.isVoid = reader.readBool(offsets[3]);
+  object.lastUpdated = reader.readDateTimeOrNull(offsets[4]);
+  object.minStockThreshold = reader.readLong(offsets[5]);
+  object.name = reader.readString(offsets[6]);
+  object.overQuotaCostPrice = reader.readDoubleOrNull(offsets[7]);
+  object.sellingPrice = reader.readDouble(offsets[8]);
+  object.shelfLifeDays = reader.readLong(offsets[9]);
+  object.supplierId = reader.readLongOrNull(offsets[10]);
+  object.weekdayQuota = reader.readDoubleOrNull(offsets[11]);
+  object.weekendQuota = reader.readDoubleOrNull(offsets[12]);
   return object;
 }
 
@@ -143,17 +178,27 @@ P _productDeserializeProp<P>(
     case 1:
       return (reader.readBool(offset)) as P;
     case 2:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 3:
-      return (reader.readLong(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 4:
-      return (reader.readString(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 5:
-      return (reader.readDouble(offset)) as P;
-    case 6:
       return (reader.readLong(offset)) as P;
+    case 6:
+      return (reader.readString(offset)) as P;
     case 7:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 8:
+      return (reader.readDouble(offset)) as P;
+    case 9:
+      return (reader.readLong(offset)) as P;
+    case 10:
       return (reader.readLongOrNull(offset)) as P;
+    case 11:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 12:
+      return (reader.readDoubleOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -399,6 +444,95 @@ extension ProductQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
         property: r'costPrice',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> hasQuotaEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'hasQuota',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> holidayQuotaIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'holidayQuota',
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      holidayQuotaIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'holidayQuota',
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> holidayQuotaEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'holidayQuota',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> holidayQuotaGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'holidayQuota',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> holidayQuotaLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'holidayQuota',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> holidayQuotaBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'holidayQuota',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -725,6 +859,90 @@ extension ProductQueryFilter
     });
   }
 
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      overQuotaCostPriceIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'overQuotaCostPrice',
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      overQuotaCostPriceIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'overQuotaCostPrice',
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      overQuotaCostPriceEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'overQuotaCostPrice',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      overQuotaCostPriceGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'overQuotaCostPrice',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      overQuotaCostPriceLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'overQuotaCostPrice',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      overQuotaCostPriceBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'overQuotaCostPrice',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
   QueryBuilder<Product, Product, QAfterFilterCondition> sellingPriceEqualTo(
     double value, {
     double epsilon = Query.epsilon,
@@ -909,6 +1127,164 @@ extension ProductQueryFilter
       ));
     });
   }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> weekdayQuotaIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'weekdayQuota',
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      weekdayQuotaIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'weekdayQuota',
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> weekdayQuotaEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'weekdayQuota',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> weekdayQuotaGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'weekdayQuota',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> weekdayQuotaLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'weekdayQuota',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> weekdayQuotaBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'weekdayQuota',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> weekendQuotaIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'weekendQuota',
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition>
+      weekendQuotaIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'weekendQuota',
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> weekendQuotaEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'weekendQuota',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> weekendQuotaGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'weekendQuota',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> weekendQuotaLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'weekendQuota',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> weekendQuotaBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'weekendQuota',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
 }
 
 extension ProductQueryObject
@@ -927,6 +1303,30 @@ extension ProductQuerySortBy on QueryBuilder<Product, Product, QSortBy> {
   QueryBuilder<Product, Product, QAfterSortBy> sortByCostPriceDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'costPrice', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> sortByHasQuota() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasQuota', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> sortByHasQuotaDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasQuota', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> sortByHolidayQuota() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'holidayQuota', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> sortByHolidayQuotaDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'holidayQuota', Sort.desc);
     });
   }
 
@@ -978,6 +1378,18 @@ extension ProductQuerySortBy on QueryBuilder<Product, Product, QSortBy> {
     });
   }
 
+  QueryBuilder<Product, Product, QAfterSortBy> sortByOverQuotaCostPrice() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'overQuotaCostPrice', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> sortByOverQuotaCostPriceDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'overQuotaCostPrice', Sort.desc);
+    });
+  }
+
   QueryBuilder<Product, Product, QAfterSortBy> sortBySellingPrice() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'sellingPrice', Sort.asc);
@@ -1013,6 +1425,30 @@ extension ProductQuerySortBy on QueryBuilder<Product, Product, QSortBy> {
       return query.addSortBy(r'supplierId', Sort.desc);
     });
   }
+
+  QueryBuilder<Product, Product, QAfterSortBy> sortByWeekdayQuota() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'weekdayQuota', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> sortByWeekdayQuotaDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'weekdayQuota', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> sortByWeekendQuota() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'weekendQuota', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> sortByWeekendQuotaDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'weekendQuota', Sort.desc);
+    });
+  }
 }
 
 extension ProductQuerySortThenBy
@@ -1026,6 +1462,30 @@ extension ProductQuerySortThenBy
   QueryBuilder<Product, Product, QAfterSortBy> thenByCostPriceDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'costPrice', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> thenByHasQuota() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasQuota', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> thenByHasQuotaDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'hasQuota', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> thenByHolidayQuota() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'holidayQuota', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> thenByHolidayQuotaDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'holidayQuota', Sort.desc);
     });
   }
 
@@ -1089,6 +1549,18 @@ extension ProductQuerySortThenBy
     });
   }
 
+  QueryBuilder<Product, Product, QAfterSortBy> thenByOverQuotaCostPrice() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'overQuotaCostPrice', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> thenByOverQuotaCostPriceDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'overQuotaCostPrice', Sort.desc);
+    });
+  }
+
   QueryBuilder<Product, Product, QAfterSortBy> thenBySellingPrice() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'sellingPrice', Sort.asc);
@@ -1124,6 +1596,30 @@ extension ProductQuerySortThenBy
       return query.addSortBy(r'supplierId', Sort.desc);
     });
   }
+
+  QueryBuilder<Product, Product, QAfterSortBy> thenByWeekdayQuota() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'weekdayQuota', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> thenByWeekdayQuotaDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'weekdayQuota', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> thenByWeekendQuota() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'weekendQuota', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> thenByWeekendQuotaDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'weekendQuota', Sort.desc);
+    });
+  }
 }
 
 extension ProductQueryWhereDistinct
@@ -1131,6 +1627,18 @@ extension ProductQueryWhereDistinct
   QueryBuilder<Product, Product, QDistinct> distinctByCostPrice() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'costPrice');
+    });
+  }
+
+  QueryBuilder<Product, Product, QDistinct> distinctByHasQuota() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'hasQuota');
+    });
+  }
+
+  QueryBuilder<Product, Product, QDistinct> distinctByHolidayQuota() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'holidayQuota');
     });
   }
 
@@ -1159,6 +1667,12 @@ extension ProductQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Product, Product, QDistinct> distinctByOverQuotaCostPrice() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'overQuotaCostPrice');
+    });
+  }
+
   QueryBuilder<Product, Product, QDistinct> distinctBySellingPrice() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'sellingPrice');
@@ -1176,6 +1690,18 @@ extension ProductQueryWhereDistinct
       return query.addDistinctBy(r'supplierId');
     });
   }
+
+  QueryBuilder<Product, Product, QDistinct> distinctByWeekdayQuota() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'weekdayQuota');
+    });
+  }
+
+  QueryBuilder<Product, Product, QDistinct> distinctByWeekendQuota() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'weekendQuota');
+    });
+  }
 }
 
 extension ProductQueryProperty
@@ -1189,6 +1715,18 @@ extension ProductQueryProperty
   QueryBuilder<Product, double, QQueryOperations> costPriceProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'costPrice');
+    });
+  }
+
+  QueryBuilder<Product, bool, QQueryOperations> hasQuotaProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'hasQuota');
+    });
+  }
+
+  QueryBuilder<Product, double?, QQueryOperations> holidayQuotaProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'holidayQuota');
     });
   }
 
@@ -1216,6 +1754,13 @@ extension ProductQueryProperty
     });
   }
 
+  QueryBuilder<Product, double?, QQueryOperations>
+      overQuotaCostPriceProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'overQuotaCostPrice');
+    });
+  }
+
   QueryBuilder<Product, double, QQueryOperations> sellingPriceProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'sellingPrice');
@@ -1231,6 +1776,18 @@ extension ProductQueryProperty
   QueryBuilder<Product, int?, QQueryOperations> supplierIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'supplierId');
+    });
+  }
+
+  QueryBuilder<Product, double?, QQueryOperations> weekdayQuotaProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'weekdayQuota');
+    });
+  }
+
+  QueryBuilder<Product, double?, QQueryOperations> weekendQuotaProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'weekendQuota');
     });
   }
 }

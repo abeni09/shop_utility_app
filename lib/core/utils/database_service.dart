@@ -9,6 +9,7 @@ import 'package:shopsync/features/products/data/stock_adjustment_model.dart';
 import 'package:shopsync/features/orders/data/addon_model.dart';
 import 'package:shopsync/features/suppliers/data/supplier_settlement_model.dart';
 import 'package:shopsync/features/expenses/data/expense_model.dart';
+import 'package:shopsync/features/products/data/holiday_model.dart';
 
 class DatabaseService {
   late Isar isar;
@@ -26,6 +27,7 @@ class DatabaseService {
         AddonSchema,
         SupplierSettlementSchema,
         ExpenseSchema,
+        HolidaySchema,
       ],
 
       directory: dir.path,

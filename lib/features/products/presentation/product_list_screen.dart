@@ -8,6 +8,8 @@ import 'package:shopsync/features/products/presentation/daily_stock_providers.da
 import 'package:shopsync/features/products/data/stock_adjustment_model.dart';
 import 'package:shopsync/features/suppliers/presentation/supplier_list_screen.dart';
 import 'package:shopsync/features/orders/data/customer_order_model.dart';
+import 'package:shopsync/features/products/data/holiday_model.dart';
+import 'package:shopsync/features/products/presentation/holiday_providers.dart';
 
 import 'package:shopsync/features/dashboard/presentation/ui_providers.dart';
 
@@ -122,6 +124,23 @@ class ProductListScreen extends ConsumerWidget {
                           onPressed: () =>
                               _showSafetyStockRecommender(context, ref),
                           tooltip: 'Smart Safety Stock Recommender',
+                        ),
+                      ),
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.05),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.calendar_month_rounded,
+                            color: Colors.orangeAccent,
+                          ),
+                          onPressed: () => _showHolidayManager(context, ref),
+                          tooltip: 'Manage Holidays',
                         ),
                       ),
                       Container(
@@ -361,6 +380,19 @@ void _showProductDialog(
   final shelfLifeController = TextEditingController(
     text: (existing?.shelfLifeDays ?? 30).toString(),
   );
+  bool hasQuota = existing?.hasQuota ?? false;
+  final weekdayQuotaController = TextEditingController(
+    text: existing?.weekdayQuota?.toString() ?? '',
+  );
+  final weekendQuotaController = TextEditingController(
+    text: existing?.weekendQuota?.toString() ?? '',
+  );
+  final holidayQuotaController = TextEditingController(
+    text: existing?.holidayQuota?.toString() ?? '',
+  );
+  final overQuotaCostController = TextEditingController(
+    text: existing?.overQuotaCostPrice?.toString() ?? '',
+  );
   int? selectedSupplierId = existing?.supplierId;
   var suppliers = ref.read(suppliersProvider).value ?? [];
   // Only show active and non-void suppliers
@@ -493,6 +525,80 @@ void _showProductDialog(
                 ],
                 onChanged: (val) => setState(() => selectedSupplierId = val),
               ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'DAILY SUPPLIER QUOTA',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.5,
+                      fontSize: 10,
+                      color: Colors.white24,
+                    ),
+                  ),
+                  Switch(
+                    value: hasQuota,
+                    activeColor: const Color(0xFF6366F1),
+                    onChanged: (val) {
+                      setState(() {
+                        hasQuota = val;
+                      });
+                    },
+                  ),
+                ],
+              ),
+              if (hasQuota) ...[
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTextField(
+                        weekdayQuotaController,
+                        'Weekday Quota Limit',
+                        Icons.date_range_rounded,
+                        context,
+                        isNumber: true,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildTextField(
+                        weekendQuotaController,
+                        'Weekend Quota Limit',
+                        Icons.weekend_rounded,
+                        context,
+                        isNumber: true,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTextField(
+                        holidayQuotaController,
+                        'Holiday Quota Limit',
+                        Icons.campaign_rounded,
+                        context,
+                        isNumber: true,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildTextField(
+                        overQuotaCostController,
+                        'Over-Quota Price',
+                        Icons.trending_up_rounded,
+                        context,
+                        isNumber: true,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
@@ -547,6 +653,37 @@ void _showProductDialog(
                     product.supplierId = selectedSupplierId;
                     product.minStockThreshold = threshold;
                     product.shelfLifeDays = shelfLife;
+
+                    if (hasQuota) {
+                      final weekdayQuota = double.tryParse(weekdayQuotaController.text);
+                      final weekendQuota = double.tryParse(weekendQuotaController.text);
+                      final holidayQuota = double.tryParse(holidayQuotaController.text);
+                      final overQuotaPrice = double.tryParse(overQuotaCostController.text);
+
+                      if (weekdayQuota == null || weekdayQuota < 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please enter valid weekday quota')),
+                        );
+                        return;
+                      }
+                      if (overQuotaPrice == null || overQuotaPrice < 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please enter valid over-quota price')),
+                        );
+                        return;
+                      }
+                      product.hasQuota = true;
+                      product.weekdayQuota = weekdayQuota;
+                      product.weekendQuota = weekendQuota ?? weekdayQuota;
+                      product.holidayQuota = holidayQuota ?? weekdayQuota;
+                      product.overQuotaCostPrice = overQuotaPrice;
+                    } else {
+                      product.hasQuota = false;
+                      product.weekdayQuota = null;
+                      product.weekendQuota = null;
+                      product.holidayQuota = null;
+                      product.overQuotaCostPrice = null;
+                    }
 
                     await ref
                         .read(productRepositoryProvider)
@@ -1862,3 +1999,239 @@ class _SafetyStockEntry {
     required this.currentStock,
   });
 }
+
+void _showHolidayManager(BuildContext context, WidgetRef ref) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: const Color(0xFF0F172A).withValues(alpha: 0.98),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+    ),
+    builder: (context) => const _HolidayManagerSheet(),
+  );
+}
+
+class _HolidayManagerSheet extends ConsumerWidget {
+  const _HolidayManagerSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final holidaysAsync = ref.watch(holidaysProvider);
+    final mediaQuery = MediaQuery.of(context);
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: mediaQuery.viewInsets.bottom,
+        left: 24,
+        right: 24,
+        top: 24,
+      ),
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: mediaQuery.size.height * 0.75,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'MANAGE HOLIDAYS',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2.5,
+                    fontSize: 14,
+                    color: Color(0xFF818CF8),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, color: Colors.white38),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: holidaysAsync.when(
+                data: (list) {
+                  if (list.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'No custom holidays configured yet.',
+                        style: TextStyle(color: Colors.white24, fontSize: 13),
+                      ),
+                    );
+                  }
+                  return ListView.builder(
+                    itemCount: list.length,
+                    shrinkWrap: true,
+                    physics: const BouncingScrollPhysics(),
+                    itemBuilder: (context, index) {
+                      final holiday = list[index];
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.03),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.05),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  DateFormat('EEEE, MMM dd, yyyy').format(holiday.date),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                if (holiday.name != null && holiday.name!.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    holiday.name!,
+                                    style: const TextStyle(
+                                      color: Color(0xFF38BDF8),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                              onPressed: () async {
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    backgroundColor: const Color(0xFF0F172A),
+                                    title: const Text('DELETE HOLIDAY?'),
+                                    content: Text('Are you sure you want to remove ${holiday.name ?? "this holiday"}?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, false),
+                                        child: const Text('CANCEL'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, true),
+                                        child: const Text('DELETE', style: TextStyle(color: Colors.redAccent)),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                if (confirm == true) {
+                                  await ref.read(holidayRepositoryProvider).deleteHoliday(holiday.id);
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
+                loading: () => const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF6366F1)),
+                ),
+                error: (err, _) => Center(
+                  child: Text('Error: $err', style: const TextStyle(color: Colors.redAccent)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6366F1),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                icon: const Icon(Icons.add_rounded),
+                label: const Text(
+                  'ADD NEW HOLIDAY',
+                  style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5),
+                ),
+                onPressed: () => _addHoliday(context, ref),
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _addHoliday(BuildContext context, WidgetRef ref) async {
+    final selectedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2023),
+      lastDate: DateTime(2035),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Color(0xFF6366F1),
+              onPrimary: Colors.white,
+              surface: Color(0xFF0F172A),
+              onSurface: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (selectedDate == null) return;
+
+    if (!context.mounted) return;
+
+    final nameController = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        title: const Text('HOLIDAY NAME'),
+        content: TextField(
+          controller: nameController,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'e.g. Christmas, New Year (Optional)',
+            hintStyle: TextStyle(color: Colors.white24),
+          ),
+          style: const TextStyle(color: Colors.white),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, ''),
+            child: const Text('SKIP'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, nameController.text.trim()),
+            child: const Text('SAVE'),
+          ),
+        ],
+      ),
+    );
+
+    final holiday = Holiday()
+      ..date = selectedDate
+      ..name = name;
+
+    await ref.read(holidayRepositoryProvider).saveHoliday(holiday);
+  }
+}
+

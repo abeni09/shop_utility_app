@@ -10,6 +10,7 @@ import 'package:shopsync/features/suppliers/data/supplier_model.dart';
 import 'package:shopsync/features/products/data/stock_adjustment_model.dart';
 import 'package:shopsync/features/products/data/product_model.dart';
 import 'package:shopsync/features/expenses/data/expense_model.dart';
+import 'package:shopsync/features/products/presentation/daily_stock_providers.dart';
 
 class ReceiptShareService {
   static String _formatCurrency(double amount) {
@@ -525,6 +526,223 @@ class ReceiptShareService {
         files: [XFile(file.path)],
         subject: 'ShopSync Daily Ledger — $dateLabel',
         text: 'Daily ledger for $dateLabel',
+      ),
+    );
+  }
+
+  static Future<void> shareReceivingReport({
+    required DateTime start,
+    required DateTime end,
+    required List<ReceivingReportItem> items,
+    required bool groupBySupplier,
+  }) async {
+    final df = DateFormat('yyyy-MM-dd');
+    final startLabel = df.format(start);
+    final endLabel = df.format(end);
+    final periodLabel = '$startLabel to $endLabel';
+
+    final totalUnits = items.fold<double>(0, (sum, i) => sum + i.quantity);
+    final totalCost = items.fold<double>(0, (sum, i) => sum + i.totalCost);
+
+    final pdf = pw.Document();
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        build: (pw.Context ctx) {
+          final List<pw.Widget> content = [
+            // Header
+            pw.Center(
+              child: pw.Text(
+                'SHOPSYNC — RECEIVING REPORT',
+                style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18),
+              ),
+            ),
+            pw.Center(
+              child: pw.Text(
+                'Period: $periodLabel',
+                style: pw.TextStyle(fontSize: 11, color: PdfColors.grey700),
+              ),
+            ),
+            pw.SizedBox(height: 16),
+            pw.Divider(thickness: 1.5),
+            // Summary
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.center,
+              children: [
+                _summaryBox('TOTAL UNITS RECEIVED', totalUnits, PdfColors.teal800),
+                pw.SizedBox(width: 20),
+                _summaryBox('TOTAL COST OF STOCK', totalCost, PdfColors.indigo800),
+              ],
+            ),
+            pw.SizedBox(height: 20),
+            pw.Divider(),
+          ];
+
+          if (groupBySupplier) {
+            // Group items by supplierName
+            final Map<String, List<ReceivingReportItem>> groupedBySupplier = {};
+            for (var item in items) {
+              groupedBySupplier.putIfAbsent(item.supplierName, () => []).add(item);
+            }
+
+            content.add(
+              pw.Text(
+                'RECEIVED STOCK BY SUPPLIER (${groupedBySupplier.length} Suppliers)',
+                style: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  fontSize: 10,
+                  color: PdfColors.grey600,
+                ),
+              ),
+            );
+            content.add(pw.SizedBox(height: 8));
+
+            for (var supplierName in groupedBySupplier.keys) {
+              final supplierItems = groupedBySupplier[supplierName]!;
+              final supplierTotalUnits = supplierItems.fold<double>(0, (sum, i) => sum + i.quantity);
+              final supplierTotalCost = supplierItems.fold<double>(0, (sum, i) => sum + i.totalCost);
+
+              content.addAll([
+                pw.SizedBox(height: 12),
+                pw.Container(
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey100),
+                  child: pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text(
+                        supplierName.toUpperCase(),
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
+                      ),
+                      pw.Text(
+                        'Received: ${supplierTotalUnits.toStringAsFixed(1)} units • Cost: \$${supplierTotalCost.toStringAsFixed(2)}',
+                        style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700),
+                      ),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 4),
+                pw.TableHelper.fromTextArray(
+                  headers: ['Date', 'Item Description', 'Qty', 'Cost/Unit', 'Total Cost'],
+                  headerStyle: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontSize: 7,
+                  ),
+                  cellStyle: const pw.TextStyle(fontSize: 7),
+                  headerDecoration: const pw.BoxDecoration(color: PdfColors.grey50),
+                  data: supplierItems
+                      .map(
+                        (i) => [
+                          df.format(i.date),
+                          i.productName,
+                          i.quantity.toStringAsFixed(1),
+                          i.costPrice.toStringAsFixed(2),
+                          i.totalCost.toStringAsFixed(2),
+                        ],
+                      )
+                      .toList(),
+                  border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+                ),
+              ]);
+            }
+          } else {
+            // Group items by product name
+            final Map<String, List<ReceivingReportItem>> groupedByProduct = {};
+            for (var item in items) {
+              groupedByProduct.putIfAbsent(item.productName, () => []).add(item);
+            }
+
+            content.add(
+              pw.Text(
+                'RECEIVED STOCK BY INVENTORY ITEM (${groupedByProduct.length} Items)',
+                style: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  fontSize: 10,
+                  color: PdfColors.grey600,
+                ),
+              ),
+            );
+            content.add(pw.SizedBox(height: 8));
+
+            for (var productName in groupedByProduct.keys) {
+              final productItems = groupedByProduct[productName]!;
+              final productTotalUnits = productItems.fold<double>(0, (sum, i) => sum + i.quantity);
+              final productTotalCost = productItems.fold<double>(0, (sum, i) => sum + i.totalCost);
+
+              content.addAll([
+                pw.SizedBox(height: 12),
+                pw.Container(
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey100),
+                  child: pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text(
+                        productName.toUpperCase(),
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
+                      ),
+                      pw.Text(
+                        'Received: ${productTotalUnits.toStringAsFixed(1)} units • Cost: \$${productTotalCost.toStringAsFixed(2)}',
+                        style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700),
+                      ),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 4),
+                pw.TableHelper.fromTextArray(
+                  headers: ['Date', 'Supplier', 'Qty', 'Cost/Unit', 'Total Cost'],
+                  headerStyle: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontSize: 7,
+                  ),
+                  cellStyle: const pw.TextStyle(fontSize: 7),
+                  headerDecoration: const pw.BoxDecoration(color: PdfColors.grey50),
+                  data: productItems
+                      .map(
+                        (i) => [
+                          df.format(i.date),
+                          i.supplierName,
+                          i.quantity.toStringAsFixed(1),
+                          i.costPrice.toStringAsFixed(2),
+                          i.totalCost.toStringAsFixed(2),
+                        ],
+                      )
+                      .toList(),
+                  border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+                ),
+              ]);
+            }
+          }
+
+          content.addAll([
+            pw.SizedBox(height: 20),
+            pw.Center(
+              child: pw.Text(
+                'Generated by ShopSync',
+                style: pw.TextStyle(
+                  fontSize: 8,
+                  fontStyle: pw.FontStyle.italic,
+                  color: PdfColors.grey500,
+                ),
+              ),
+            ),
+          ]);
+
+          return content;
+        },
+      ),
+    );
+
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/receiving_report_${startLabel}_$endLabel.pdf');
+    await file.writeAsBytes(await pdf.save());
+
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path)],
+        subject: 'ShopSync Receiving Report ($periodLabel)',
+        text: 'Receiving Report from $startLabel to $endLabel',
       ),
     );
   }

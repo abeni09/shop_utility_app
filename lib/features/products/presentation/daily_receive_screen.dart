@@ -8,6 +8,7 @@ import 'package:shopsync/features/products/data/product_model.dart';
 import 'package:shopsync/features/suppliers/presentation/supplier_list_screen.dart';
 import 'package:shopsync/features/orders/presentation/order_providers.dart';
 import 'package:shopsync/features/dashboard/presentation/dashboard_providers.dart';
+import 'package:shopsync/features/products/presentation/holiday_providers.dart';
 
 class DailyReceiveScreen extends ConsumerStatefulWidget {
   final int? preselectedProductId;
@@ -203,6 +204,8 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                   data: (products) => stockAsync.when(
                     data: (stocks) {
                       final displayProducts = List<Product>.from(products);
+                      final holidays = ref.watch(holidaysProvider).value ?? [];
+                      final holidayDates = holidays.map((h) => h.date).toList();
                       if (widget.preselectedProductId != null) {
                         final idx = displayProducts.indexWhere(
                           (p) => p.id == widget.preselectedProductId,
@@ -228,7 +231,9 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 16),
                               child: _StockInputCard(
-                                productName: product.name,
+                                product: product,
+                                selectedDate: _selectedDate,
+                                holidayDates: holidayDates,
                                 controller: _controllers[product.id]!,
                                 requestedAmount:
                                     stock?.requestedQuantity ?? 0.0,
@@ -398,9 +403,16 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                             await repo.saveDailyStock(stock);
 
                             if (delta != 0 && p.supplierId != null) {
+                              final holidays = ref.read(holidaysProvider).value ?? [];
+                              final holidayDates = holidays.map((h) => h.date).toList();
+                              final quota = p.getQuotaForDate(_selectedDate, holidayDates);
+                              
+                              final oldCost = p.calculateCostForQuantity(oldReceived, quota);
+                              final newCost = p.calculateCostForQuantity(amount, quota);
+
                               await supplierRepo.updateBalance(
                                 p.supplierId!,
-                                delta * p.costPrice,
+                                newCost - oldCost,
                               );
                             }
                           }
@@ -445,14 +457,18 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
 }
 
 class _StockInputCard extends StatelessWidget {
-  final String productName;
+  final Product product;
+  final DateTime selectedDate;
+  final List<DateTime> holidayDates;
   final TextEditingController controller;
   final double requestedAmount;
   final VoidCallback? onLongPress;
   final bool isHighlight;
 
   const _StockInputCard({
-    required this.productName,
+    required this.product,
+    required this.selectedDate,
+    required this.holidayDates,
     required this.controller,
     required this.requestedAmount,
     this.onLongPress,
@@ -461,91 +477,141 @@ class _StockInputCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isHighlight
-              ? [
-                  const Color(0xFF6366F1).withValues(alpha: 0.15),
-                  const Color(0xFF818CF8).withValues(alpha: 0.05),
-                ]
-              : [
-                  Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.05),
-                  Colors.white.withValues(alpha: 0.02),
-                ],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: isHighlight
-              ? const Color(0xFF818CF8).withValues(alpha: 0.6)
-              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
-          width: isHighlight ? 1.5 : 1.0,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isHighlight
-                ? const Color(0xFF6366F1).withValues(alpha: 0.2)
-                : Colors.black.withValues(alpha: 0.1),
-            blurRadius: isHighlight ? 12 : 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) {
+        final amount = double.tryParse(controller.text) ?? 0.0;
+        final quota = product.getQuotaForDate(selectedDate, holidayDates);
+        final exceedsQuota = product.hasQuota && amount > quota;
 
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                GestureDetector(
-                  onLongPress: onLongPress,
-                  child: Text(
-                    productName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                if (requestedAmount > 0)
-                  Text(
-                    'Ordered: ${requestedAmount.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      color: Color(0xFF38BDF8),
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-              ],
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isHighlight
+                  ? [
+                      const Color(0xFF6366F1).withValues(alpha: 0.15),
+                      const Color(0xFF818CF8).withValues(alpha: 0.05),
+                    ]
+                  : exceedsQuota
+                      ? [
+                          const Color(0xFFEF4444).withValues(alpha: 0.1),
+                          const Color(0xFFF87171).withValues(alpha: 0.02),
+                        ]
+                      : [
+                          Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                          Colors.white.withValues(alpha: 0.02),
+                        ],
             ),
-          ),
-          SizedBox(
-            width: 100,
-            child: TextField(
-              controller: controller,
-              keyboardType: TextInputType.number,
-              textAlign: TextAlign.center,
-              decoration: InputDecoration(
-                hintText: '0',
-                hintStyle: const TextStyle(color: Colors.white10),
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.03),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isHighlight
+                  ? const Color(0xFF818CF8).withValues(alpha: 0.6)
+                  : exceedsQuota
+                      ? const Color(0xFFEF4444).withValues(alpha: 0.4)
+                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+              width: (isHighlight || exceedsQuota) ? 1.5 : 1.0,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: isHighlight
+                    ? const Color(0xFF6366F1).withValues(alpha: 0.2)
+                    : exceedsQuota
+                        ? const Color(0xFFEF4444).withValues(alpha: 0.1)
+                        : Colors.black.withValues(alpha: 0.1),
+                blurRadius: (isHighlight || exceedsQuota) ? 12 : 8,
+                offset: const Offset(0, 4),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        GestureDetector(
+                          onLongPress: onLongPress,
+                          child: Text(
+                            product.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        if (requestedAmount > 0)
+                          Text(
+                            'Ordered: ${requestedAmount.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              color: Color(0xFF38BDF8),
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(
+                    width: 100,
+                    child: TextField(
+                      controller: controller,
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      decoration: InputDecoration(
+                        hintText: '0',
+                        hintStyle: const TextStyle(color: Colors.white10),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.03),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (exceedsQuota) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF4444).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.warning_amber_rounded,
+                        color: Color(0xFFF87171),
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Exceeds daily quota of ${quota.toStringAsFixed(0)}. Price for excess will adjust to ${product.overQuotaCostPrice?.toStringAsFixed(0) ?? "N/A"} each.',
+                          style: const TextStyle(
+                            color: Color(0xFFF87171),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }

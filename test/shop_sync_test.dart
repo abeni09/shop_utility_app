@@ -12,6 +12,7 @@ import 'package:shopsync/features/suppliers/data/supplier_model.dart';
 import 'package:shopsync/features/products/data/daily_stock_model.dart';
 import 'package:shopsync/features/expenses/data/expense_model.dart';
 import 'package:shopsync/features/expenses/data/expense_repository.dart';
+import 'package:shopsync/features/products/data/holiday_model.dart';
 
 void main() {
   late Isar isar;
@@ -36,6 +37,7 @@ void main() {
         AddonSchema,
         SupplierSettlementSchema,
         ExpenseSchema,
+        HolidaySchema,
       ],
       directory: tempDir.path,
     );
@@ -108,5 +110,85 @@ void main() {
     log = await isar.dailyLogs.filter().dateEqualTo(date).findFirst();
     expect(log!.totalSales, 400); // 300 + 100
     expect(log.totalProfit, 70); // profit stays 70 since break-even sale has 0 profit
+  });
+
+  group('Supplier Quota & Tiered Cost Calculations', () {
+    test('getQuotaForDate returns correct quota (Holiday > Weekend > Weekday)', () {
+      final product = Product()
+        ..name = 'Dynamic Product'
+        ..hasQuota = true
+        ..weekdayQuota = 10
+        ..weekendQuota = 5
+        ..holidayQuota = 2;
+
+      // 1. Weekday (e.g. Wednesday 2026-07-01)
+      final weekday = DateTime(2026, 7, 1); // Wednesday
+      expect(product.getQuotaForDate(weekday, []), 10);
+
+      // 2. Weekend (e.g. Saturday 2026-07-04)
+      final weekend = DateTime(2026, 7, 4); // Saturday
+      expect(product.getQuotaForDate(weekend, []), 5);
+
+      // 3. Holiday (e.g. Wednesday 2026-07-01 which is in holiday dates)
+      expect(product.getQuotaForDate(weekday, [weekday]), 2);
+    });
+
+    test('calculateCostForQuantity applies over-quota pricing correctly', () {
+      final product = Product()
+        ..name = 'Dynamic Product'
+        ..costPrice = 100
+        ..hasQuota = true
+        ..weekdayQuota = 5
+        ..overQuotaCostPrice = 150;
+
+      final weekday = DateTime(2026, 7, 1); // Wednesday
+      final quota = product.getQuotaForDate(weekday, []);
+
+      // Under quota: 4 items @ 100 = 400
+      expect(product.calculateCostForQuantity(4, quota), 400);
+
+      // Equal to quota: 5 items @ 100 = 500
+      expect(product.calculateCostForQuantity(5, quota), 500);
+
+      // Over quota: 7 items (5 @ 100 + 2 @ 150) = 500 + 300 = 800
+      expect(product.calculateCostForQuantity(7, quota), 800);
+    });
+
+    test('recalculateSupplierOrders handles holiday/quota cost pricing', () async {
+      // 1. Add supplier
+      final supplier = Supplier()..name = 'Test Supplier'..balance = 0.0;
+      await isar.writeTxn(() => isar.suppliers.put(supplier));
+
+      // 2. Add product with quota under weekday and weekend
+      final product = Product()
+        ..name = 'Milk'
+        ..supplierId = supplier.id
+        ..costPrice = 10
+        ..sellingPrice = 15
+        ..hasQuota = true
+        ..weekdayQuota = 10
+        ..weekendQuota = 5
+        ..overQuotaCostPrice = 20;
+      await isar.writeTxn(() => isar.products.put(product));
+
+      final Saturday = DateTime(2026, 7, 4); // Saturday
+
+      // 3. Create Daily Stock with received quantity > weekend quota (e.g. 8 received, quota is 5)
+      // 5 @ 10 + 3 @ 20 = 50 + 60 = 110
+      final dailyStock = DailyStock()
+        ..productId = product.id
+        ..date = Saturday
+        ..requestedQuantity = 8
+        ..receivedQuantity = 8;
+      await isar.writeTxn(() => isar.dailyStocks.put(dailyStock));
+
+      // 4. Recalculate supplier orders
+      await dashboardRepo.recalculateSupplierOrders(Saturday);
+
+      // 5. Verify daily log totalSupplierOrders is updated to 110
+      final log = await isar.dailyLogs.filter().dateEqualTo(Saturday).findFirst();
+      expect(log, isNotNull);
+      expect(log!.totalSupplierOrders, 110.0);
+    });
   });
 }

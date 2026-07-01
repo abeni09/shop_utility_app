@@ -5,6 +5,7 @@ import 'package:shopsync/features/products/data/daily_stock_model.dart';
 import 'package:shopsync/features/products/data/product_model.dart';
 import 'package:shopsync/features/products/data/stock_adjustment_model.dart';
 import 'package:shopsync/features/expenses/data/expense_model.dart';
+import 'package:shopsync/features/products/data/holiday_model.dart';
 
 class DashboardRepository {
   final Isar isar;
@@ -134,11 +135,14 @@ class DashboardRepository {
         .dateBetween(startOfDay, endOfDay)
         .findAll();
 
+    final holidayDates = (await isar.holidays.where().findAll()).map((h) => h.date).toList();
+
     double totalCost = 0;
     for (var stock in stocks) {
       final product = await isar.products.get(stock.productId);
       if (product != null) {
-        totalCost += stock.receivedQuantity * product.costPrice;
+        final quota = product.getQuotaForDate(date, holidayDates);
+        totalCost += product.calculateCostForQuantity(stock.receivedQuantity, quota);
       }
     }
 

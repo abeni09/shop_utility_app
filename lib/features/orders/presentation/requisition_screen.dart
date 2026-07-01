@@ -7,6 +7,8 @@ import 'package:shopsync/features/products/data/daily_stock_model.dart';
 import 'package:shopsync/features/products/presentation/daily_stock_providers.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
 import 'package:shopsync/features/suppliers/presentation/supplier_list_screen.dart';
+import 'package:shopsync/features/products/presentation/holiday_providers.dart';
+import 'package:shopsync/features/products/data/product_model.dart';
 
 class RequisitionItem {
   final dynamic product;
@@ -307,118 +309,176 @@ class _RequisitionScreenState extends ConsumerState<RequisitionScreen> {
 
   Widget _buildRequisitionCard(RequisitionItem item) {
     final controller = _controllers[item.product.id];
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
-            Colors.white.withValues(alpha: 0.02),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: Theme.of(
-            context,
-          ).colorScheme.onSurface.withValues(alpha: 0.05),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+    if (controller == null) return const SizedBox.shrink();
+
+    final Product product = item.product;
+
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) {
+        final amount = double.tryParse(controller.text) ?? 0.0;
+        final holidays = ref.watch(holidaysProvider).value ?? [];
+        final holidayDates = holidays.map((h) => h.date).toList();
+        final quota = product.getQuotaForDate(_selectedDate, holidayDates);
+        final exceedsQuota = product.hasQuota && amount > quota;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: exceedsQuota
+                  ? [
+                      const Color(0xFFEF4444).withValues(alpha: 0.1),
+                      const Color(0xFFF87171).withValues(alpha: 0.02),
+                    ]
+                  : [
+                      Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                      Colors.white.withValues(alpha: 0.02),
+                    ],
+            ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: exceedsQuota
+                  ? const Color(0xFFEF4444).withValues(alpha: 0.4)
+                  : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+              width: exceedsQuota ? 1.5 : 1.0,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: exceedsQuota
+                    ? const Color(0xFFEF4444).withValues(alpha: 0.1)
+                    : Colors.black.withValues(alpha: 0.1),
+                blurRadius: exceedsQuota ? 12 : 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.product.name.toUpperCase(),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 15,
-                    letterSpacing: 0.5,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          product.name.toUpperCase(),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 15,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'Orders: ${item.orderAmount.toStringAsFixed(0)}',
+                                style: const TextStyle(
+                                  color: Color(0xFF10B981),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Cost: ${product.costPrice.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                color: Colors.white24,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
+                  SizedBox(
+                    width: 80,
+                    child: TextField(
+                      controller: controller,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
                       ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 18,
+                        color: Color(0xFF818CF8),
                       ),
-                      child: Text(
-                        'Orders: ${item.orderAmount.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                          color: Color(0xFF10B981),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.black.withValues(alpha: 0.2),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        hintText: '0',
+                        hintStyle: const TextStyle(color: Colors.white10),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide(
+                            color: const Color(0xFF38BDF8).withValues(alpha: 0.3),
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Cost: ${item.product.costPrice.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        color: Colors.white24,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
+                  ),
+                ],
+              ),
+              if (exceedsQuota) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF4444).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.warning_amber_rounded,
+                        color: Color(0xFFF87171),
+                        size: 16,
                       ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          SizedBox(
-            width: 80,
-            child: TextField(
-              controller: controller,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 18,
-                color: Color(0xFF818CF8),
-              ),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: Colors.black.withValues(alpha: 0.2),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                hintText: '0',
-                hintStyle: const TextStyle(color: Colors.white10),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(
-                    color: const Color(0xFF38BDF8).withValues(alpha: 0.3),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Requisition exceeds daily quota of ${quota.toStringAsFixed(0)}. Excess cost price will be ${product.overQuotaCostPrice?.toStringAsFixed(0) ?? "N/A"} each.',
+                          style: const TextStyle(
+                            color: Color(0xFFF87171),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ),
+              ],
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
