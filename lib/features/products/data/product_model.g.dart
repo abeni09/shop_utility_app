@@ -32,53 +32,58 @@ const ProductSchema = CollectionSchema(
       name: r'holidayQuota',
       type: IsarType.double,
     ),
-    r'isVoid': PropertySchema(
+    r'imagePath': PropertySchema(
       id: 3,
+      name: r'imagePath',
+      type: IsarType.string,
+    ),
+    r'isVoid': PropertySchema(
+      id: 4,
       name: r'isVoid',
       type: IsarType.bool,
     ),
     r'lastUpdated': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'lastUpdated',
       type: IsarType.dateTime,
     ),
     r'minStockThreshold': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'minStockThreshold',
       type: IsarType.long,
     ),
     r'name': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'name',
       type: IsarType.string,
     ),
     r'overQuotaCostPrice': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'overQuotaCostPrice',
       type: IsarType.double,
     ),
     r'sellingPrice': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'sellingPrice',
       type: IsarType.double,
     ),
     r'shelfLifeDays': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'shelfLifeDays',
       type: IsarType.long,
     ),
     r'supplierId': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'supplierId',
       type: IsarType.long,
     ),
     r'weekdayQuota': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'weekdayQuota',
       type: IsarType.double,
     ),
     r'weekendQuota': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'weekendQuota',
       type: IsarType.double,
     )
@@ -117,6 +122,12 @@ int _productEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  {
+    final value = object.imagePath;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.name.length * 3;
   return bytesCount;
 }
@@ -130,16 +141,17 @@ void _productSerialize(
   writer.writeDouble(offsets[0], object.costPrice);
   writer.writeBool(offsets[1], object.hasQuota);
   writer.writeDouble(offsets[2], object.holidayQuota);
-  writer.writeBool(offsets[3], object.isVoid);
-  writer.writeDateTime(offsets[4], object.lastUpdated);
-  writer.writeLong(offsets[5], object.minStockThreshold);
-  writer.writeString(offsets[6], object.name);
-  writer.writeDouble(offsets[7], object.overQuotaCostPrice);
-  writer.writeDouble(offsets[8], object.sellingPrice);
-  writer.writeLong(offsets[9], object.shelfLifeDays);
-  writer.writeLong(offsets[10], object.supplierId);
-  writer.writeDouble(offsets[11], object.weekdayQuota);
-  writer.writeDouble(offsets[12], object.weekendQuota);
+  writer.writeString(offsets[3], object.imagePath);
+  writer.writeBool(offsets[4], object.isVoid);
+  writer.writeDateTime(offsets[5], object.lastUpdated);
+  writer.writeLong(offsets[6], object.minStockThreshold);
+  writer.writeString(offsets[7], object.name);
+  writer.writeDouble(offsets[8], object.overQuotaCostPrice);
+  writer.writeDouble(offsets[9], object.sellingPrice);
+  writer.writeLong(offsets[10], object.shelfLifeDays);
+  writer.writeLong(offsets[11], object.supplierId);
+  writer.writeDouble(offsets[12], object.weekdayQuota);
+  writer.writeDouble(offsets[13], object.weekendQuota);
 }
 
 Product _productDeserialize(
@@ -153,16 +165,17 @@ Product _productDeserialize(
   object.hasQuota = reader.readBool(offsets[1]);
   object.holidayQuota = reader.readDoubleOrNull(offsets[2]);
   object.id = id;
-  object.isVoid = reader.readBool(offsets[3]);
-  object.lastUpdated = reader.readDateTimeOrNull(offsets[4]);
-  object.minStockThreshold = reader.readLong(offsets[5]);
-  object.name = reader.readString(offsets[6]);
-  object.overQuotaCostPrice = reader.readDoubleOrNull(offsets[7]);
-  object.sellingPrice = reader.readDouble(offsets[8]);
-  object.shelfLifeDays = reader.readLong(offsets[9]);
-  object.supplierId = reader.readLongOrNull(offsets[10]);
-  object.weekdayQuota = reader.readDoubleOrNull(offsets[11]);
-  object.weekendQuota = reader.readDoubleOrNull(offsets[12]);
+  object.imagePath = reader.readStringOrNull(offsets[3]);
+  object.isVoid = reader.readBool(offsets[4]);
+  object.lastUpdated = reader.readDateTimeOrNull(offsets[5]);
+  object.minStockThreshold = reader.readLong(offsets[6]);
+  object.name = reader.readString(offsets[7]);
+  object.overQuotaCostPrice = reader.readDoubleOrNull(offsets[8]);
+  object.sellingPrice = reader.readDouble(offsets[9]);
+  object.shelfLifeDays = reader.readLong(offsets[10]);
+  object.supplierId = reader.readLongOrNull(offsets[11]);
+  object.weekdayQuota = reader.readDoubleOrNull(offsets[12]);
+  object.weekendQuota = reader.readDoubleOrNull(offsets[13]);
   return object;
 }
 
@@ -180,24 +193,26 @@ P _productDeserializeProp<P>(
     case 2:
       return (reader.readDoubleOrNull(offset)) as P;
     case 3:
-      return (reader.readBool(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 4:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 5:
-      return (reader.readLong(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 6:
-      return (reader.readString(offset)) as P;
-    case 7:
-      return (reader.readDoubleOrNull(offset)) as P;
-    case 8:
-      return (reader.readDouble(offset)) as P;
-    case 9:
       return (reader.readLong(offset)) as P;
-    case 10:
-      return (reader.readLongOrNull(offset)) as P;
-    case 11:
+    case 7:
+      return (reader.readString(offset)) as P;
+    case 8:
       return (reader.readDoubleOrNull(offset)) as P;
+    case 9:
+      return (reader.readDouble(offset)) as P;
+    case 10:
+      return (reader.readLong(offset)) as P;
+    case 11:
+      return (reader.readLongOrNull(offset)) as P;
     case 12:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 13:
       return (reader.readDoubleOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -590,6 +605,152 @@ extension ProductQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> imagePathIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'imagePath',
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> imagePathIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'imagePath',
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> imagePathEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'imagePath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> imagePathGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'imagePath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> imagePathLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'imagePath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> imagePathBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'imagePath',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> imagePathStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'imagePath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> imagePathEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'imagePath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> imagePathContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'imagePath',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> imagePathMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'imagePath',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> imagePathIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'imagePath',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterFilterCondition> imagePathIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'imagePath',
+        value: '',
       ));
     });
   }
@@ -1330,6 +1491,18 @@ extension ProductQuerySortBy on QueryBuilder<Product, Product, QSortBy> {
     });
   }
 
+  QueryBuilder<Product, Product, QAfterSortBy> sortByImagePath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'imagePath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> sortByImagePathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'imagePath', Sort.desc);
+    });
+  }
+
   QueryBuilder<Product, Product, QAfterSortBy> sortByIsVoid() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isVoid', Sort.asc);
@@ -1501,6 +1674,18 @@ extension ProductQuerySortThenBy
     });
   }
 
+  QueryBuilder<Product, Product, QAfterSortBy> thenByImagePath() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'imagePath', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Product, Product, QAfterSortBy> thenByImagePathDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'imagePath', Sort.desc);
+    });
+  }
+
   QueryBuilder<Product, Product, QAfterSortBy> thenByIsVoid() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isVoid', Sort.asc);
@@ -1642,6 +1827,13 @@ extension ProductQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Product, Product, QDistinct> distinctByImagePath(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'imagePath', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<Product, Product, QDistinct> distinctByIsVoid() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isVoid');
@@ -1727,6 +1919,12 @@ extension ProductQueryProperty
   QueryBuilder<Product, double?, QQueryOperations> holidayQuotaProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'holidayQuota');
+    });
+  }
+
+  QueryBuilder<Product, String?, QQueryOperations> imagePathProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'imagePath');
     });
   }
 

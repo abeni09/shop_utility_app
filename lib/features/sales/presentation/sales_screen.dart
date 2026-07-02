@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -957,18 +958,30 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
                               ),
                               child: ListTile(
                                 leading: Container(
-                                  padding: const EdgeInsets.all(10),
+                                  width: 40,
+                                  height: 40,
+                                  padding: prod.imagePath != null && File(prod.imagePath!).existsSync()
+                                      ? EdgeInsets.zero
+                                      : const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: const Color(
-                                      0xFF06B6D4,
-                                    ).withValues(alpha: 0.1),
-                                    shape: BoxShape.circle,
+                                    color: const Color(0xFF06B6D4).withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(10),
                                   ),
-                                  child: const Icon(
-                                    Icons.inventory_2_rounded,
-                                    color: Color(0xFF06B6D4),
-                                    size: 20,
-                                  ),
+                                  child: prod.imagePath != null && File(prod.imagePath!).existsSync()
+                                      ? ClipRRect(
+                                          borderRadius: BorderRadius.circular(10),
+                                          child: Image.file(
+                                            File(prod.imagePath!),
+                                            width: 40,
+                                            height: 40,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        )
+                                      : const Icon(
+                                          Icons.inventory_2_rounded,
+                                          color: Color(0xFF06B6D4),
+                                          size: 20,
+                                        ),
                                 ),
                                 title: Row(
                                   children: [

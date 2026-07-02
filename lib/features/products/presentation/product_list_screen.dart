@@ -1,6 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
+import 'package:uuid/uuid.dart';
 import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/products/data/product_model.dart';
 import 'package:shopsync/features/products/presentation/product_providers.dart';
@@ -367,6 +372,7 @@ void _showProductDialog(
   WidgetRef ref, [
   Product? existing,
 ]) {
+  String? selectedImagePath = existing?.imagePath;
   final nameController = TextEditingController(text: existing?.name);
   final costController = TextEditingController(
     text: existing?.costPrice.toStringAsFixed(0),
@@ -435,6 +441,105 @@ void _showProductDialog(
                   letterSpacing: 2.5,
                   fontSize: 14,
                   color: Color(0xFF818CF8),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Center(
+                child: GestureDetector(
+                  onTap: () async {
+                    final picker = ImagePicker();
+                    final source = await showDialog<ImageSource>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        backgroundColor: const Color(0xFF1E293B),
+                        title: const Text('Select Image Source', style: TextStyle(color: Colors.white)),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, ImageSource.camera),
+                            child: const Text('Camera', style: TextStyle(color: Color(0xFF818CF8))),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, ImageSource.gallery),
+                            child: const Text('Gallery', style: TextStyle(color: Color(0xFF818CF8))),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (source == null) return;
+                    final pickedFile = await picker.pickImage(source: source);
+                    if (pickedFile != null) {
+                      final appDir = await getApplicationDocumentsDirectory();
+                      final String fileExtension = p.extension(pickedFile.path).isNotEmpty
+                          ? p.extension(pickedFile.path)
+                          : '.jpg';
+                      final String newFileName = '${const Uuid().v4()}$fileExtension';
+                      final String targetPath = p.join(appDir.path, newFileName);
+                      
+                      final File localFile = await File(pickedFile.path).copy(targetPath);
+                      setState(() {
+                        selectedImagePath = localFile.path;
+                      });
+                    }
+                  },
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.03),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.08),
+                            width: 2,
+                          ),
+                        ),
+                        child: selectedImagePath != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(22),
+                                child: Image.file(
+                                  File(selectedImagePath!),
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => const Icon(
+                                    Icons.broken_image_rounded,
+                                    size: 40,
+                                    color: Colors.white24,
+                                  ),
+                                ),
+                              )
+                            : const Icon(
+                                Icons.add_a_photo_rounded,
+                                size: 40,
+                                color: Colors.white24,
+                              ),
+                      ),
+                      if (selectedImagePath != null)
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                selectedImagePath = null;
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.close_rounded,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -653,6 +758,7 @@ void _showProductDialog(
                     product.supplierId = selectedSupplierId;
                     product.minStockThreshold = threshold;
                     product.shelfLifeDays = shelfLife;
+                    product.imagePath = selectedImagePath;
 
                     if (hasQuota) {
                       final weekdayQuota = double.tryParse(
@@ -767,180 +873,338 @@ class _ProductCard extends ConsumerWidget {
     final isVoid = product.isVoid;
     final stockAsync = ref.watch(walkInAvailabilityProvider(DateTime.now()));
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
-            Theme.of(context).colorScheme.surface.withValues(alpha: 0.4),
-          ],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-          if (!isVoid)
-            BoxShadow(
-              color: const Color(0xFF6366F1).withValues(alpha: 0.1),
-              blurRadius: 30,
-              spreadRadius: -10,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final useMobileLayout = constraints.maxWidth < 480;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(32),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
+                Theme.of(context).colorScheme.surface.withValues(alpha: 0.4),
+              ],
             ),
-        ],
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.1),
-          width: 1.5,
-        ),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(32),
-        child: Stack(
-          children: [
-            // Decorative background icon
-            Positioned(
-              right: -20,
-              top: -20,
-              child: Opacity(
-                opacity: 0.05,
-                child: Icon(
-                  isVoid
-                      ? Icons.auto_delete_rounded
-                      : Icons.inventory_2_rounded,
-                  size: 150,
-                  color: Colors.white,
-                ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
               ),
+              if (!isVoid)
+                BoxShadow(
+                  color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                  blurRadius: 30,
+                  spreadRadius: -10,
+                ),
+            ],
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.1),
+              width: 1.5,
             ),
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(32),
+            child: Stack(
+              children: [
+                // Decorative background icon
+                Positioned(
+                  right: -20,
+                  top: -20,
+                  child: Opacity(
+                    opacity: 0.05,
+                    child: Icon(
+                      isVoid
+                          ? Icons.auto_delete_rounded
+                          : Icons.inventory_2_rounded,
+                      size: 150,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                          color:
-                              (isVoid ? Colors.grey : const Color(0xFF6366F1))
-                                  .withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color:
-                                (isVoid ? Colors.grey : const Color(0xFF6366F1))
-                                    .withValues(alpha: 0.2),
-                          ),
-                        ),
-                        child: Icon(
-                          isVoid
-                              ? Icons.auto_delete_rounded
-                              : Icons.inventory_2_rounded,
-                          color: isVoid
-                              ? Colors.white38
-                              : const Color(0xFF818CF8),
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      if (useMobileLayout) ...[
+                        Row(
                           children: [
-                            Text(
-                              product.name.toUpperCase(),
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: 14,
-                                letterSpacing: 1,
-                                color: isVoid ? Colors.white38 : Colors.white,
+                            Container(
+                              width: 36,
+                              height: 36,
+                              padding: product.imagePath != null && File(product.imagePath!).existsSync()
+                                  ? EdgeInsets.zero
+                                  : const EdgeInsets.all(5),
+                              decoration: BoxDecoration(
+                                color:
+                                    (isVoid ? Colors.grey : const Color(0xFF6366F1))
+                                        .withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color:
+                                      (isVoid ? Colors.grey : const Color(0xFF6366F1))
+                                          .withValues(alpha: 0.2),
+                                ),
+                              ),
+                              child: product.imagePath != null && File(product.imagePath!).existsSync()
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(9),
+                                      child: Image.file(
+                                        File(product.imagePath!),
+                                        width: 36,
+                                        height: 36,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    )
+                                  : Icon(
+                                      isVoid
+                                          ? Icons.auto_delete_rounded
+                                          : Icons.inventory_2_rounded,
+                                      color: isVoid
+                                          ? Colors.white38
+                                          : const Color(0xFF818CF8),
+                                      size: 24,
+                                    ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    product.name.toUpperCase(),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 14,
+                                      letterSpacing: 1,
+                                      color: isVoid ? Colors.white38 : Colors.white,
+                                    ),
+                                  ),
+                                  if (isVoid)
+                                    const Text(
+                                      'ARCHIVED / VOID',
+                                      style: TextStyle(
+                                        color: Colors.redAccent,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
-                            if (isVoid)
-                              const Text(
-                                'ARCHIVED / VOID',
-                                style: TextStyle(
-                                  color: Colors.redAccent,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 1,
-                                ),
-                              ),
                           ],
                         ),
-                      ),
-                      // Quick actions strip
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (!isVoid)
-                              IconButton(
-                                icon: const Icon(Icons.edit_rounded, size: 18),
-                                color: Colors.white38,
-                                onPressed: () =>
-                                    _showProductDialog(context, ref, product),
-                              ),
-                            if (!isVoid)
-                              IconButton(
-                                icon: const Icon(Icons.tune_rounded, size: 18),
-                                color: const Color(0xFF818CF8),
-                                onPressed: () => _showAdjustmentDialog(
-                                  context,
-                                  ref,
-                                  product,
-                                ),
-                              ),
-                            if (!isVoid)
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.restart_alt_rounded,
-                                  size: 18,
-                                ),
-                                color: const Color(0xFFF59E0B),
-                                tooltip: 'Reset Stock',
-                                onPressed: () => _showResetStockDialog(
-                                  context,
-                                  ref,
-                                  product,
-                                ),
-                              ),
-                            IconButton(
-                              icon: Icon(
-                                isVoid
-                                    ? Icons.restore_rounded
-                                    : Icons.delete_sweep_rounded,
-                                size: 18,
-                              ),
-                              color: isVoid
-                                  ? Colors.greenAccent
-                                  : Colors.redAccent.withValues(alpha: 0.5),
-                              onPressed: () => isVoid
-                                  ? _showRestoreProductDialog(
-                                      context,
-                                      ref,
-                                      product,
-                                    )
-                                  : _showVoidProductDialog(
+                        const SizedBox(height: 10),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (!isVoid)
+                                  IconButton(
+                                    icon: const Icon(Icons.edit_rounded, size: 18),
+                                    color: Colors.white38,
+                                    onPressed: () =>
+                                        _showProductDialog(context, ref, product),
+                                  ),
+                                if (!isVoid)
+                                  IconButton(
+                                    icon: const Icon(Icons.tune_rounded, size: 18),
+                                    color: const Color(0xFF818CF8),
+                                    onPressed: () => _showAdjustmentDialog(
                                       context,
                                       ref,
                                       product,
                                     ),
+                                  ),
+                                if (!isVoid)
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.restart_alt_rounded,
+                                      size: 18,
+                                    ),
+                                    color: const Color(0xFFF59E0B),
+                                    tooltip: 'Reset Stock',
+                                    onPressed: () => _showResetStockDialog(
+                                      context,
+                                      ref,
+                                      product,
+                                    ),
+                                  ),
+                                IconButton(
+                                  icon: Icon(
+                                    isVoid
+                                        ? Icons.restore_rounded
+                                        : Icons.delete_sweep_rounded,
+                                    size: 18,
+                                  ),
+                                  color: isVoid
+                                      ? Colors.greenAccent
+                                      : Colors.redAccent.withValues(alpha: 0.5),
+                                  onPressed: () => isVoid
+                                      ? _showRestoreProductDialog(
+                                          context,
+                                          ref,
+                                          product,
+                                        )
+                                      : _showVoidProductDialog(
+                                          context,
+                                          ref,
+                                          product,
+                                        ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ] else ...[
+                        Row(
+                          children: [
+                            Container(
+                              width: 36,
+                              height: 36,
+                              padding: product.imagePath != null && File(product.imagePath!).existsSync()
+                                  ? EdgeInsets.zero
+                                  : const EdgeInsets.all(5),
+                              decoration: BoxDecoration(
+                                color:
+                                    (isVoid ? Colors.grey : const Color(0xFF6366F1))
+                                        .withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color:
+                                      (isVoid ? Colors.grey : const Color(0xFF6366F1))
+                                          .withValues(alpha: 0.2),
+                                ),
+                              ),
+                              child: product.imagePath != null && File(product.imagePath!).existsSync()
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(9),
+                                      child: Image.file(
+                                        File(product.imagePath!),
+                                        width: 36,
+                                        height: 36,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    )
+                                  : Icon(
+                                      isVoid
+                                          ? Icons.auto_delete_rounded
+                                          : Icons.inventory_2_rounded,
+                                      color: isVoid
+                                          ? Colors.white38
+                                          : const Color(0xFF818CF8),
+                                      size: 24,
+                                    ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    product.name.toUpperCase(),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 14,
+                                      letterSpacing: 1,
+                                      color: isVoid ? Colors.white38 : Colors.white,
+                                    ),
+                                  ),
+                                  if (isVoid)
+                                    const Text(
+                                      'ARCHIVED / VOID',
+                                      style: TextStyle(
+                                        color: Colors.redAccent,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (!isVoid)
+                                    IconButton(
+                                      icon: const Icon(Icons.edit_rounded, size: 18),
+                                      color: Colors.white38,
+                                      onPressed: () =>
+                                          _showProductDialog(context, ref, product),
+                                    ),
+                                  if (!isVoid)
+                                    IconButton(
+                                      icon: const Icon(Icons.tune_rounded, size: 18),
+                                      color: const Color(0xFF818CF8),
+                                      onPressed: () => _showAdjustmentDialog(
+                                        context,
+                                        ref,
+                                        product,
+                                      ),
+                                    ),
+                                  if (!isVoid)
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.restart_alt_rounded,
+                                        size: 18,
+                                      ),
+                                      color: const Color(0xFFF59E0B),
+                                      tooltip: 'Reset Stock',
+                                      onPressed: () => _showResetStockDialog(
+                                        context,
+                                        ref,
+                                        product,
+                                      ),
+                                    ),
+                                  IconButton(
+                                    icon: Icon(
+                                      isVoid
+                                          ? Icons.restore_rounded
+                                          : Icons.delete_sweep_rounded,
+                                      size: 18,
+                                    ),
+                                    color: isVoid
+                                        ? Colors.greenAccent
+                                        : Colors.redAccent.withValues(alpha: 0.5),
+                                    onPressed: () => isVoid
+                                        ? _showRestoreProductDialog(
+                                            context,
+                                            ref,
+                                            product,
+                                          )
+                                        : _showVoidProductDialog(
+                                            context,
+                                            ref,
+                                            product,
+                                          ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
                   const SizedBox(height: 16),
                   Row(
                     children: [
@@ -1027,6 +1291,8 @@ class _ProductCard extends ConsumerWidget {
           ],
         ),
       ),
+    );
+      },
     );
   }
 

@@ -100,10 +100,10 @@ class DashboardScreen extends ConsumerWidget {
                         localAheadAsync,
                       ),
                       const SizedBox(height: 32),
-                      _buildSectionHeader('QUICK ACTIONS', context),
-                      const SizedBox(height: 16),
-                      _buildQuickActionsGrid(context, ref, crossAxisCount),
-                      const SizedBox(height: 32),
+                      _buildSectionHeader('COMMAND CENTER', context),
+                      const SizedBox(height: 12),
+                      _buildQuickActionsDock(context, ref),
+                      // const SizedBox(height: 32),
                       _buildMainStats(dailyLogAsync),
                       const SizedBox(height: 24),
                       const FinancialWeeklyChart(),
@@ -113,13 +113,14 @@ class DashboardScreen extends ConsumerWidget {
                       _buildInsightsScroll(ref),
                       const SizedBox(height: 40),
                       const LowStockAlertWidget(),
-                      const SizedBox(height: 40),
-                      _buildSectionHeader('OPERATIONAL OVERVIEW', context),
-                      const SizedBox(height: 16),
-                      _buildOperationsGrid(ordersAsync, ref, crossAxisCount),
+                      // const SizedBox(height: 40),
+                      // _buildSectionHeader('OPERATIONAL OVERVIEW', context),
+                      // const SizedBox(height: 16),
+                      // _buildOperationsGrid(ordersAsync, ref, crossAxisCount),
                       const SizedBox(
                         height: 140,
                       ), // Extra space for FAB and Bottom Nav
+                      const SizedBox(height: 32),
                     ]),
                   ),
                 ),
@@ -1132,64 +1133,75 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildQuickActionsGrid(
-    BuildContext context,
-    WidgetRef ref,
-    int crossAxisCount,
-  ) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: crossAxisCount,
-      mainAxisSpacing: 16,
-      crossAxisSpacing: 16,
-      childAspectRatio: 1.2,
-      children: [
-        _QuickActionCard(
-          label: 'Quick Sell',
-          icon: Icons.bolt_rounded,
-          color: const Color(0xFFF59E0B),
-          onTap: () => showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (context) => const QuickSaleDialog(),
+  Widget _buildQuickActionsDock(BuildContext context, WidgetRef ref) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.white.withValues(alpha: 0.04),
+            Colors.white.withValues(alpha: 0.01),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.08),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _DockActionItem(
+              label: 'Quick Sell',
+              icon: Icons.bolt_rounded,
+              color: const Color(0xFFF59E0B),
+              onTap: () => showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) => const QuickSaleDialog(),
+              ),
+            ),
           ),
-        ),
-        _QuickActionCard(
-          label: 'Receive Stock',
-          icon: Icons.add_business_rounded,
-          color: const Color(0xFF10B981),
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const DailyReceiveScreen()),
+          _buildDockSeparator(),
+          Expanded(
+            child: _DockActionItem(
+              label: 'Receive Stock',
+              icon: Icons.add_business_rounded,
+              color: const Color(0xFF10B981),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const DailyReceiveScreen()),
+              ),
+            ),
           ),
-        ),
-        _QuickActionCard(
-          label: 'New Requisition',
-          icon: Icons.assignment_rounded,
-          color: const Color(0xFF6366F1),
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const RequisitionScreen()),
+          _buildDockSeparator(),
+          Expanded(
+            child: _DockActionItem(
+              label: 'New Requisition',
+              icon: Icons.assignment_rounded,
+              color: const Color(0xFF6366F1),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const RequisitionScreen()),
+              ),
+            ),
           ),
-        ),
-        _QuickActionCard(
-          label: 'View History',
-          icon: Icons.analytics_rounded,
-          color: const Color(0xFF818CF8),
-          onTap: () => ref.read(bottomNavIndexProvider.notifier).state = 2,
-        ),
-        _QuickActionCard(
-          label: 'Receiving Report',
-          icon: Icons.receipt_long_rounded,
-          color: const Color(0xFF10B981),
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const ReceivingReportScreen()),
-          ),
-        ),
-      ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDockSeparator() {
+    return Container(
+      height: 36,
+      width: 1,
+      margin: const EdgeInsets.symmetric(horizontal: 8),
+      color: Colors.white.withValues(alpha: 0.08),
     );
   }
 }
@@ -1439,13 +1451,13 @@ class _MiniOpCard extends StatelessWidget {
   }
 }
 
-class _QuickActionCard extends StatelessWidget {
+class _DockActionItem extends StatefulWidget {
   final String label;
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
 
-  const _QuickActionCard({
+  const _DockActionItem({
     required this.label,
     required this.icon,
     required this.color,
@@ -1453,33 +1465,77 @@ class _QuickActionCard extends StatelessWidget {
   });
 
   @override
+  State<_DockActionItem> createState() => _DockActionItemState();
+}
+
+class _DockActionItemState extends State<_DockActionItem> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: color.withValues(alpha: 0.15)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: color, size: 32),
-            const Expanded(child: SizedBox()),
-            Text(
-              label,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: _isHovered
+                ? widget.color.withValues(alpha: 0.12)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                transform: Matrix4.identity()
+                  ..translate(0.0, _isHovered ? -4.0 : 0.0)
+                  ..scale(_isHovered ? 1.1 : 1.0),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      widget.color.withValues(alpha: 0.2),
+                      widget.color.withValues(alpha: 0.05),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: widget.color.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: widget.color.withValues(
+                        alpha: _isHovered ? 0.3 : 0.1,
+                      ),
+                      blurRadius: _isHovered ? 12 : 6,
+                      spreadRadius: _isHovered ? 2 : 0,
+                    ),
+                  ],
+                ),
+                child: Icon(widget.icon, color: widget.color, size: 24),
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                widget.label,
+                style: TextStyle(
+                  color: _isHovered ? Colors.white : Colors.white60,
+                  fontSize: 11,
+                  fontWeight: _isHovered ? FontWeight.bold : FontWeight.w600,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -853,8 +853,12 @@ class _SupplierCard extends ConsumerWidget {
       }
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final useMobileLayout = constraints.maxWidth < 480;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(32),
         gradient: LinearGradient(
@@ -900,198 +904,203 @@ class _SupplierCard extends ConsumerWidget {
                 padding: const EdgeInsets.all(10),
                 child: Column(
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(5),
-                          decoration: BoxDecoration(
-                            color:
-                                (isActive
-                                        ? (isOverdue
-                                              ? Colors.redAccent
-                                              : const Color(0xFF6366F1))
-                                        : Colors.white10)
-                                    .withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                            border: Border.all(
+                    if (useMobileLayout) ...[
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(5),
+                            decoration: BoxDecoration(
                               color:
                                   (isActive
                                           ? (isOverdue
                                                 ? Colors.redAccent
                                                 : const Color(0xFF6366F1))
                                           : Colors.white10)
-                                      .withValues(alpha: 0.2),
+                                      .withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color:
+                                    (isActive
+                                            ? (isOverdue
+                                                  ? Colors.redAccent
+                                                  : const Color(0xFF6366F1))
+                                            : Colors.white10)
+                                        .withValues(alpha: 0.2),
+                              ),
+                            ),
+                            child: Icon(
+                              isActive
+                                  ? (isOverdue
+                                        ? Icons.warning_rounded
+                                        : Icons.local_shipping_rounded)
+                                  : Icons.pause_circle_rounded,
+                              color: isActive
+                                  ? (isOverdue
+                                        ? Colors.redAccent
+                                        : const Color(0xFF818CF8))
+                                  : Colors.white24,
+                              size: 24,
                             ),
                           ),
-                          child: Icon(
-                            isActive
-                                ? (isOverdue
-                                      ? Icons.warning_rounded
-                                      : Icons.local_shipping_rounded)
-                                : Icons.pause_circle_rounded,
-                            color: isActive
-                                ? (isOverdue
-                                      ? Colors.redAccent
-                                      : const Color(0xFF818CF8))
-                                : Colors.white24,
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      supplier.name.toUpperCase(),
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 14,
-                                        letterSpacing: 1,
-                                      ),
-                                    ),
-                                  ),
-                                  if (isOverdue && isActive) ...[
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.redAccent.withValues(
-                                          alpha: 0.15,
-                                        ),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: Colors.redAccent.withValues(
-                                            alpha: 0.3,
-                                          ),
-                                          width: 1,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        'OVERDUE (${ageDays}d)',
-                                        style: const TextStyle(
-                                          color: Colors.redAccent,
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ] else if (hasBalance &&
-                                      ageDays > 0 &&
-                                      isActive) ...[
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.orangeAccent.withValues(
-                                          alpha: 0.15,
-                                        ),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: Colors.orangeAccent.withValues(
-                                            alpha: 0.3,
-                                          ),
-                                          width: 1,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        'DUE IN ${supplier.paymentTermsDays - ageDays}d',
-                                        style: const TextStyle(
-                                          color: Colors.orangeAccent,
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      supplier.contact ?? 'No contact',
-                                      style: const TextStyle(
-                                        color: Colors.white38,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  if (supplier.contact != null &&
-                                      supplier.contact!.isNotEmpty) ...[
-                                    const SizedBox(width: 8),
-                                    GestureDetector(
-                                      onTap: () async {
-                                        final Uri launchUri = Uri(
-                                          scheme: 'tel',
-                                          path: supplier.contact,
-                                        );
-                                        if (await canLaunchUrl(launchUri)) {
-                                          await launchUrl(launchUri);
-                                        }
-                                      },
-                                      child: Container(
-                                        padding: const EdgeInsets.all(6),
-                                        decoration: BoxDecoration(
-                                          color: const Color(
-                                            0xFF818CF8,
-                                          ).withValues(alpha: 0.1),
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        child: const Icon(
-                                          Icons.phone_in_talk_rounded,
-                                          size: 14,
-                                          color: Color(0xFF818CF8),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                              if (supplier.account != null &&
-                                  supplier.account!.isNotEmpty) ...[
-                                const SizedBox(height: 6),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
                                 Row(
                                   children: [
-                                    const Icon(
-                                      Icons.account_balance_rounded,
-                                      size: 12,
-                                      color: Colors.white38,
+                                    Expanded(
+                                      child: Text(
+                                        supplier.name.toUpperCase(),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 14,
+                                          letterSpacing: 1,
+                                        ),
+                                      ),
                                     ),
-                                    const SizedBox(width: 8),
+                                    if (isOverdue && isActive) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.redAccent.withValues(
+                                            alpha: 0.15,
+                                          ),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(
+                                            color: Colors.redAccent.withValues(
+                                              alpha: 0.3,
+                                            ),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'OVERDUE (${ageDays}d)',
+                                          style: const TextStyle(
+                                            color: Colors.redAccent,
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ] else if (hasBalance &&
+                                        ageDays > 0 &&
+                                        isActive) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.orangeAccent.withValues(
+                                            alpha: 0.15,
+                                          ),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(
+                                            color: Colors.orangeAccent.withValues(
+                                              alpha: 0.3,
+                                            ),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'DUE IN ${supplier.paymentTermsDays - ageDays}d',
+                                          style: const TextStyle(
+                                            color: Colors.orangeAccent,
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
                                     Flexible(
                                       child: Text(
-                                        supplier.account!,
+                                        supplier.contact ?? 'No contact',
                                         style: const TextStyle(
                                           color: Colors.white38,
-                                          fontSize: 11,
+                                          fontSize: 12,
                                           fontWeight: FontWeight.w600,
                                         ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
+                                    if (supplier.contact != null &&
+                                        supplier.contact!.isNotEmpty) ...[
+                                      const SizedBox(width: 8),
+                                      GestureDetector(
+                                        onTap: () async {
+                                          final Uri launchUri = Uri(
+                                            scheme: 'tel',
+                                            path: supplier.contact,
+                                          );
+                                          if (await canLaunchUrl(launchUri)) {
+                                            await launchUrl(launchUri);
+                                          }
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: const Color(
+                                              0xFF818CF8,
+                                            ).withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: const Icon(
+                                            Icons.phone_in_talk_rounded,
+                                            size: 14,
+                                            color: Color(0xFF818CF8),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
+                                if (supplier.account != null &&
+                                    supplier.account!.isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.account_balance_rounded,
+                                        size: 12,
+                                        color: Colors.white38,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Flexible(
+                                        child: Text(
+                                          supplier.account!,
+                                          style: const TextStyle(
+                                            color: Colors.white38,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ],
-                            ],
+                            ),
                           ),
-                        ),
-                        // Quick actions
-                        Container(
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 4),
                           decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha: 0.2),
@@ -1167,8 +1176,278 @@ class _SupplierCard extends ConsumerWidget {
                             ],
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ] else ...[
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(5),
+                            decoration: BoxDecoration(
+                              color:
+                                  (isActive
+                                          ? (isOverdue
+                                                ? Colors.redAccent
+                                                : const Color(0xFF6366F1))
+                                          : Colors.white10)
+                                      .withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color:
+                                    (isActive
+                                            ? (isOverdue
+                                                  ? Colors.redAccent
+                                                  : const Color(0xFF6366F1))
+                                            : Colors.white10)
+                                        .withValues(alpha: 0.2),
+                              ),
+                            ),
+                            child: Icon(
+                              isActive
+                                  ? (isOverdue
+                                        ? Icons.warning_rounded
+                                        : Icons.local_shipping_rounded)
+                                  : Icons.pause_circle_rounded,
+                              color: isActive
+                                  ? (isOverdue
+                                        ? Colors.redAccent
+                                        : const Color(0xFF818CF8))
+                                  : Colors.white24,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        supplier.name.toUpperCase(),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 14,
+                                          letterSpacing: 1,
+                                        ),
+                                      ),
+                                    ),
+                                    if (isOverdue && isActive) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.redAccent.withValues(
+                                            alpha: 0.15,
+                                          ),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(
+                                            color: Colors.redAccent.withValues(
+                                              alpha: 0.3,
+                                            ),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'OVERDUE (${ageDays}d)',
+                                          style: const TextStyle(
+                                            color: Colors.redAccent,
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ] else if (hasBalance &&
+                                        ageDays > 0 &&
+                                        isActive) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.orangeAccent.withValues(
+                                            alpha: 0.15,
+                                          ),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(
+                                            color: Colors.orangeAccent.withValues(
+                                              alpha: 0.3,
+                                            ),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'DUE IN ${supplier.paymentTermsDays - ageDays}d',
+                                          style: const TextStyle(
+                                            color: Colors.orangeAccent,
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        supplier.contact ?? 'No contact',
+                                        style: const TextStyle(
+                                          color: Colors.white38,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    if (supplier.contact != null &&
+                                        supplier.contact!.isNotEmpty) ...[
+                                      const SizedBox(width: 8),
+                                      GestureDetector(
+                                        onTap: () async {
+                                          final Uri launchUri = Uri(
+                                            scheme: 'tel',
+                                            path: supplier.contact,
+                                          );
+                                          if (await canLaunchUrl(launchUri)) {
+                                            await launchUrl(launchUri);
+                                          }
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: const Color(
+                                              0xFF818CF8,
+                                            ).withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: const Icon(
+                                            Icons.phone_in_talk_rounded,
+                                            size: 14,
+                                            color: Color(0xFF818CF8),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                if (supplier.account != null &&
+                                    supplier.account!.isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.account_balance_rounded,
+                                        size: 12,
+                                        color: Colors.white38,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Flexible(
+                                        child: Text(
+                                          supplier.account!,
+                                          style: const TextStyle(
+                                            color: Colors.white38,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.history_rounded,
+                                    size: 16,
+                                  ),
+                                  color: Colors.white30,
+                                  constraints: const BoxConstraints(),
+                                  padding: const EdgeInsets.all(8),
+                                  onPressed: () => _showSettlementHistory(
+                                    context,
+                                    ref,
+                                    supplier,
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.description_rounded,
+                                    size: 16,
+                                  ),
+                                  color: isActive
+                                      ? const Color(0xFF818CF8)
+                                      : Colors.white12,
+                                  constraints: const BoxConstraints(),
+                                  padding: const EdgeInsets.all(8),
+                                  onPressed: isActive
+                                      ? () => _showPurchaseOrderDialog(
+                                          context,
+                                          ref,
+                                          supplier,
+                                        )
+                                      : null,
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.edit_rounded, size: 16),
+                                  color: Colors.white30,
+                                  constraints: const BoxConstraints(),
+                                  padding: const EdgeInsets.all(8),
+                                  onPressed: () =>
+                                      _showSupplierDialog(context, ref, supplier),
+                                ),
+                                IconButton(
+                                  icon: Icon(
+                                    supplier.isVoid
+                                        ? Icons.restore_rounded
+                                        : Icons.delete_sweep_rounded,
+                                    size: 16,
+                                  ),
+                                  color: supplier.isVoid
+                                      ? Colors.greenAccent
+                                      : Colors.redAccent.withValues(alpha: 0.3),
+                                  constraints: const BoxConstraints(),
+                                  padding: const EdgeInsets.all(8),
+                                  onPressed: () => supplier.isVoid
+                                      ? _showRestoreSupplierDialog(
+                                          context,
+                                          ref,
+                                          supplier,
+                                        )
+                                      : _showVoidSupplierDialog(
+                                          context,
+                                          ref,
+                                          supplier,
+                                        ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1281,6 +1560,8 @@ class _SupplierCard extends ConsumerWidget {
           ),
         ),
       ),
+    );
+      },
     );
   }
 

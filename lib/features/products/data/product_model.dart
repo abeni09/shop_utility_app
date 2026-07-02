@@ -14,6 +14,8 @@ class Product {
 
   int? supplierId;
 
+  String? imagePath;
+
   DateTime? lastUpdated;
 
   bool isVoid = false;

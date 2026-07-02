@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -254,18 +255,30 @@ class _OrderScreenState extends ConsumerState<OrderScreen> {
                                       child: Row(
                                         children: [
                                           Container(
-                                            padding: const EdgeInsets.all(6),
+                                            width: 26,
+                                            height: 26,
+                                            padding: product.imagePath != null && File(product.imagePath!).existsSync()
+                                                ? EdgeInsets.zero
+                                                : const EdgeInsets.all(6),
                                             decoration: BoxDecoration(
-                                              color: const Color(
-                                                0xFF6366F1,
-                                              ).withValues(alpha: 0.1),
-                                              shape: BoxShape.circle,
+                                              color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                                              borderRadius: BorderRadius.circular(8),
                                             ),
-                                            child: const Icon(
-                                              Icons.inventory_2_rounded,
-                                              color: Color(0xFF818CF8),
-                                              size: 14,
-                                            ),
+                                            child: product.imagePath != null && File(product.imagePath!).existsSync()
+                                                ? ClipRRect(
+                                                    borderRadius: BorderRadius.circular(8),
+                                                    child: Image.file(
+                                                      File(product.imagePath!),
+                                                      width: 26,
+                                                      height: 26,
+                                                      fit: BoxFit.cover,
+                                                    ),
+                                                  )
+                                                : const Icon(
+                                                    Icons.inventory_2_rounded,
+                                                    color: Color(0xFF818CF8),
+                                                    size: 14,
+                                                  ),
                                           ),
                                           const SizedBox(width: 10),
                                           Text(

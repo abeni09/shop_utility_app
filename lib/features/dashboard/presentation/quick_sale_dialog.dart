@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopsync/features/products/presentation/daily_stock_providers.dart';
@@ -34,6 +35,7 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
   double? _addonPrice;
   double? _addonCost;
   double _addonAmount = 1.0;
+  PaymentMethod _selectedPaymentMethod = PaymentMethod.cash;
 
   @override
   void dispose() {
@@ -317,6 +319,88 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                 ),
               ),
             ],
+            const SizedBox(height: 16),
+            const Text(
+              'PAYMENT METHOD',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5,
+                fontSize: 10,
+                color: Colors.white38,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: PaymentMethod.values.map((method) {
+                final isSelected = _selectedPaymentMethod == method;
+                final String label;
+                final IconData icon;
+                final Color color;
+
+                switch (method) {
+                  case PaymentMethod.cash:
+                    label = 'CASH';
+                    icon = Icons.payments_rounded;
+                    color = const Color(0xFF10B981);
+                    break;
+                  case PaymentMethod.mobile:
+                    label = 'MOBILE';
+                    icon = Icons.phone_android_rounded;
+                    color = const Color(0xFF3B82F6);
+                    break;
+                  case PaymentMethod.credit:
+                    label = 'CREDIT';
+                    icon = Icons.credit_card_rounded;
+                    color = const Color(0xFFF59E0B);
+                    break;
+                }
+
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: InkWell(
+                      onTap: () => setState(() => _selectedPaymentMethod = method),
+                      borderRadius: BorderRadius.circular(16),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? color.withValues(alpha: 0.15)
+                              : Colors.white.withValues(alpha: 0.03),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isSelected
+                                ? color
+                                : Colors.white.withValues(alpha: 0.05),
+                            width: isSelected ? 1.5 : 1.0,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              icon,
+                              color: isSelected ? color : Colors.white38,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              label,
+                              style: TextStyle(
+                                color: isSelected ? Colors.white : Colors.white38,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -484,28 +568,43 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-                  ),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+                      color: const Color(0xFF6366F1).withValues(alpha: 0.2),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-                child: Center(
-                  child: Text(
-                    product.name.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 20,
-                    ),
-                  ),
-                ),
+                child: product.imagePath != null && product.imagePath!.isNotEmpty && File(product.imagePath!).existsSync()
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.file(
+                          File(product.imagePath!),
+                          width: 48,
+                          height: 48,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    : Container(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Center(
+                          child: Text(
+                            product.name.substring(0, 1).toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 20,
+                            ),
+                          ),
+                        ),
+                      ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -904,7 +1003,7 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
       ..amount = quantity
       ..dueDate = now
       ..status = OrderStatus.sold
-      ..paymentMethod = PaymentMethod.cash
+      ..paymentMethod = _selectedPaymentMethod
       ..costPriceAtTime = product.costPrice
       ..sellingPriceAtTime = sellPrice
       ..advancePayment = totalPrice
@@ -925,7 +1024,7 @@ class _QuickSaleDialogState extends ConsumerState<QuickSaleDialog> {
         ..amount = 1.0
         ..dueDate = now
         ..status = OrderStatus.sold
-        ..paymentMethod = PaymentMethod.cash
+        ..paymentMethod = _selectedPaymentMethod
         ..costPriceAtTime = bagProduct.costPrice
         ..sellingPriceAtTime = bagProduct.sellingPrice
         ..advancePayment = bagProduct.sellingPrice

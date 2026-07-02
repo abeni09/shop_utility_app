@@ -9,6 +9,7 @@ import 'package:shopsync/features/suppliers/presentation/supplier_list_screen.da
 import 'package:shopsync/features/orders/presentation/order_providers.dart';
 import 'package:shopsync/features/dashboard/presentation/dashboard_providers.dart';
 import 'package:shopsync/features/products/presentation/holiday_providers.dart';
+import 'package:shopsync/features/products/presentation/receiving_report_screen.dart';
 
 class DailyReceiveScreen extends ConsumerStatefulWidget {
   final int? preselectedProductId;
@@ -80,6 +81,28 @@ class _DailyReceiveScreenState extends ConsumerState<DailyReceiveScreen> {
                   backgroundColor: Colors.transparent,
                   title: const Text('RECEIVE STOCK'),
                   actions: [
+                    Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.05),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.receipt_long_rounded,
+                          color: Color(0xFF10B981),
+                        ),
+                        tooltip: 'Receiving Report',
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ReceivingReportScreen(),
+                          ),
+                        ),
+                      ),
+                    ),
                     Container(
                       margin: const EdgeInsets.only(right: 16),
                       decoration: BoxDecoration(
