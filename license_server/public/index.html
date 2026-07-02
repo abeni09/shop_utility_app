@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,12 +8,15 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap"
+    rel="stylesheet">
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Custom Styling -->
   <link rel="stylesheet" href="landing.css">
 </head>
+
 <body>
   <!-- Header -->
   <header class="navbar">
@@ -37,7 +41,8 @@
       </div>
       <h1>Effortless Retail &amp;<br><span class="gradient-text">Real-Time Synchronization</span></h1>
       <p class="hero-subtitle">
-        Manage sales, credit orders, expenses, and inventory sync in one unified utility app. Optimized for all Android architectures.
+        Manage sales, credit orders, expenses, and inventory sync in one unified utility app. Optimized for all Android
+        architectures.
       </p>
       <div class="hero-actions">
         <a href="#downloads" class="btn btn-primary btn-hero">
@@ -54,30 +59,103 @@
   <!-- Features Section -->
   <section class="features" id="features">
     <div class="section-header">
-      <h2>Why Choose ShopSync?</h2>
-      <p>Powerful features tailored for seamless retail management and bookkeeping.</p>
+      <h2>Complete Retail &amp; Sync Suite</h2>
+      <p>Scan and discover the powerful modules integrated into ShopSync.</p>
     </div>
     <div class="features-grid">
+      <!-- 1. Product Inventory & Alerts -->
       <div class="feature-card">
         <div class="feat-icon primary">
-          <i data-lucide="zap"></i>
+          <i data-lucide="package"></i>
         </div>
-        <h3>Command Dock</h3>
-        <p>Instant access to quick sales, real-time stock receiving, and requisition records right from your dashboard.</p>
+        <h3>Inventory &amp; Alert System</h3>
+        <p>Catalog items with dynamic images, barcode lookup, and real-time low-stock alerts to prevent outages.</p>
       </div>
+
+      <!-- 2. Stock Receiving -->
+      <div class="feature-card">
+        <div class="feat-icon success">
+          <i data-lucide="truck"></i>
+        </div>
+        <h3>Stock Receiving Reports</h3>
+        <p>Record incoming stock shipments, manage supplier contacts, and log reports grouped by item or supplier.</p>
+      </div>
+
+      <!-- 3. Dynamic Requisitions -->
+      <div class="feature-card">
+        <div class="feat-icon warning">
+          <i data-lucide="clipboard-list"></i>
+        </div>
+        <h3>Dynamic Requisitions</h3>
+        <p>Log purchase request orders and log full history of requisition files for systematic stock replenishments.
+        </p>
+      </div>
+
+      <!-- 4. Quick Sell Terminal -->
+      <div class="feature-card">
+        <div class="feat-icon primary">
+          <i data-lucide="shopping-cart"></i>
+        </div>
+        <h3>Quick Sell Terminal</h3>
+        <p>Checkout retail orders in seconds with a optimized interface, image previews, and payment method selectors.
+        </p>
+      </div>
+
+      <!-- 5. Customer Credit Ledger -->
+      <div class="feature-card">
+        <div class="feat-icon success">
+          <i data-lucide="users"></i>
+        </div>
+        <h3>Customer Credit Ledger</h3>
+        <p>Manage customer profiles, record unpaid orders, track balances, and set due dates for prompt collection of
+          dues.</p>
+      </div>
+
+      <!-- 6. Expense Tracking (OPEX) -->
+      <div class="feature-card">
+        <div class="feat-icon warning">
+          <i data-lucide="receipt"></i>
+        </div>
+        <h3>OPEX Expense Tracking</h3>
+        <p>Log and categorize daily operational expenses (OPEX) to maintain a complete record of business outgoings.</p>
+      </div>
+
+      <!-- 7. Inventory Loss Logging -->
+      <div class="feature-card">
+        <div class="feat-icon primary">
+          <i data-lucide="alert-triangle"></i>
+        </div>
+        <h3>Inventory Loss Logging</h3>
+        <p>Log damaged, expired, or stolen items with reason logs to reconcile exact stock counts and values.</p>
+      </div>
+
+      <!-- 8. Interactive Financial Wallet -->
       <div class="feature-card">
         <div class="feat-icon success">
           <i data-lucide="wallet"></i>
         </div>
         <h3>Interactive Wallet</h3>
-        <p>Consolidated list views of sales, opex expenses, customer credits, and supplier settlements in deep detail.</p>
+        <p>A consolidated dashboard of financial KPIs (sales, opex, losses, credits) with detailed scrollable list
+          overlays.</p>
       </div>
+
+      <!-- 9. Google Drive Cloud Sync -->
       <div class="feature-card">
         <div class="feat-icon warning">
-          <i data-lucide="database"></i>
+          <i data-lucide="cloud"></i>
         </div>
-        <h3>Offline-First DB</h3>
-        <p>Underpinned by ultra-fast Isar database. Works offline and syncs seamlessly when connection is active.</p>
+        <h3>Google Drive Cloud Sync</h3>
+        <p>Secure data durability with silent Google Sign-In, automatic cloud backups, and local file backup exports.
+        </p>
+      </div>
+
+      <!-- 10. Device-Locked Security -->
+      <div class="feature-card">
+        <div class="feat-icon primary">
+          <i data-lucide="key-round"></i>
+        </div>
+        <h3>Device-Locked Security</h3>
+        <p>Commercial yearly subscription licensing verification system with secure device binding constraints.</p>
       </div>
     </div>
   </section>
@@ -88,7 +166,7 @@
       <h2>Download for Android</h2>
       <p>Select the APK package optimized for your device's processor architecture.</p>
     </div>
-    
+
     <div class="downloads-container">
       <!-- Architecture cards list -->
       <div class="download-card recommended">
@@ -165,13 +243,17 @@
   <!-- Footer -->
   <footer class="footer">
     <div class="footer-bottom">
-      <p>&copy; 2026 ShopSync. All rights reserved.</p>
-      <p class="footer-credits">Powered by NestJS &amp; Flutter</p>
+      <p>&copy; <span id="current-year"></span> ShopSync. All rights reserved.</p>
+      <p class="footer-credits">Powered by Vought Trading PLC</p>
     </div>
   </footer>
 
   <script>
     lucide.createIcons();
   </script>
+  <script>
+    document.getElementById('current-year').textContent = new Date().getFullYear();
+  </script>
 </body>
+
 </html>
