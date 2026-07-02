@@ -4,6 +4,22 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
+// Load environment variables from .env file if present
+const envPath = path.join(__dirname, '.env');
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf8');
+  envContent.split('\n').forEach(line => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) return;
+    const parts = trimmed.split('=');
+    if (parts.length >= 2) {
+      const key = parts[0].trim();
+      const val = parts.slice(1).join('=').trim().replace(/^['"]|['"]$/g, '');
+      process.env[key] = val;
+    }
+  });
+}
+
 const PORT = process.env.PORT || 3100;
 const DB_FILE = path.join(__dirname, 'db.json');
 
