@@ -9,6 +9,7 @@ import 'package:shopsync/features/orders/presentation/order_screen.dart';
 import 'package:shopsync/features/suppliers/presentation/supplier_list_screen.dart';
 import 'package:shopsync/features/sales/presentation/sales_screen.dart';
 import 'package:shopsync/features/dashboard/presentation/dashboard_screen.dart';
+import 'package:shopsync/features/license/presentation/license_guard_shell.dart';
 
 final databaseServiceProvider = Provider<DatabaseService>((ref) {
   throw UnimplementedError('DatabaseService not initialized');
@@ -83,7 +84,7 @@ class ShopSyncApp extends ConsumerWidget {
           ),
         ),
       ),
-      home: const MainNavigationShell(),
+      home: const LicenseGuardShell(),
     );
   }
 }

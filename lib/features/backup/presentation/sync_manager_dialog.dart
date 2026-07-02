@@ -10,6 +10,8 @@ import 'package:shopsync/features/suppliers/data/supplier_model.dart';
 import 'package:shopsync/features/orders/data/customer_order_model.dart';
 import 'package:shopsync/features/suppliers/data/supplier_settlement_model.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:shopsync/features/license/presentation/license_provider.dart';
+import 'package:intl/intl.dart';
 
 class SyncManagerDialog extends ConsumerStatefulWidget {
   const SyncManagerDialog({super.key});
@@ -323,6 +325,7 @@ class _SyncManagerDialogState extends ConsumerState<SyncManagerDialog> {
     final userAsync = ref.watch(backupUserProvider);
     final cloudNewerAsync = ref.watch(cloudSyncStatusProvider);
     final localAheadAsync = ref.watch(localAheadProvider);
+    final licenseState = ref.watch(licenseStateProvider);
 
     return Dialog(
       backgroundColor: const Color(0xFF0F172A),
@@ -361,6 +364,7 @@ class _SyncManagerDialogState extends ConsumerState<SyncManagerDialog> {
                       _buildStatsSection(),
                       const SizedBox(height: 20),
                       _buildLocalBackupSection(),
+                      _buildLicenseSection(licenseState),
                       const SizedBox(height: 24),
                       _buildActionsSection(userAsync),
                     ],
@@ -905,6 +909,109 @@ class _SyncManagerDialogState extends ConsumerState<SyncManagerDialog> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildLicenseSection(LicenseState licenseState) {
+    if (licenseState.expiryDate == null) return const SizedBox.shrink();
+    
+    final dateFormat = DateFormat('yyyy-MM-dd');
+    final formattedDate = dateFormat.format(licenseState.expiryDate!);
+    
+    return Container(
+      margin: const EdgeInsets.only(top: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.02),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'LICENSE SUBSCRIPTION',
+            style: TextStyle(
+              color: Color(0xFF818CF8),
+              fontWeight: FontWeight.w900,
+              fontSize: 10,
+              letterSpacing: 1.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Expires: $formattedDate',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Key: ${licenseState.licenseKey ?? ""}',
+                    style: const TextStyle(color: Colors.white30, fontSize: 11),
+                  ),
+                ],
+              ),
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFFEF4444),
+                ),
+                onPressed: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      backgroundColor: const Color(0xFF0F172A),
+                      title: const Text(
+                        'DEACTIVATE DEVICE?',
+                        style: TextStyle(
+                          color: Color(0xFFEF4444),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      content: const Text(
+                        'This will deactivate the application on this device. You will need a license key to unlock it again.',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text(
+                            'CANCEL',
+                            style: TextStyle(color: Colors.white24),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text(
+                            'DEACTIVATE',
+                            style: TextStyle(color: Color(0xFFEF4444)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirm == true) {
+                    if (mounted) Navigator.pop(context); // Close Sync dialog
+                    await ref.read(licenseStateProvider.notifier).deactivate();
+                  }
+                },
+                child: const Text(
+                  'DEACTIVATE',
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

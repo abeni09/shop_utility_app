@@ -86,9 +86,9 @@ class _FinancialWeeklyChartState extends ConsumerState<FinancialWeeklyChart> {
                       return Theme(
                         data: Theme.of(context).copyWith(
                           colorScheme: const ColorScheme.dark(
-                            primary: const Color(0xFF6366F1),
+                            primary: Color(0xFF6366F1),
                             onPrimary: Colors.white,
-                            surface: const Color(0xFF0F172A),
+                            surface: Color(0xFF0F172A),
                             onSurface: Colors.white,
                           ),
                         ),
@@ -164,8 +164,9 @@ class _FinancialWeeklyChartState extends ConsumerState<FinancialWeeklyChart> {
                 double maxVal = 100.0;
                 for (var log in weekLogs) {
                   if (log.totalSales > maxVal) maxVal = log.totalSales;
-                  if (log.totalSupplierOrders > maxVal)
+                  if (log.totalSupplierOrders > maxVal) {
                     maxVal = log.totalSupplierOrders;
+                  }
                 }
                 // Give some padding above the highest point
                 maxVal = maxVal * 1.15;

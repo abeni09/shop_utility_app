@@ -501,7 +501,7 @@ class _CartItem {
   Product product;
   double amount;
   bool isBreakEven;
-  _CartItem({required this.product, this.amount = 1, this.isBreakEven = false});
+  _CartItem({required this.product});
 }
 
 // ─── Cart Order Dialog ────────────────────────────────────────────────────────
@@ -539,7 +539,12 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
       builder: (context, setState) {
         double cartTotal() => cartItems.fold(
           0,
-          (s, item) => s + item.amount * (item.isBreakEven ? item.product.costPrice : item.product.sellingPrice),
+          (s, item) =>
+              s +
+              item.amount *
+                  (item.isBreakEven
+                      ? item.product.costPrice
+                      : item.product.sellingPrice),
         );
 
         return Padding(
@@ -756,7 +761,10 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
                           const SizedBox(width: 8),
                           // Break-Even Toggle
                           GestureDetector(
-                            onTap: () => setState(() => cartItems[idx].isBreakEven = !item.isBreakEven),
+                            onTap: () => setState(
+                              () => cartItems[idx].isBreakEven =
+                                  !item.isBreakEven,
+                            ),
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 200),
                               padding: const EdgeInsets.all(10),
@@ -767,13 +775,17 @@ void _showCartOrderDialog(BuildContext context, WidgetRef ref) {
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
                                   color: item.isBreakEven
-                                      ? Colors.orangeAccent.withValues(alpha: 0.3)
+                                      ? Colors.orangeAccent.withValues(
+                                          alpha: 0.3,
+                                        )
                                       : Colors.white.withValues(alpha: 0.05),
                                 ),
                               ),
                               child: Icon(
                                 Icons.balance_rounded,
-                                color: item.isBreakEven ? Colors.orangeAccent : Colors.white24,
+                                color: item.isBreakEven
+                                    ? Colors.orangeAccent
+                                    : Colors.white24,
                                 size: 16,
                               ),
                             ),
@@ -1042,7 +1054,9 @@ void _showOrderDialog(
   PaymentMethod selectedPayment = existing?.paymentMethod ?? PaymentMethod.cash;
   DateTime selectedDate = existing?.dueDate ?? ref.read(selectedDateProvider);
   bool isSaving = false;
-  bool isBreakEven = existing != null && existing.sellingPriceAtTime == existing.costPriceAtTime;
+  bool isBreakEven =
+      existing != null &&
+      existing.sellingPriceAtTime == existing.costPriceAtTime;
 
   int? selectedAddonId = existing?.addonName != null ? 0 : 0;
   String? selectedAddonName = existing?.addonName;
@@ -1132,7 +1146,8 @@ void _showOrderDialog(
                         const SizedBox(width: 12),
                         // Break-Even Toggle Button
                         GestureDetector(
-                          onTap: () => setState(() => isBreakEven = !isBreakEven),
+                          onTap: () =>
+                              setState(() => isBreakEven = !isBreakEven),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             padding: const EdgeInsets.all(16),
@@ -1149,7 +1164,9 @@ void _showOrderDialog(
                             ),
                             child: Icon(
                               Icons.balance_rounded,
-                              color: isBreakEven ? Colors.orangeAccent : Colors.white24,
+                              color: isBreakEven
+                                  ? Colors.orangeAccent
+                                  : Colors.white24,
                               size: 20,
                             ),
                           ),
@@ -1480,7 +1497,9 @@ void _showOrderDialog(
                                   (p) => p.id == selectedProductId,
                                 );
 
-                                final sellPrice = isBreakEven ? product.costPrice : product.sellingPrice;
+                                final sellPrice = isBreakEven
+                                    ? product.costPrice
+                                    : product.sellingPrice;
                                 final total =
                                     amount * sellPrice +
                                     (selectedAddonName != null

@@ -1582,7 +1582,9 @@ class _SupplierCard extends ConsumerWidget {
                             surface: Color(0xFF0F172A),
                             onSurface: Colors.white,
                           ),
-                          dialogBackgroundColor: const Color(0xFF0F172A),
+                          dialogTheme: DialogThemeData(
+                            backgroundColor: const Color(0xFF0F172A),
+                          ),
                         ),
                         child: child!,
                       );

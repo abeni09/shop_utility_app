@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShopSync Admin Dashboard</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Custom Styling -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="logo-area">
+        <div class="logo-icon">
+          <i data-lucide="key-round"></i>
+        </div>
+        <span class="logo-text">SHOPSYNC ADMIN</span>
+      </div>
+      <nav class="nav-menu">
+        <a href="#" class="nav-item active">
+          <i data-lucide="layout-dashboard"></i>
+          <span>Licenses</span>
+        </a>
+        <a href="#" class="nav-item" id="btn-refresh">
+          <i data-lucide="refresh-cw"></i>
+          <span>Reload DB</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <span>v1.0.0</span>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-title">
+          <h1>License Dashboard</h1>
+          <p class="subtitle">Manage subscription keys, device bindings, and expiration dates.</p>
+        </div>
+      </header>
+
+      <!-- Stats Cards Grid -->
+      <section class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon primary">
+            <i data-lucide="ticket"></i>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Total Licenses</span>
+            <span class="stat-value" id="stat-total">0</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon success">
+            <i data-lucide="smartphone"></i>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Bound Devices</span>
+            <span class="stat-value" id="stat-bound">0</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon warning">
+            <i data-lucide="clock"></i>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Unused Keys</span>
+            <span class="stat-value" id="stat-unused">0</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon danger">
+            <i data-lucide="shield-alert"></i>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Deactivated</span>
+            <span class="stat-value" id="stat-deactivated">0</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Search & Quick Action Controls -->
+      <section class="controls-card">
+        <div class="controls-left">
+          <div class="search-box">
+            <i data-lucide="search" class="search-icon"></i>
+            <input type="text" id="search-input" placeholder="Search by license key or device ID...">
+          </div>
+        </div>
+        <div class="controls-right">
+          <button class="btn btn-secondary" onclick="openModal('modal-custom')">
+            <i data-lucide="plus"></i>
+            <span>Create Custom Key</span>
+          </button>
+          <button class="btn btn-primary" onclick="openModal('modal-generate')">
+            <i data-lucide="sparkles"></i>
+            <span>Generate Keys</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- License Table Section -->
+      <section class="table-container">
+        <table class="licenses-table">
+          <thead>
+            <tr>
+              <th>License Key</th>
+              <th>Status</th>
+              <th>Bound Device</th>
+              <th>Created Date</th>
+              <th>Expiration</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="licenses-list">
+            <!-- Dynamically populated rows -->
+            <tr>
+              <td colspan="6" class="table-loading">
+                <i data-lucide="loader" class="spinner"></i> Loading licenses...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal: Generate Keys -->
+  <div class="modal-backdrop" id="modal-generate">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Generate Subscription Keys</h2>
+        <button class="close-btn" onclick="closeModal('modal-generate')"><i data-lucide="x"></i></button>
+      </div>
+      <form id="form-generate" onsubmit="handleGenerate(event)">
+        <div class="form-group">
+          <label for="generate-count">Number of Keys to Generate</label>
+          <input type="number" id="generate-count" min="1" max="100" value="5" required>
+          <span class="form-hint">Generates secure keys in SYNC-XXXX-XXXX-XXXX-XXXX format.</span>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-text" onclick="closeModal('modal-generate')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Generate Now</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Create Custom Key -->
+  <div class="modal-backdrop" id="modal-custom">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Create Custom License Key</h2>
+        <button class="close-btn" onclick="closeModal('modal-custom')"><i data-lucide="x"></i></button>
+      </div>
+      <form id="form-custom" onsubmit="handleCreateCustom(event)">
+        <div class="form-group">
+          <label for="custom-key">Custom License Key Name</label>
+          <input type="text" id="custom-key" placeholder="e.g. SHOP-SPECIAL-2026" required>
+          <span class="form-hint">Must be unique and contains letters, numbers, or hyphens.</span>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-text" onclick="closeModal('modal-custom')">Cancel</button>
+          <button type="submit" class="btn btn-secondary">Create Key</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Edit Key Details -->
+  <div class="modal-backdrop" id="modal-edit">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Edit License Details</h2>
+        <button class="close-btn" onclick="closeModal('modal-edit')"><i data-lucide="x"></i></button>
+      </div>
+      <form id="form-edit" onsubmit="handleSaveEdit(event)">
+        <input type="hidden" id="edit-key-id">
+        <div class="form-group">
+          <label>License Key</label>
+          <input type="text" id="edit-key-display" class="input-disabled" readonly>
+        </div>
+        <div class="form-group">
+          <label for="edit-device-id">Bound Device ID</label>
+          <div class="input-row">
+            <input type="text" id="edit-device-id" placeholder="Not bound">
+            <button type="button" class="btn btn-outline" id="btn-unbind" onclick="unbindDevice()">Unbind Device</button>
+          </div>
+          <span class="form-hint font-danger">Warning: Unbinding will allow the license to be activated on a new device.</span>
+        </div>
+        <div class="form-group">
+          <label for="edit-expiry-date">Expiration Date</label>
+          <input type="date" id="edit-expiry-date">
+          <span class="form-hint">Leave blank for no expiry date.</span>
+        </div>
+        <div class="form-group checkbox-group">
+          <input type="checkbox" id="edit-is-active">
+          <label for="edit-is-active">Key is Active (If unchecked, users cannot use this key)</label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-text" onclick="closeModal('modal-edit')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Custom script logic -->
+  <script src="app.js"></script>
+</body>
+</html>

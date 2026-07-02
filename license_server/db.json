@@ -1,0 +1,46 @@
+{
+  "keys": {
+    "SYNC-4AE1-420F-E078-90A2": {
+      "deviceId": null,
+      "expiryDate": null,
+      "createdAt": "2026-07-02T05:24:13.483Z",
+      "isActive": true
+    },
+    "SYNC-E189-AA8D-1535-34F4": {
+      "deviceId": null,
+      "expiryDate": null,
+      "createdAt": "2026-07-02T05:24:13.484Z",
+      "isActive": true
+    },
+    "SYNC-C9DC-3A15-47F6-0D0F": {
+      "deviceId": null,
+      "expiryDate": null,
+      "createdAt": "2026-07-02T05:24:13.484Z",
+      "isActive": true
+    },
+    "SYNC-DEMO-KEY-2026": {
+      "deviceId": null,
+      "expiryDate": "2028-12-31T00:00:00.000Z",
+      "createdAt": "2026-07-02T05:24:20.589Z",
+      "isActive": true
+    },
+    "SYNC-32C3-550E-EF02-6C09": {
+      "deviceId": null,
+      "expiryDate": null,
+      "createdAt": "2026-07-02T06:02:17.808Z",
+      "isActive": true
+    },
+    "SYNC-E583-249D-C54A-E6F2": {
+      "deviceId": null,
+      "expiryDate": null,
+      "createdAt": "2026-07-02T06:02:17.809Z",
+      "isActive": true
+    },
+    "SHOP-VIP-SPECIAL-KEY": {
+      "deviceId": null,
+      "expiryDate": null,
+      "createdAt": "2026-07-02T06:03:07.376Z",
+      "isActive": true
+    }
+  }
+}

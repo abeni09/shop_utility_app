@@ -149,9 +149,7 @@ class BackupService {
   Future<http.Client?> _getAuthClient() async {
     // Try silent first, then interactive
     GoogleSignInAccount? account = await _googleSignIn.signInSilently();
-    if (account == null) {
-      account = await _googleSignIn.signIn();
-    }
+    account ??= await _googleSignIn.signIn();
     if (account == null) return null;
     return await _googleSignIn.authenticatedClient();
   }
@@ -293,10 +291,9 @@ class BackupService {
       if (await backupFile.exists()) await backupFile.delete();
       await isar.copyToFile(backupFile.path);
 
-      await Share.shareXFiles(
-        [XFile(backupFile.path)],
-        text: 'ShopSync Database Backup',
-      );
+      await Share.shareXFiles([
+        XFile(backupFile.path),
+      ], text: 'ShopSync Database Backup');
     } catch (e) {
       print('Share backup error: $e');
       rethrow;

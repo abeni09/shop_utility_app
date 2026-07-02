@@ -540,7 +540,7 @@ void _showProductDialog(
                   ),
                   Switch(
                     value: hasQuota,
-                    activeColor: const Color(0xFF6366F1),
+                    activeThumbColor: const Color(0xFF6366F1),
                     onChanged: (val) {
                       setState(() {
                         hasQuota = val;
@@ -655,20 +655,34 @@ void _showProductDialog(
                     product.shelfLifeDays = shelfLife;
 
                     if (hasQuota) {
-                      final weekdayQuota = double.tryParse(weekdayQuotaController.text);
-                      final weekendQuota = double.tryParse(weekendQuotaController.text);
-                      final holidayQuota = double.tryParse(holidayQuotaController.text);
-                      final overQuotaPrice = double.tryParse(overQuotaCostController.text);
+                      final weekdayQuota = double.tryParse(
+                        weekdayQuotaController.text,
+                      );
+                      final weekendQuota = double.tryParse(
+                        weekendQuotaController.text,
+                      );
+                      final holidayQuota = double.tryParse(
+                        holidayQuotaController.text,
+                      );
+                      final overQuotaPrice = double.tryParse(
+                        overQuotaCostController.text,
+                      );
 
                       if (weekdayQuota == null || weekdayQuota < 0) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Please enter valid weekday quota')),
+                          const SnackBar(
+                            content: Text('Please enter valid weekday quota'),
+                          ),
                         );
                         return;
                       }
                       if (overQuotaPrice == null || overQuotaPrice < 0) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Please enter valid over-quota price')),
+                          const SnackBar(
+                            content: Text(
+                              'Please enter valid over-quota price',
+                            ),
+                          ),
                         );
                         return;
                       }
@@ -1355,7 +1369,9 @@ class _ProductCard extends ConsumerWidget {
                               surface: Color(0xFF0F172A),
                               onSurface: Colors.white,
                             ),
-                            dialogBackgroundColor: const Color(0xFF0F172A),
+                            dialogTheme: DialogThemeData(
+                              backgroundColor: const Color(0xFF0F172A),
+                            ),
                           ),
                           child: child!,
                         );
@@ -2028,9 +2044,7 @@ class _HolidayManagerSheet extends ConsumerWidget {
         top: 24,
       ),
       child: Container(
-        constraints: BoxConstraints(
-          maxHeight: mediaQuery.size.height * 0.75,
-        ),
+        constraints: BoxConstraints(maxHeight: mediaQuery.size.height * 0.75),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2073,7 +2087,10 @@ class _HolidayManagerSheet extends ConsumerWidget {
                       final holiday = list[index];
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.03),
                           borderRadius: BorderRadius.circular(16),
@@ -2088,13 +2105,16 @@ class _HolidayManagerSheet extends ConsumerWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  DateFormat('EEEE, MMM dd, yyyy').format(holiday.date),
+                                  DateFormat(
+                                    'EEEE, MMM dd, yyyy',
+                                  ).format(holiday.date),
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w700,
                                     fontSize: 14,
                                   ),
                                 ),
-                                if (holiday.name != null && holiday.name!.isNotEmpty) ...[
+                                if (holiday.name != null &&
+                                    holiday.name!.isNotEmpty) ...[
                                   const SizedBox(height: 4),
                                   Text(
                                     holiday.name!,
@@ -2108,28 +2128,42 @@ class _HolidayManagerSheet extends ConsumerWidget {
                               ],
                             ),
                             IconButton(
-                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                              icon: const Icon(
+                                Icons.delete_outline_rounded,
+                                color: Colors.redAccent,
+                              ),
                               onPressed: () async {
                                 final confirm = await showDialog<bool>(
                                   context: context,
                                   builder: (context) => AlertDialog(
                                     backgroundColor: const Color(0xFF0F172A),
                                     title: const Text('DELETE HOLIDAY?'),
-                                    content: Text('Are you sure you want to remove ${holiday.name ?? "this holiday"}?'),
+                                    content: Text(
+                                      'Are you sure you want to remove ${holiday.name ?? "this holiday"}?',
+                                    ),
                                     actions: [
                                       TextButton(
-                                        onPressed: () => Navigator.pop(context, false),
+                                        onPressed: () =>
+                                            Navigator.pop(context, false),
                                         child: const Text('CANCEL'),
                                       ),
                                       TextButton(
-                                        onPressed: () => Navigator.pop(context, true),
-                                        child: const Text('DELETE', style: TextStyle(color: Colors.redAccent)),
+                                        onPressed: () =>
+                                            Navigator.pop(context, true),
+                                        child: const Text(
+                                          'DELETE',
+                                          style: TextStyle(
+                                            color: Colors.redAccent,
+                                          ),
+                                        ),
                                       ),
                                     ],
                                   ),
                                 );
                                 if (confirm == true) {
-                                  await ref.read(holidayRepositoryProvider).deleteHoliday(holiday.id);
+                                  await ref
+                                      .read(holidayRepositoryProvider)
+                                      .deleteHoliday(holiday.id);
                                 }
                               },
                             ),
@@ -2143,7 +2177,10 @@ class _HolidayManagerSheet extends ConsumerWidget {
                   child: CircularProgressIndicator(color: Color(0xFF6366F1)),
                 ),
                 error: (err, _) => Center(
-                  child: Text('Error: $err', style: const TextStyle(color: Colors.redAccent)),
+                  child: Text(
+                    'Error: $err',
+                    style: const TextStyle(color: Colors.redAccent),
+                  ),
                 ),
               ),
             ),
@@ -2162,7 +2199,10 @@ class _HolidayManagerSheet extends ConsumerWidget {
                 icon: const Icon(Icons.add_rounded),
                 label: const Text(
                   'ADD NEW HOLIDAY',
-                  style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.5,
+                  ),
                 ),
                 onPressed: () => _addHoliday(context, ref),
               ),
@@ -2234,4 +2274,3 @@ class _HolidayManagerSheet extends ConsumerWidget {
     await ref.read(holidayRepositoryProvider).saveHoliday(holiday);
   }
 }
-

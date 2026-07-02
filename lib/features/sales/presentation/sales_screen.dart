@@ -1199,7 +1199,9 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
                         surface: Color(0xFF1E1E38),
                         onSurface: Colors.white,
                       ),
-                      dialogBackgroundColor: const Color(0xFF1E1E38),
+                      dialogTheme: DialogThemeData(
+                        backgroundColor: const Color(0xFF1E1E38),
+                      ),
                     ),
                     child: child!,
                   );
@@ -2910,7 +2912,9 @@ void _showRecordLossDialog(BuildContext context, WidgetRef ref) {
                                 surface: Color(0xFF0F172A),
                                 onSurface: Colors.white,
                               ),
-                              dialogBackgroundColor: const Color(0xFF0F172A),
+                              dialogTheme: DialogThemeData(
+                                backgroundColor: const Color(0xFF0F172A),
+                              ),
                             ),
                             child: child!,
                           );
@@ -3519,7 +3523,7 @@ class _SalesAnalysisTabState extends ConsumerState<_SalesAnalysisTab> {
                             controller: scrollController,
                             padding: const EdgeInsets.all(24),
                             itemCount: creditOrders.length,
-                            separatorBuilder: (_, __) =>
+                            separatorBuilder: (_, _) =>
                                 const SizedBox(height: 16),
                             itemBuilder: (context, index) {
                               final order = creditOrders[index];
