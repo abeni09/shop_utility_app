@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:shopsync/core/presentation/widgets/theme_toggle_button.dart';
 import 'package:shopsync/features/backup/presentation/backup_providers.dart';
 import 'package:shopsync/features/dashboard/presentation/dashboard_providers.dart';
 import 'package:shopsync/features/orders/presentation/order_providers.dart';
@@ -90,8 +89,6 @@ class DashboardScreen extends ConsumerWidget {
                   padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
-                      _buildGreeting(context),
-                      const SizedBox(height: 24),
                       _buildCloudSync(
                         context,
                         ref,
@@ -99,6 +96,10 @@ class DashboardScreen extends ConsumerWidget {
                         cloudNewerAsync,
                         localAheadAsync,
                       ),
+                      const SizedBox(height: 32),
+                      _buildSectionHeader('QUICK ACTIONS', context),
+                      const SizedBox(height: 16),
+                      _buildQuickActionsGrid(context, ref, crossAxisCount),
                       const SizedBox(height: 32),
                       _buildMainStats(dailyLogAsync),
                       const SizedBox(height: 24),
@@ -113,10 +114,6 @@ class DashboardScreen extends ConsumerWidget {
                       _buildSectionHeader('OPERATIONAL OVERVIEW', context),
                       const SizedBox(height: 16),
                       _buildOperationsGrid(ordersAsync, ref, crossAxisCount),
-                      const SizedBox(height: 40),
-                      _buildSectionHeader('QUICK ACTIONS', context),
-                      const SizedBox(height: 16),
-                      _buildQuickActionsGrid(context, ref, crossAxisCount),
                       const SizedBox(
                         height: 140,
                       ), // Extra space for FAB and Bottom Nav
@@ -132,91 +129,67 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   Widget _buildSliverAppBar(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeModeProvider);
-    final isDark = themeMode == ThemeMode.dark;
-
-    return SliverAppBar(
-      expandedHeight: 120,
-      collapsedHeight: 80,
-      pinned: true,
-      backgroundColor: Theme.of(
-        context,
-      ).scaffoldBackgroundColor.withValues(alpha: 0.8),
-      flexibleSpace: FlexibleSpaceBar(
-        titlePadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        centerTitle: false,
-        title: Text(
-          'SHOPSYNC',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 4,
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.9)
-                : const Color(0xFF0F172A).withValues(alpha: 0.9),
-          ),
-        ),
-      ),
-      actions: const [
-        Padding(
-          padding: EdgeInsets.only(right: 24),
-          child: ThemeToggleButton(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildGreeting(BuildContext context) {
     final hour = DateTime.now().hour;
-    String greeting = 'Good Morning';
+    String greetingText = 'Good Morning';
     IconData icon = Icons.wb_sunny_rounded;
     Color color = Colors.orangeAccent;
 
     if (hour >= 12 && hour < 17) {
-      greeting = 'Good Afternoon';
+      greetingText = 'Good Afternoon';
       icon = Icons.wb_twilight_rounded;
       color = Colors.amberAccent;
     } else if (hour >= 17 || hour < 5) {
-      greeting = 'Good Evening';
+      greetingText = 'Good Evening';
       icon = Icons.nightlight_round;
       color = Colors.indigoAccent;
     }
 
     final onSurface = Theme.of(context).colorScheme.onSurface;
 
-    return Row(
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              greeting,
-              style: TextStyle(
-                color: onSurface.withValues(alpha: 0.4),
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
+    return SliverAppBar(
+      pinned: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.8),
+      toolbarHeight: 80,
+      title: Row(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                greetingText,
+                style: TextStyle(
+                  color: onSurface.withValues(alpha: 0.4),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
               ),
-            ),
-            Text(
-              'Welcome back!',
-              style: TextStyle(
-                color: onSurface,
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.5,
+              const SizedBox(height: 2),
+              Text(
+                'Welcome back!',
+                style: TextStyle(
+                  color: onSurface,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.5,
+                ),
               ),
-            ),
-          ],
-        ),
-        const Spacer(),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(16),
+            ],
           ),
-          child: Icon(icon, color: color, size: 24),
+        ],
+      ),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 24),
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
         ),
       ],
     );
