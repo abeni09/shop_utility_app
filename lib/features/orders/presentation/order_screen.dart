@@ -501,7 +501,11 @@ class _CartItem {
   Product product;
   double amount;
   bool isBreakEven;
-  _CartItem({required this.product});
+  _CartItem({
+    required this.product,
+    this.amount = 1.0,
+    this.isBreakEven = false,
+  });
 }
 
 // ─── Cart Order Dialog ────────────────────────────────────────────────────────
