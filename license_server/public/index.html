@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ShopSync Admin Dashboard</title>
+  <title>ShopSync — Effortless Retail &amp; Sync Management</title>
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,298 +11,167 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Custom Styling -->
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="landing.css">
 </head>
 <body>
-  <!-- Login Container -->
-  <div class="login-container" id="login-container">
-    <div class="login-card">
-      <div class="login-header">
-        <div class="login-logo-icon">
-          <i data-lucide="key-round"></i>
-        </div>
-        <h2>ShopSync License Server</h2>
-        <p>Sign in to manage commercial licensing, status tracking, and database actions.</p>
+  <!-- Header -->
+  <header class="navbar">
+    <div class="logo-group">
+      <div class="logo-icon">
+        <i data-lucide="refresh-cw"></i>
       </div>
-      <form id="form-login" onsubmit="handleLogin(event)">
-        <div class="form-group">
-          <label for="login-username">Username</label>
-          <input type="text" id="login-username" placeholder="Enter administrative username" required>
-        </div>
-        <div class="form-group">
-          <label for="login-password">Password</label>
-          <input type="password" id="login-password" placeholder="Enter password" required>
-        </div>
-        <div class="error-banner" id="login-error" style="display: none; color: var(--danger); background: rgba(239, 68, 68, 0.1); padding: 12px; border-radius: 8px; font-size: 14px; margin-top: 15px; align-items: center; gap: 8px;">
-          <i data-lucide="alert-circle" style="width: 18px; height: 18px; flex-shrink: 0;"></i>
-          <span id="login-error-msg">Invalid username or password</span>
-        </div>
-        <button type="submit" class="btn btn-primary" style="margin-top: 20px; width: 100%; justify-content: center; height: 44px;">
-          <span>Sign In</span>
-          <i data-lucide="arrow-right" style="width: 16px; height: 16px; margin-left: 8px;"></i>
-        </button>
-      </form>
+      <span class="logo-text">ShopSync</span>
     </div>
-  </div>
+    <a href="/admin" class="btn btn-outline-nav">
+      <span>Admin Dashboard</span>
+      <i data-lucide="arrow-right"></i>
+    </a>
+  </header>
 
-  <div class="app-container" id="app-container" style="display: none;">
-    <!-- Sidebar Backdrop for mobile drawer -->
-    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
-
-    <!-- Mobile Header -->
-    <header class="mobile-header">
-      <div class="mobile-logo-area">
-        <div class="logo-icon" style="width: 32px; height: 32px; border-radius: 8px;">
-          <i data-lucide="key-round" style="width: 16px; height: 16px;"></i>
-        </div>
-        <span class="logo-text" style="font-size: 14px; letter-spacing: 1px;">SHOPSYNC</span>
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-content">
+      <div class="badge-new">
+        <span class="badge-dot"></span>
+        <span>Version 1.0.0 is Live</span>
       </div>
-      <button class="btn-menu-toggle" id="btn-menu-toggle" aria-label="Toggle Sidebar Menu">
-        <i data-lucide="menu"></i>
-      </button>
-    </header>
-
-    <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar-menu">
-      <div class="logo-area">
-        <div class="logo-icon">
-          <i data-lucide="key-round"></i>
-        </div>
-        <span class="logo-text">SHOPSYNC ADMIN</span>
-      </div>
-      <nav class="nav-menu" style="display: flex; flex-direction: column; height: calc(100% - 70px);">
-        <a href="#" class="nav-item active">
-          <i data-lucide="layout-dashboard"></i>
-          <span>Licenses</span>
+      <h1>Effortless Retail &amp;<br><span class="gradient-text">Real-Time Synchronization</span></h1>
+      <p class="hero-subtitle">
+        Manage sales, credit orders, expenses, and inventory sync in one unified utility app. Optimized for all Android architectures.
+      </p>
+      <div class="hero-actions">
+        <a href="#downloads" class="btn btn-primary btn-hero">
+          <i data-lucide="download"></i>
+          <span>Download App</span>
         </a>
-        <a href="#" class="nav-item" id="btn-refresh">
-          <i data-lucide="refresh-cw"></i>
-          <span>Reload DB</span>
+        <a href="#features" class="btn btn-secondary btn-hero">
+          <span>Explore Features</span>
         </a>
-        <a href="#" class="nav-item" id="btn-logout" style="margin-top: auto; color: var(--danger);">
-          <i data-lucide="log-out"></i>
-          <span>Logout</span>
-        </a>
-      </nav>
-      <div class="sidebar-footer" style="display: none;">
-        <span>v1.0.0</span>
-      </div>
-    </aside>
-
-    <!-- Main Content -->
-    <main class="main-content">
-      <!-- Header -->
-      <header class="header">
-        <div class="header-title">
-          <h1>License Dashboard</h1>
-          <p class="subtitle">Manage subscription keys, device bindings, and expiration dates.</p>
-        </div>
-      </header>
-
-      <!-- Stats Cards Grid -->
-      <section class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon primary">
-            <i data-lucide="ticket"></i>
-          </div>
-          <div class="stat-info">
-            <span class="stat-label">Total Licenses</span>
-            <span class="stat-value" id="stat-total">0</span>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon success">
-            <i data-lucide="smartphone"></i>
-          </div>
-          <div class="stat-info">
-            <span class="stat-label">Bound Devices</span>
-            <span class="stat-value" id="stat-bound">0</span>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon warning">
-            <i data-lucide="clock"></i>
-          </div>
-          <div class="stat-info">
-            <span class="stat-label">Unused Keys</span>
-            <span class="stat-value" id="stat-unused">0</span>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon danger">
-            <i data-lucide="shield-alert"></i>
-          </div>
-          <div class="stat-info">
-            <span class="stat-label">Deactivated</span>
-            <span class="stat-value" id="stat-deactivated">0</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- Search & Quick Action Controls -->
-      <section class="controls-card">
-        <div class="controls-left">
-          <div class="search-box">
-            <i data-lucide="search" class="search-icon"></i>
-            <input type="text" id="search-input" placeholder="Search by license key or device ID...">
-          </div>
-        </div>
-        <div class="controls-right">
-          <button class="btn btn-secondary" onclick="openModal('modal-custom')">
-            <i data-lucide="plus"></i>
-            <span>Create Custom Key</span>
-          </button>
-          <button class="btn btn-primary" onclick="openModal('modal-generate')">
-            <i data-lucide="sparkles"></i>
-            <span>Generate Keys</span>
-          </button>
-        </div>
-      </section>
-
-      <!-- License Table Section -->
-      <section class="table-container">
-        <table class="licenses-table">
-          <thead>
-            <tr>
-              <th>Client Name</th>
-              <th>License Key</th>
-              <th>Status</th>
-              <th>Bound Device</th>
-              <th>Created Date</th>
-              <th>Expiration</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="licenses-list">
-            <!-- Dynamically populated rows -->
-            <tr>
-              <td colspan="6" class="table-loading">
-                <i data-lucide="loader" class="spinner"></i> Loading licenses...
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-    </main>
-  </div>
-
-  <!-- Modal: Generate Keys -->
-  <div class="modal-backdrop" id="modal-generate">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Generate Subscription Keys</h2>
-        <button class="close-btn" onclick="closeModal('modal-generate')"><i data-lucide="x"></i></button>
-      </div>
-      <form id="form-generate" onsubmit="handleGenerate(event)">
-        <div class="form-group">
-          <label for="generate-client-name">Client Name (Optional)</label>
-          <input type="text" id="generate-client-name" placeholder="e.g. Acme Corp">
-        </div>
-        <div class="form-group">
-          <label for="generate-count">Number of Keys to Generate</label>
-          <input type="number" id="generate-count" min="1" max="100" value="5" required>
-          <span class="form-hint">Generates secure keys in SYNC-XXXX-XXXX-XXXX-XXXX format.</span>
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-text" onclick="closeModal('modal-generate')">Cancel</button>
-          <button type="submit" class="btn btn-primary">Generate Now</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Modal: Create Custom Key -->
-  <div class="modal-backdrop" id="modal-custom">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Create Custom License Key</h2>
-        <button class="close-btn" onclick="closeModal('modal-custom')"><i data-lucide="x"></i></button>
-      </div>
-      <form id="form-custom" onsubmit="handleCreateCustom(event)">
-        <div class="form-group">
-          <label for="custom-client-name">Client Name (Optional)</label>
-          <input type="text" id="custom-client-name" placeholder="e.g. Premium Client">
-        </div>
-        <div class="form-group">
-          <label for="custom-key">Custom License Key Name</label>
-          <input type="text" id="custom-key" placeholder="e.g. SHOP-SPECIAL-2026" required>
-          <span class="form-hint">Must be unique and contains letters, numbers, or hyphens.</span>
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-text" onclick="closeModal('modal-custom')">Cancel</button>
-          <button type="submit" class="btn btn-secondary">Create Key</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Modal: Edit Key Details -->
-  <div class="modal-backdrop" id="modal-edit">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Edit License Details</h2>
-        <button class="close-btn" onclick="closeModal('modal-edit')"><i data-lucide="x"></i></button>
-      </div>
-      <form id="form-edit" onsubmit="handleSaveEdit(event)">
-        <input type="hidden" id="edit-key-id">
-        <div class="form-group">
-          <label for="edit-client-name">Client Name</label>
-          <input type="text" id="edit-client-name" placeholder="No client assigned">
-        </div>
-        <div class="form-group">
-          <label>License Key</label>
-          <input type="text" id="edit-key-display" class="input-disabled" readonly>
-        </div>
-        <div class="form-group">
-          <label for="edit-device-id">Bound Device ID</label>
-          <div class="input-row">
-            <input type="text" id="edit-device-id" placeholder="Not bound">
-            <button type="button" class="btn btn-outline" id="btn-unbind" onclick="unbindDevice()">Unbind Device</button>
-          </div>
-          <span class="form-hint font-danger">Warning: Unbinding will allow the license to be activated on a new device.</span>
-        </div>
-        <div class="form-group">
-          <label for="edit-expiry-date">Expiration Date</label>
-          <input type="date" id="edit-expiry-date">
-          <span class="form-hint">Leave blank for no expiry date.</span>
-        </div>
-        <div class="form-group checkbox-group">
-          <input type="checkbox" id="edit-is-active">
-          <label for="edit-is-active">Key is Active (If unchecked, users cannot use this key)</label>
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-text" onclick="closeModal('modal-edit')">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save Changes</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Modal: Custom Delete Confirmation -->
-  <div class="modal-backdrop" id="modal-delete">
-    <div class="modal-content" style="width: 420px;">
-      <div class="modal-header">
-        <h2 style="color: var(--danger);">Delete License Key</h2>
-        <button class="close-btn" onclick="closeModal('modal-delete')"><i data-lucide="x"></i></button>
-      </div>
-      <div style="text-align: center; padding: 10px 0 20px 0;">
-        <div style="font-size: 48px; color: var(--danger); margin-bottom: 12px; display: flex; justify-content: center;">
-          <i data-lucide="alert-triangle" style="width: 48px; height: 48px;"></i>
-        </div>
-        <p style="font-size: 15px; margin-bottom: 8px;">Are you sure you want to permanently delete license key:</p>
-        <p><span id="delete-key-display" class="key-code" style="font-size: 15px;">SYNC-XXXX-XXXX</span></p>
-        <p class="form-hint font-danger" style="margin-top: 14px; padding: 0 10px; line-height: 1.4;">
-          This action cannot be undone. Activated devices using this key will be revoked immediately.
-        </p>
-      </div>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-text" onclick="closeModal('modal-delete')">Cancel</button>
-        <button type="button" class="btn btn-primary" style="background-color: var(--danger);" id="btn-confirm-delete">Yes, Delete Key</button>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- Custom script logic -->
-  <script src="app.js"></script>
+  <!-- Features Section -->
+  <section class="features" id="features">
+    <div class="section-header">
+      <h2>Why Choose ShopSync?</h2>
+      <p>Powerful features tailored for seamless retail management and bookkeeping.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feat-icon primary">
+          <i data-lucide="zap"></i>
+        </div>
+        <h3>Command Dock</h3>
+        <p>Instant access to quick sales, real-time stock receiving, and requisition records right from your dashboard.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon success">
+          <i data-lucide="wallet"></i>
+        </div>
+        <h3>Interactive Wallet</h3>
+        <p>Consolidated list views of sales, opex expenses, customer credits, and supplier settlements in deep detail.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon warning">
+          <i data-lucide="database"></i>
+        </div>
+        <h3>Offline-First DB</h3>
+        <p>Underpinned by ultra-fast Isar database. Works offline and syncs seamlessly when connection is active.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Downloads Section -->
+  <section class="downloads" id="downloads">
+    <div class="section-header">
+      <h2>Download for Android</h2>
+      <p>Select the APK package optimized for your device's processor architecture.</p>
+    </div>
+    
+    <div class="downloads-container">
+      <!-- Architecture cards list -->
+      <div class="download-card recommended">
+        <div class="rec-label">Recommended</div>
+        <div class="card-header-download">
+          <div class="arch-info">
+            <h3>ARM64-v8a</h3>
+            <p>Modern devices (64-bit)</p>
+          </div>
+          <div class="apk-size" id="size-arm64">23.0 MB</div>
+        </div>
+        <div class="card-body-download">
+          <p>Optimized for modern Android smartphones (Snapdragon, MediaTek, Exynos 64-bit processors).</p>
+          <a href="/downloads/app-arm64-v8a-release.apk" class="btn btn-primary btn-download" download>
+            <i data-lucide="download"></i>
+            <span>Download APK</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="download-card">
+        <div class="card-header-download">
+          <div class="arch-info">
+            <h3>armeabi-v7a</h3>
+            <p>Older devices (32-bit)</p>
+          </div>
+          <div class="apk-size" id="size-arm32">20.6 MB</div>
+        </div>
+        <div class="card-body-download">
+          <p>Compatible with older 32-bit Android phones and low-end tablets.</p>
+          <a href="/downloads/app-armeabi-v7a-release.apk" class="btn btn-secondary btn-download" download>
+            <i data-lucide="download"></i>
+            <span>Download APK</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="download-card">
+        <div class="card-header-download">
+          <div class="arch-info">
+            <h3>x86_64</h3>
+            <p>Emulators &amp; Chromebooks</p>
+          </div>
+          <div class="apk-size" id="size-x86">24.7 MB</div>
+        </div>
+        <div class="card-body-download">
+          <p>For Android emulators, ChromeOS devices, and Intel/AMD-based tablet systems.</p>
+          <a href="/downloads/app-x86_64-release.apk" class="btn btn-secondary btn-download" download>
+            <i data-lucide="download"></i>
+            <span>Download APK</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="download-card">
+        <div class="card-header-download">
+          <div class="arch-info">
+            <h3>Universal APK</h3>
+            <p>All architectures (Fat APK)</p>
+          </div>
+          <div class="apk-size" id="size-universal">64.7 MB</div>
+        </div>
+        <div class="card-body-download">
+          <p>Contains binaries for all architectures. Works on any device but has a larger file size.</p>
+          <a href="/downloads/app-release.apk" class="btn btn-secondary btn-download" download>
+            <i data-lucide="download"></i>
+            <span>Download APK</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-bottom">
+      <p>&copy; 2026 ShopSync. All rights reserved.</p>
+      <p class="footer-credits">Powered by NestJS &amp; Flutter</p>
+    </div>
+  </footer>
+
+  <script>
+    lucide.createIcons();
+  </script>
 </body>
 </html>
