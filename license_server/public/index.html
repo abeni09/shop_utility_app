@@ -46,8 +46,24 @@
   </div>
 
   <div class="app-container" id="app-container" style="display: none;">
+    <!-- Sidebar Backdrop for mobile drawer -->
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+      <div class="mobile-logo-area">
+        <div class="logo-icon" style="width: 32px; height: 32px; border-radius: 8px;">
+          <i data-lucide="key-round" style="width: 16px; height: 16px;"></i>
+        </div>
+        <span class="logo-text" style="font-size: 14px; letter-spacing: 1px;">SHOPSYNC</span>
+      </div>
+      <button class="btn-menu-toggle" id="btn-menu-toggle" aria-label="Toggle Sidebar Menu">
+        <i data-lucide="menu"></i>
+      </button>
+    </header>
+
     <!-- Sidebar -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar-menu">
       <div class="logo-area">
         <div class="logo-icon">
           <i data-lucide="key-round"></i>

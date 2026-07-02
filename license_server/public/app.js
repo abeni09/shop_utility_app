@@ -121,6 +121,32 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Mobile drawer controls
+  const btnMenuToggle = document.getElementById('btn-menu-toggle');
+  const sidebarMenu = document.getElementById('sidebar-menu');
+  const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+  
+  if (btnMenuToggle && sidebarMenu && sidebarBackdrop) {
+    btnMenuToggle.addEventListener('click', () => {
+      sidebarMenu.classList.add('open');
+      sidebarBackdrop.classList.add('active');
+    });
+    
+    sidebarBackdrop.addEventListener('click', () => {
+      sidebarMenu.classList.remove('open');
+      sidebarBackdrop.classList.remove('active');
+    });
+
+    // Close drawer when navigation links are clicked
+    const drawerLinks = sidebarMenu.querySelectorAll('.nav-item');
+    drawerLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        sidebarMenu.classList.remove('open');
+        sidebarBackdrop.classList.remove('active');
+      });
+    });
+  }
+
   // Custom delete confirm button
   document.getElementById('btn-confirm-delete').addEventListener('click', submitDeleteLicense);
 });
