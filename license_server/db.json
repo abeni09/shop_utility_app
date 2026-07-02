@@ -37,5 +37,14 @@
       "createdAt": "2026-07-02T06:02:17.809Z",
       "isActive": true
     }
-  }
+  },
+  "messages": [
+    {
+      "id": "2fe60164-a08e-4e68-9782-1710fd43f5dd",
+      "name": "Test User",
+      "email": "test@shopsync.com",
+      "message": "This is a message to check dashboard display integration.",
+      "createdAt": "2026-07-02T11:34:50.287Z"
+    }
+  ]
 }

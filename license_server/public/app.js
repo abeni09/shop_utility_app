@@ -1,6 +1,8 @@
 // Application State
 let allLicenses = [];
+let allMessages = [];
 let keyToDelete = '';
+let currentTab = 'licenses';
 
 // Helper to escape HTML to prevent XSS vulnerabilities
 function escapeHTML(str) {
@@ -36,7 +38,7 @@ function checkAuthStatus() {
   if (token) {
     loginContainer.style.display = 'none';
     appContainer.style.display = 'flex';
-    fetchLicenses();
+    showTab(currentTab);
   } else {
     loginContainer.style.display = 'flex';
     appContainer.style.display = 'none';
@@ -110,7 +112,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Refresh button
   btnRefresh.addEventListener('click', (e) => {
     e.preventDefault();
-    fetchLicenses();
+    if (currentTab === 'licenses') {
+      fetchLicenses();
+    } else {
+      fetchMessages();
+    }
   });
 
   // Logout button
@@ -503,4 +509,157 @@ function openModal(id) {
 function closeModal(id) {
   const modal = document.getElementById(id);
   if (modal) modal.classList.remove('open');
+}
+
+// Navigation Tabs Toggle
+function showTab(tab) {
+  currentTab = tab;
+
+  const navLicenses = document.getElementById('nav-licenses');
+  const navMessages = document.getElementById('nav-messages');
+
+  const statsSection = document.getElementById('stats-section');
+  const controlsSection = document.getElementById('controls-section');
+  const licensesTableSection = document.getElementById('licenses-table-section');
+  const messagesSection = document.getElementById('messages-section');
+
+  const pageTitle = document.getElementById('page-title');
+  const pageSubtitle = document.getElementById('page-subtitle');
+
+  if (tab === 'licenses') {
+    navLicenses.classList.add('active');
+    navMessages.classList.remove('active');
+
+    statsSection.style.display = 'grid';
+    controlsSection.style.display = 'flex';
+    licensesTableSection.style.display = 'block';
+    messagesSection.style.display = 'none';
+
+    pageTitle.textContent = 'License Dashboard';
+    pageSubtitle.textContent = 'Manage subscription keys, device bindings, and expiration dates.';
+
+    fetchLicenses();
+  } else if (tab === 'messages') {
+    navLicenses.classList.remove('active');
+    navMessages.classList.add('active');
+
+    statsSection.style.display = 'none';
+    controlsSection.style.display = 'none';
+    licensesTableSection.style.display = 'none';
+    messagesSection.style.display = 'block';
+
+    pageTitle.textContent = 'Contact Messages';
+    pageSubtitle.textContent = 'Read and manage user inquiries sent from the contact form.';
+
+    fetchMessages();
+  }
+}
+
+// Fetch all contact messages
+async function fetchMessages() {
+  const messagesListEl = document.getElementById('messages-list');
+  messagesListEl.innerHTML = `
+    <tr>
+      <td colspan="5" class="table-loading">
+        <i data-lucide="loader" class="spinner"></i> Loading messages...
+      </td>
+    </tr>
+  `;
+  lucide.createIcons();
+
+  try {
+    const response = await fetch('/api/messages', {
+      headers: getAuthHeaders()
+    });
+    if (response.status === 401) {
+      handleUnauthorized();
+      return;
+    }
+    if (!response.ok) throw new Error('Failed to fetch messages');
+    allMessages = await response.json();
+    renderMessages(allMessages);
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+    messagesListEl.innerHTML = `
+      <tr>
+        <td colspan="5" class="table-loading font-danger">
+          <i data-lucide="alert-triangle"></i> Error loading messages. Please make sure you are signed in.
+        </td>
+      </tr>
+    `;
+    lucide.createIcons();
+  }
+}
+
+// Render messages to messages list table
+function renderMessages(messages) {
+  const messagesListEl = document.getElementById('messages-list');
+  if (messages.length === 0) {
+    messagesListEl.innerHTML = `
+      <tr>
+        <td colspan="5" class="table-loading">
+          No contact messages found.
+        </td>
+      </tr>
+    `;
+    lucide.createIcons();
+    return;
+  }
+
+  const rows = messages.map(msg => {
+    const createdDate = new Date(msg.createdAt).toLocaleString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    return `
+      <tr>
+        <td style="white-space: nowrap; font-family: var(--font-mono); font-size: 13px;">${createdDate}</td>
+        <td><span style="font-weight: 600;">${escapeHTML(msg.name)}</span></td>
+        <td><a href="mailto:${escapeHTML(msg.email)}" style="color: #818cf8; text-decoration: none;">${escapeHTML(msg.email)}</a></td>
+        <td style="max-width: 400px; word-wrap: break-word; color: var(--text-muted); line-height: 1.5;">${escapeHTML(msg.message)}</td>
+        <td>
+          <button class="btn-icon danger" onclick="handleDeleteMessage('${escapeHTML(msg.id)}')" title="Delete Message">
+            <i data-lucide="trash-2"></i>
+          </button>
+        </td>
+      </tr>
+    `;
+  });
+
+  messagesListEl.innerHTML = rows.join('');
+  lucide.createIcons();
+}
+
+// Handle message delete click
+function handleDeleteMessage(id) {
+  if (confirm("Are you sure you want to permanently delete this contact message?")) {
+    submitDeleteMessage(id);
+  }
+}
+
+// Perform message deletion request
+async function submitDeleteMessage(id) {
+  try {
+    const response = await fetch(`/api/messages/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    if (response.status === 401) {
+      handleUnauthorized();
+      return;
+    }
+    const result = await response.json();
+    if (result.success) {
+      fetchMessages();
+    } else {
+      alert(result.message || 'Error deleting message');
+    }
+  } catch (error) {
+    console.error('Error deleting message:', error);
+    alert('Network error deleting message');
+  }
 }

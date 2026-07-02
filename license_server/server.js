@@ -377,6 +377,56 @@ app.delete('/api/licenses/:key', requireAuth, (req, res) => {
   res.json({ success: true, message: 'License key deleted successfully' });
 });
 
+// CONTACT MESSAGES API ENDPOINTS
+
+// 1. Submit a contact message (Public)
+app.post('/api/messages', (req, res) => {
+  const { name, email, message } = req.body;
+  if (!name || !name.trim() || !email || !email.trim() || !message || !message.trim()) {
+    return res.status(400).json({ success: false, message: 'All fields are required.' });
+  }
+
+  const db = loadDB();
+  const newMessage = {
+    id: crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(8).toString('hex'),
+    name: name.trim(),
+    email: email.trim(),
+    message: message.trim(),
+    createdAt: new Date().toISOString()
+  };
+
+  db.messages = db.messages || [];
+  db.messages.push(newMessage);
+  saveDB(db);
+
+  return res.status(201).json({ success: true, message: 'Message submitted successfully' });
+});
+
+// 2. Get all contact messages (Admin Protected)
+app.get('/api/messages', requireAuth, (req, res) => {
+  const db = loadDB();
+  const messages = db.messages || [];
+  // Sort by createdAt descending
+  messages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  res.json(messages);
+});
+
+// 3. Delete a contact message (Admin Protected)
+app.delete('/api/messages/:id', requireAuth, (req, res) => {
+  const { id } = req.params;
+  const db = loadDB();
+  db.messages = db.messages || [];
+
+  const index = db.messages.findIndex(m => m.id === id);
+  if (index === -1) {
+    return res.status(404).json({ success: false, message: 'Message not found' });
+  }
+
+  db.messages.splice(index, 1);
+  saveDB(db);
+  res.json({ success: true, message: 'Message deleted successfully' });
+});
+
 // Seed an initial demo key on startup if database is empty
 const db = loadDB();
 const initialDemoKey = 'SYNC-DEMO-KEY-2026';

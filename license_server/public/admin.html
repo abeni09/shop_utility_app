@@ -71,9 +71,13 @@
         <span class="logo-text">SHOPSYNC ADMIN</span>
       </div>
       <nav class="nav-menu" style="display: flex; flex-direction: column; height: calc(100% - 70px);">
-        <a href="#" class="nav-item active">
+        <a href="#" class="nav-item active" id="nav-licenses" onclick="showTab('licenses')">
           <i data-lucide="layout-dashboard"></i>
           <span>Licenses</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-messages" onclick="showTab('messages')">
+          <i data-lucide="mail"></i>
+          <span>Messages</span>
         </a>
         <a href="#" class="nav-item" id="btn-refresh">
           <i data-lucide="refresh-cw"></i>
@@ -89,18 +93,18 @@
       </div>
     </aside>
 
-    <!-- Main Content -->
+     <!-- Main Content -->
     <main class="main-content">
       <!-- Header -->
       <header class="header">
         <div class="header-title">
-          <h1>License Dashboard</h1>
-          <p class="subtitle">Manage subscription keys, device bindings, and expiration dates.</p>
+          <h1 id="page-title">License Dashboard</h1>
+          <p class="subtitle" id="page-subtitle">Manage subscription keys, device bindings, and expiration dates.</p>
         </div>
       </header>
 
       <!-- Stats Cards Grid -->
-      <section class="stats-grid">
+      <section class="stats-grid" id="stats-section">
         <div class="stat-card">
           <div class="stat-icon primary">
             <i data-lucide="ticket"></i>
@@ -140,7 +144,7 @@
       </section>
 
       <!-- Search & Quick Action Controls -->
-      <section class="controls-card">
+      <section class="controls-card" id="controls-section">
         <div class="controls-left">
           <div class="search-box">
             <i data-lucide="search" class="search-icon"></i>
@@ -160,7 +164,7 @@
       </section>
 
       <!-- License Table Section -->
-      <section class="table-container">
+      <section class="table-container" id="licenses-table-section">
         <table class="licenses-table">
           <thead>
             <tr>
@@ -176,8 +180,31 @@
           <tbody id="licenses-list">
             <!-- Dynamically populated rows -->
             <tr>
-              <td colspan="6" class="table-loading">
+              <td colspan="7" class="table-loading">
                 <i data-lucide="loader" class="spinner"></i> Loading licenses...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Messages Section -->
+      <section class="table-container" id="messages-section" style="display: none;">
+        <table class="licenses-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Message</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="messages-list">
+            <!-- Dynamically populated messages rows -->
+            <tr>
+              <td colspan="5" class="table-loading">
+                <i data-lucide="loader" class="spinner"></i> Loading messages...
               </td>
             </tr>
           </tbody>

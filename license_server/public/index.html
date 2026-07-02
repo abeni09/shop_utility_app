@@ -282,7 +282,8 @@
     <div class="contact-container">
       <div class="contact-info">
         <h2>Get in Touch</h2>
-        <p>Have questions about ShopSync licensing, deployments, or enterprise setup? Reach out to our technical support team.</p>
+        <p>Have questions about ShopSync licensing, deployments, or enterprise setup? Reach out to our technical support
+          team.</p>
         <div class="contact-cards">
           <!-- Office -->
           <div class="contact-detail-card">
@@ -301,7 +302,7 @@
             </div>
             <div class="contact-text">
               <h4>Email Support</h4>
-              <p>support@shopsync.vought.com</p>
+              <p>abenij09@gmail.com</p>
             </div>
           </div>
           <!-- Phone -->
@@ -311,7 +312,7 @@
             </div>
             <div class="contact-text">
               <h4>Contact Phone</h4>
-              <p>+251 911 000 000</p>
+              <p>+251 949 442 279</p>
             </div>
           </div>
         </div>
@@ -320,7 +321,7 @@
       <!-- Contact Form -->
       <div class="contact-form-container">
         <h3>Send us a Message</h3>
-        <form action="#" method="POST" onsubmit="event.preventDefault(); alert('Message sent successfully!');">
+        <form id="contact-form">
           <div class="form-group">
             <label for="name">Your Name</label>
             <input type="text" id="name" placeholder="John Doe" required>
@@ -355,6 +356,42 @@
   </script>
   <script>
     document.getElementById('current-year').textContent = new Date().getFullYear();
+
+    // Handle Contact Form Submission
+    document.getElementById('contact-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const message = document.getElementById('message').value;
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const submitText = submitBtn.querySelector('span');
+
+      try {
+        submitBtn.disabled = true;
+        submitText.textContent = 'Sending...';
+
+        const res = await fetch('/api/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ name, email, message })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          alert('Message sent successfully!');
+          e.target.reset();
+        } else {
+          alert('Failed to send: ' + (data.message || 'Error occurred'));
+        }
+      } catch (err) {
+        alert('Network error. Please try again later.');
+      } finally {
+        submitBtn.disabled = false;
+        submitText.textContent = 'Send Message';
+      }
+    });
   </script>
 </body>
 
