@@ -835,6 +835,110 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
     );
   }
 
+  void _showWalletDetailBottomSheet({
+    required BuildContext context,
+    required String title,
+    required String description,
+    required double totalValue,
+    required Color color,
+    required IconData icon,
+    required List<Widget> items,
+    required String emptyMessage,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E38),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title.toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'ETB ${totalValue.toStringAsFixed(0)}',
+                        style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  description,
+                  style: const TextStyle(color: Colors.white30, fontSize: 11),
+                ),
+                const SizedBox(height: 20),
+                if (items.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 40),
+                    child: Center(
+                      child: Text(
+                        emptyMessage,
+                        style: const TextStyle(
+                          color: Colors.white24,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  Flexible(
+                    child: ListView(
+                      shrinkWrap: true,
+                      physics: const BouncingScrollPhysics(),
+                      children: items,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildWalletSliver(BuildContext context, WidgetRef ref) {
     final walletDataAsync = ref.watch(walletDataProvider);
     final productsAsync = ref.watch(productsProvider);
@@ -876,14 +980,531 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
               _buildWalletDateRangeHeader(context, ref, wallet.range),
               const SizedBox(height: 24),
               _buildWalletOverview(
-                totalSales,
-                cashCollected,
-                creditReceivables,
-                totalExpenses,
-                totalLosses,
-                supplierSettlements,
-                supplierDuesIncurred,
-                unsoldStockValue,
+                sales: totalSales,
+                cash: cashCollected,
+                credit: creditReceivables,
+                expenses: totalExpenses,
+                losses: totalLosses,
+                settlements: supplierSettlements,
+                duesIncurred: supplierDuesIncurred,
+                unsoldStock: unsoldStockValue,
+                onSalesTap: () {
+                  final itemsList = <Widget>[];
+                  for (var o in wallet.orders) {
+                    final prod = products.firstWhere(
+                      (p) => p.id == o.productId,
+                      orElse: () => Product()
+                        ..name = 'Unknown Product'
+                        ..costPrice = 0.0,
+                    );
+                    final totalVal =
+                        o.amount * o.sellingPriceAtTime +
+                        (o.addonName != null
+                            ? (o.addonPrice ?? 0.0) * (o.addonAmount ?? 0.0)
+                            : 0.0);
+                    final df = DateFormat('MMM dd, yyyy HH:mm');
+                    final paymentLabel = o.paymentMethod.name.toUpperCase();
+
+                    itemsList.add(
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.02),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.05),
+                          ),
+                        ),
+                        child: ListTile(
+                          leading: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFF3B82F6,
+                              ).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child:
+                                prod.imagePath != null &&
+                                    File(prod.imagePath!).existsSync()
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.file(
+                                      File(prod.imagePath!),
+                                      width: 40,
+                                      height: 40,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.shopping_bag_rounded,
+                                    color: Color(0xFF3B82F6),
+                                    size: 20,
+                                  ),
+                          ),
+                          title: Text(
+                            prod.name,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          subtitle: Text(
+                            'Qty: ${o.amount.toStringAsFixed(0)} • $paymentLabel • Customer: ${o.customerName}\n${df.format(o.dueDate)}',
+                            style: const TextStyle(
+                              color: Colors.white30,
+                              fontSize: 11,
+                            ),
+                          ),
+                          trailing: Text(
+                            'ETB ${totalVal.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              color: Color(0xFF3B82F6),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                  _showWalletDetailBottomSheet(
+                    context: context,
+                    title: 'Total Sales List',
+                    description:
+                        'Detailed list of all product sales in this period.',
+                    totalValue: totalSales,
+                    color: const Color(0xFF3B82F6),
+                    icon: Icons.trending_up_rounded,
+                    items: itemsList,
+                    emptyMessage: 'No sales recorded in this period.',
+                  );
+                },
+                onCreditTap: () {
+                  final itemsList = <Widget>[];
+                  final creditOrders = wallet.orders
+                      .where((ord) => ord.paymentMethod == PaymentMethod.credit)
+                      .toList();
+                  for (var o in creditOrders) {
+                    final prod = products.firstWhere(
+                      (p) => p.id == o.productId,
+                      orElse: () => Product()
+                        ..name = 'Unknown Product'
+                        ..costPrice = 0.0,
+                    );
+                    final totalVal =
+                        o.amount * o.sellingPriceAtTime +
+                        (o.addonName != null
+                            ? (o.addonPrice ?? 0.0) * (o.addonAmount ?? 0.0)
+                            : 0.0);
+                    final receivable = totalVal - o.advancePayment;
+                    final df = DateFormat('MMM dd, yyyy HH:mm');
+
+                    itemsList.add(
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.02),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.05),
+                          ),
+                        ),
+                        child: ListTile(
+                          leading: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFFF59E0B,
+                              ).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child:
+                                prod.imagePath != null &&
+                                    File(prod.imagePath!).existsSync()
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.file(
+                                      File(prod.imagePath!),
+                                      width: 40,
+                                      height: 40,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.credit_card_rounded,
+                                    color: Color(0xFFF59E0B),
+                                    size: 20,
+                                  ),
+                          ),
+                          title: Text(
+                            prod.name,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          subtitle: Text(
+                            'Customer: ${o.customerName} • Qty: ${o.amount.toStringAsFixed(0)}\nTotal: ETB ${totalVal.toStringAsFixed(0)} • Paid: ETB ${o.advancePayment.toStringAsFixed(0)} • Due: ${df.format(o.dueDate)}',
+                            style: const TextStyle(
+                              color: Colors.white30,
+                              fontSize: 11,
+                            ),
+                          ),
+                          trailing: Text(
+                            'ETB ${receivable.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              color: Color(0xFFF59E0B),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                  _showWalletDetailBottomSheet(
+                    context: context,
+                    title: 'Credit Orders List',
+                    description:
+                        'Detailed list of all sales made on credit/receivables.',
+                    totalValue: creditReceivables,
+                    color: const Color(0xFFF59E0B),
+                    icon: Icons.credit_card_rounded,
+                    items: itemsList,
+                    emptyMessage: 'No credit orders recorded in this period.',
+                  );
+                },
+                onExpensesTap: () {
+                  final itemsList = wallet.expenses.map((inst) {
+                    final df = DateFormat('MMM dd, yyyy');
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.02),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.05),
+                        ),
+                      ),
+                      child: ListTile(
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(
+                              0xFFF97316,
+                            ).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.money_off_rounded,
+                            color: Color(0xFFF97316),
+                            size: 20,
+                          ),
+                        ),
+                        title: Text(
+                          inst.expense.description,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        subtitle: Text(
+                          '${df.format(inst.date)} • ${inst.expense.recurrence.name.toUpperCase()}',
+                          style: const TextStyle(
+                            color: Colors.white30,
+                            fontSize: 11,
+                          ),
+                        ),
+                        trailing: Text(
+                          '-ETB ${inst.expense.amount.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                            color: Color(0xFFF87171),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList();
+                  _showWalletDetailBottomSheet(
+                    context: context,
+                    title: 'Operational Expenses',
+                    description:
+                        'List of all expenses incurred in this period.',
+                    totalValue: totalExpenses,
+                    color: const Color(0xFFF97316),
+                    icon: Icons.money_off_rounded,
+                    items: itemsList,
+                    emptyMessage: 'No expenses recorded in this period.',
+                  );
+                },
+                onLossesTap: () {
+                  final itemsList = wallet.losses.map((adj) {
+                    final df = DateFormat('MMM dd, yyyy');
+                    final prod = products.firstWhere(
+                      (p) => p.id == adj.productId,
+                      orElse: () => Product()
+                        ..name = 'Unknown Product'
+                        ..costPrice = 0.0,
+                    );
+                    final cost = adj.amount.abs() * prod.costPrice;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.02),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.05),
+                        ),
+                      ),
+                      child: ListTile(
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(
+                              0xFFEF4444,
+                            ).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child:
+                              prod.imagePath != null &&
+                                  File(prod.imagePath!).existsSync()
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Image.file(
+                                    File(prod.imagePath!),
+                                    width: 40,
+                                    height: 40,
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.remove_shopping_cart_rounded,
+                                  color: Color(0xFFEF4444),
+                                  size: 20,
+                                ),
+                        ),
+                        title: Text(
+                          prod.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        subtitle: Text(
+                          '${df.format(adj.date)} • ${adj.amount.abs().toStringAsFixed(0)} units lost (${adj.reason.toUpperCase()})',
+                          style: const TextStyle(
+                            color: Colors.white30,
+                            fontSize: 11,
+                          ),
+                        ),
+                        trailing: Text(
+                          '-ETB ${cost.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                            color: Color(0xFFF87171),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList();
+                  _showWalletDetailBottomSheet(
+                    context: context,
+                    title: 'Inventory Losses',
+                    description:
+                        'Details of stock adjustments and inventory losses (at cost price).',
+                    totalValue: totalLosses,
+                    color: const Color(0xFFEF4444),
+                    icon: Icons.remove_shopping_cart_rounded,
+                    items: itemsList,
+                    emptyMessage:
+                        'No inventory losses recorded in this period.',
+                  );
+                },
+                onDuesIncurredTap: () {
+                  final receivedItems = wallet.receivedStockItems
+                      .where((item) => item.dailyStock.receivedQuantity > 0)
+                      .toList();
+                  final itemsList = receivedItems.map((item) {
+                    final ds = item.dailyStock;
+                    final df = DateFormat('MMM dd, yyyy');
+                    final prod = products.firstWhere(
+                      (p) => p.id == ds.productId,
+                      orElse: () => Product()
+                        ..name = 'Unknown Product'
+                        ..costPrice = 0.0,
+                    );
+                    final cost = ds.receivedQuantity * prod.costPrice;
+                    final suppliers = ref.watch(suppliersProvider).value ?? [];
+                    final supName = prod.supplierId != null
+                        ? suppliers
+                              .firstWhere(
+                                (sup) => sup.id == prod.supplierId,
+                                orElse: () =>
+                                    Supplier()
+                                      ..name = 'Supplier #${prod.supplierId}',
+                              )
+                              .name
+                        : 'No Supplier';
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.02),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.05),
+                        ),
+                      ),
+                      child: ListTile(
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(
+                              0xFFEC4899,
+                            ).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child:
+                              prod.imagePath != null &&
+                                  File(prod.imagePath!).existsSync()
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Image.file(
+                                    File(prod.imagePath!),
+                                    width: 40,
+                                    height: 40,
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.local_shipping_rounded,
+                                  color: Color(0xFFEC4899),
+                                  size: 20,
+                                ),
+                        ),
+                        title: Text(
+                          prod.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Received: ${ds.receivedQuantity.toStringAsFixed(0)} units • Supplier: $supName • ${df.format(ds.date)}',
+                          style: const TextStyle(
+                            color: Colors.white30,
+                            fontSize: 11,
+                          ),
+                        ),
+                        trailing: Text(
+                          '+ETB ${cost.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                            color: Color(0xFFEC4899),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList();
+                  _showWalletDetailBottomSheet(
+                    context: context,
+                    title: 'Dues Incurred',
+                    description:
+                        'Cost of daily stock received from suppliers in this period.',
+                    totalValue: supplierDuesIncurred,
+                    color: const Color(0xFFEC4899),
+                    icon: Icons.local_shipping_rounded,
+                    items: itemsList,
+                    emptyMessage: 'No dues incurred in this period.',
+                  );
+                },
+                onDuesSettledTap: () {
+                  final itemsList = wallet.settlements.map((s) {
+                    final df = DateFormat('MMM dd, yyyy');
+                    final suppliers = ref.watch(suppliersProvider).value ?? [];
+                    final supName = suppliers
+                        .firstWhere(
+                          (sup) => sup.id == s.supplierId,
+                          orElse: () =>
+                              Supplier()..name = 'Supplier #${s.supplierId}',
+                        )
+                        .name;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.02),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.05),
+                        ),
+                      ),
+                      child: ListTile(
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(
+                              0xFF8B5CF6,
+                            ).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.handshake_rounded,
+                            color: Color(0xFF8B5CF6),
+                            size: 20,
+                          ),
+                        ),
+                        title: Text(
+                          supName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Settlement Date: ${df.format(s.date)}',
+                          style: const TextStyle(
+                            color: Colors.white30,
+                            fontSize: 11,
+                          ),
+                        ),
+                        trailing: Text(
+                          '-ETB ${s.amount.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                            color: Color(0xFFEF4444),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList();
+                  _showWalletDetailBottomSheet(
+                    context: context,
+                    title: 'Dues Settled',
+                    description:
+                        'Payments settled to suppliers in this period.',
+                    totalValue: supplierSettlements,
+                    color: const Color(0xFF8B5CF6),
+                    icon: Icons.handshake_rounded,
+                    items: itemsList,
+                    emptyMessage: 'No dues settled in this period.',
+                  );
+                },
                 onUnsoldStockTap: () {
                   showModalBottomSheet(
                     context: context,
@@ -960,16 +1581,24 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
                                 leading: Container(
                                   width: 40,
                                   height: 40,
-                                  padding: prod.imagePath != null && File(prod.imagePath!).existsSync()
+                                  padding:
+                                      prod.imagePath != null &&
+                                          File(prod.imagePath!).existsSync()
                                       ? EdgeInsets.zero
                                       : const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF06B6D4).withValues(alpha: 0.1),
+                                    color: const Color(
+                                      0xFF06B6D4,
+                                    ).withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
-                                  child: prod.imagePath != null && File(prod.imagePath!).existsSync()
+                                  child:
+                                      prod.imagePath != null &&
+                                          File(prod.imagePath!).existsSync()
                                       ? ClipRRect(
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
                                           child: Image.file(
                                             File(prod.imagePath!),
                                             width: 40,
@@ -1136,8 +1765,6 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
               ),
               const SizedBox(height: 24),
               _buildWalletNetPositions(netCashPosition, netProfit),
-              const SizedBox(height: 32),
-              _buildWalletDetailsSection(context, ref, wallet, products),
               const SizedBox(height: 120),
             ]),
           ),
@@ -1235,16 +1862,23 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
     );
   }
 
-  Widget _buildWalletOverview(
-    double sales,
-    double cash,
-    double credit,
-    double expenses,
-    double losses,
-    double settlements,
-    double duesIncurred,
-    double unsoldStock, {
+  Widget _buildWalletOverview({
+    required double sales,
+    required double cash,
+    required double credit,
+    required double expenses,
+    required double losses,
+    required double settlements,
+    required double duesIncurred,
+    required double unsoldStock,
+    VoidCallback? onSalesTap,
+    VoidCallback? onCashTap,
+    VoidCallback? onCreditTap,
+    VoidCallback? onExpensesTap,
+    VoidCallback? onLossesTap,
+    VoidCallback? onDuesIncurredTap,
     VoidCallback? onUnsoldStockTap,
+    VoidCallback? onDuesSettledTap,
   }) {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -1337,36 +1971,42 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
               sales.toString(),
               const Color(0xFF3B82F6),
               Icons.trending_up_rounded,
+              onTap: onSalesTap,
             ),
             kpiCard(
               'CASH COLLECTED',
               cash.toString(),
               const Color(0xFF10B981),
               Icons.account_balance_wallet_rounded,
+              onTap: onCashTap,
             ),
             kpiCard(
               'CREDIT ORDERS',
               credit.toString(),
               const Color(0xFFF59E0B),
               Icons.credit_card_rounded,
+              onTap: onCreditTap,
             ),
             kpiCard(
               'EXPENSES (OPEX)',
               expenses.toString(),
               const Color(0xFFF97316),
               Icons.money_off_rounded,
+              onTap: onExpensesTap,
             ),
             kpiCard(
               'INVENTORY LOSSES',
               losses.toString(),
               const Color(0xFFEF4444),
               Icons.remove_shopping_cart_rounded,
+              onTap: onLossesTap,
             ),
             kpiCard(
               'DUES INCURRED',
               duesIncurred.toString(),
               const Color(0xFFEC4899),
               Icons.local_shipping_rounded,
+              onTap: onDuesIncurredTap,
             ),
             kpiCard(
               'UNSOLD STOCK',
@@ -1380,6 +2020,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
               settlements.toString(),
               const Color(0xFF8B5CF6),
               Icons.handshake_rounded,
+              onTap: onDuesSettledTap,
             ),
           ],
         );
@@ -1476,318 +2117,6 @@ class _SalesScreenState extends ConsumerState<SalesScreen>
           icon: Icons.analytics_rounded,
         ),
       ],
-    );
-  }
-
-  Widget _buildWalletDetailsSection(
-    BuildContext context,
-    WidgetRef ref,
-    WalletData wallet,
-    List<Product> products,
-  ) {
-    final receivedItems = wallet.receivedStockItems
-        .where((item) => item.dailyStock.receivedQuantity > 0)
-        .toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'DETAILED LEDGER BREAKDOWN',
-          style: TextStyle(
-            color: Colors.white30,
-            fontSize: 11,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1.5,
-          ),
-        ),
-        const SizedBox(height: 16),
-        _buildWalletExpansionCard(
-          title: 'OPERATIONAL EXPENSES',
-          count: wallet.expenses.length,
-          color: const Color(0xFFF97316),
-          icon: Icons.money_off_rounded,
-          children: wallet.expenses.isEmpty
-              ? [
-                  const Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Center(
-                      child: Text(
-                        'No expenses recorded in this period.',
-                        style: TextStyle(color: Colors.white24, fontSize: 13),
-                      ),
-                    ),
-                  ),
-                ]
-              : wallet.expenses.map((inst) {
-                  final df = DateFormat('MMM dd, yyyy');
-                  return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
-                    ),
-                    title: Text(
-                      inst.expense.description,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                    subtitle: Text(
-                      '${df.format(inst.date)} • ${inst.expense.recurrence.name.toUpperCase()}',
-                      style: const TextStyle(
-                        color: Colors.white30,
-                        fontSize: 11,
-                      ),
-                    ),
-                    trailing: Text(
-                      '-ETB ${inst.expense.amount.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        color: Color(0xFFF87171),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                  );
-                }).toList(),
-        ),
-        const SizedBox(height: 16),
-        _buildWalletExpansionCard(
-          title: 'INVENTORY LOSSES (AT COST)',
-          count: wallet.losses.length,
-          color: const Color(0xFFEF4444),
-          icon: Icons.remove_shopping_cart_rounded,
-          children: wallet.losses.isEmpty
-              ? [
-                  const Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Center(
-                      child: Text(
-                        'No inventory losses recorded in this period.',
-                        style: TextStyle(color: Colors.white24, fontSize: 13),
-                      ),
-                    ),
-                  ),
-                ]
-              : wallet.losses.map((adj) {
-                  final df = DateFormat('MMM dd, yyyy');
-                  final prod = products.firstWhere(
-                    (p) => p.id == adj.productId,
-                    orElse: () => Product()
-                      ..name = 'Unknown Product'
-                      ..costPrice = 0.0,
-                  );
-                  final cost = adj.amount.abs() * prod.costPrice;
-                  return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
-                    ),
-                    title: Text(
-                      prod.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                    subtitle: Text(
-                      '${df.format(adj.date)} • ${adj.amount.abs().toStringAsFixed(0)} units lost (${adj.reason.toUpperCase()})',
-                      style: const TextStyle(
-                        color: Colors.white30,
-                        fontSize: 11,
-                      ),
-                    ),
-                    trailing: Text(
-                      '-ETB ${cost.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        color: Color(0xFFF87171),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                  );
-                }).toList(),
-        ),
-        const SizedBox(height: 16),
-        _buildWalletExpansionCard(
-          title: 'SUPPLIER DUES INCURRED (Daily Receives)',
-          count: receivedItems.length,
-          color: const Color(0xFFEC4899),
-          icon: Icons.local_shipping_rounded,
-          children: receivedItems.isEmpty
-              ? [
-                  const Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Center(
-                      child: Text(
-                        'No stock receives recorded in this period.',
-                        style: TextStyle(color: Colors.white24, fontSize: 13),
-                      ),
-                    ),
-                  ),
-                ]
-              : receivedItems.map((item) {
-                  final ds = item.dailyStock;
-                  final df = DateFormat('MMM dd, yyyy');
-                  final prod = products.firstWhere(
-                    (p) => p.id == ds.productId,
-                    orElse: () => Product()
-                      ..name = 'Unknown Product'
-                      ..costPrice = 0.0,
-                  );
-                  final cost = ds.receivedQuantity * prod.costPrice;
-                  final suppliers = ref.watch(suppliersProvider).value ?? [];
-                  final supName = prod.supplierId != null
-                      ? suppliers
-                            .firstWhere(
-                              (sup) => sup.id == prod.supplierId,
-                              orElse: () =>
-                                  Supplier()
-                                    ..name = 'Supplier #${prod.supplierId}',
-                            )
-                            .name
-                      : 'No Supplier';
-                  return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
-                    ),
-                    title: Text(
-                      prod.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                    subtitle: Text(
-                      'Received: ${ds.receivedQuantity.toStringAsFixed(0)} units • Supplier: $supName • ${df.format(ds.date)}',
-                      style: const TextStyle(
-                        color: Colors.white30,
-                        fontSize: 11,
-                      ),
-                    ),
-                    trailing: Text(
-                      '+ETB ${cost.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        color: Color(0xFFEC4899),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                  );
-                }).toList(),
-        ),
-        const SizedBox(height: 16),
-        _buildWalletExpansionCard(
-          title: 'SUPPLIER DUES SETTLED',
-          count: wallet.settlements.length,
-          color: const Color(0xFF8B5CF6),
-          icon: Icons.handshake_rounded,
-          children: wallet.settlements.isEmpty
-              ? [
-                  const Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Center(
-                      child: Text(
-                        'No supplier settlements paid in this period.',
-                        style: TextStyle(color: Colors.white24, fontSize: 13),
-                      ),
-                    ),
-                  ),
-                ]
-              : wallet.settlements.map((s) {
-                  final df = DateFormat('MMM dd, yyyy');
-                  final suppliers = ref.watch(suppliersProvider).value ?? [];
-                  final supName = suppliers
-                      .firstWhere(
-                        (sup) => sup.id == s.supplierId,
-                        orElse: () =>
-                            Supplier()..name = 'Supplier #${s.supplierId}',
-                      )
-                      .name;
-                  return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
-                    ),
-                    title: Text(
-                      supName,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                    subtitle: Text(
-                      'Settlement Date: ${df.format(s.date)}',
-                      style: const TextStyle(
-                        color: Colors.white30,
-                        fontSize: 11,
-                      ),
-                    ),
-                    trailing: Text(
-                      '-ETB ${s.amount.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        color: Color(0xFFEF4444),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                  );
-                }).toList(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildWalletExpansionCard({
-    required String title,
-    required int count,
-    required Color color,
-    required IconData icon,
-    required List<Widget> children,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.02),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Theme(
-        data: ThemeData.dark().copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          collapsedIconColor: color,
-          iconColor: color,
-          leading: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 18),
-          ),
-          title: Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.0,
-            ),
-          ),
-          subtitle: Text(
-            '$count entries',
-            style: const TextStyle(color: Colors.white30, fontSize: 11),
-          ),
-          children: [
-            Divider(color: Colors.white.withValues(alpha: 0.05), height: 1),
-            ...children,
-          ],
-        ),
-      ),
     );
   }
 
