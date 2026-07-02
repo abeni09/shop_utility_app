@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:crypto/crypto.dart';
 
 class LicenseService {
-  static const String _baseUrl = 'http://localhost:3333';
+  static const String _baseUrl = 'https://shop-sync-server.onrender.com';
   static const String _apiActivate = '$_baseUrl/license/activate';
   static const String _salt = 'ShopSyncSecuritySalt2026';
 
@@ -129,18 +129,17 @@ class LicenseService {
         return {
           'success': true,
           'expiry': expiry.toIso8601String(),
-          'message': 'Demo license activated successfully!'
+          'message': 'Demo license activated successfully!',
         };
       }
 
-      final response = await http.post(
-        Uri.parse(_apiActivate),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'key': trimmedKey,
-          'device_id': deviceId,
-        }),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            Uri.parse(_apiActivate),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'key': trimmedKey, 'device_id': deviceId}),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -151,30 +150,29 @@ class LicenseService {
           return {
             'success': true,
             'expiry': expiry.toIso8601String(),
-            'message': data['message'] ?? 'Activated successfully!'
+            'message': data['message'] ?? 'Activated successfully!',
           };
         } else {
           return {
             'success': false,
-            'message': data['message'] ?? 'Invalid license key.'
+            'message': data['message'] ?? 'Invalid license key.',
           };
         }
       } else {
         return {
           'success': false,
-          'message': 'Server error (${response.statusCode}). Please try again later.'
+          'message':
+              'Server error (${response.statusCode}). Please try again later.',
         };
       }
     } on SocketException {
       return {
         'success': false,
-        'message': 'No internet connection. Please connect to the internet to activate.'
+        'message':
+            'No internet connection. Please connect to the internet to activate.',
       };
     } catch (e) {
-      return {
-        'success': false,
-        'message': 'Error activating: $e'
-      };
+      return {'success': false, 'message': 'Error activating: $e'};
     }
   }
 
@@ -194,10 +192,9 @@ class LicenseService {
     }
 
     try {
-      final uri = Uri.parse('$_baseUrl/license/status').replace(queryParameters: {
-        'key': key,
-        'device_id': deviceId,
-      });
+      final uri = Uri.parse(
+        '$_baseUrl/license/status',
+      ).replace(queryParameters: {'key': key, 'device_id': deviceId});
 
       final response = await http.get(uri).timeout(const Duration(seconds: 5));
 

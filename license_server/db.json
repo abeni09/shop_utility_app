@@ -22,7 +22,8 @@
       "deviceId": null,
       "expiryDate": "2028-12-31T00:00:00.000Z",
       "createdAt": "2026-07-02T05:24:20.589Z",
-      "isActive": true
+      "isActive": true,
+      "clientName": "test"
     },
     "SYNC-32C3-550E-EF02-6C09": {
       "deviceId": null,
@@ -34,12 +35,6 @@
       "deviceId": null,
       "expiryDate": null,
       "createdAt": "2026-07-02T06:02:17.809Z",
-      "isActive": true
-    },
-    "SHOP-VIP-SPECIAL-KEY": {
-      "deviceId": null,
-      "expiryDate": null,
-      "createdAt": "2026-07-02T06:03:07.376Z",
       "isActive": true
     }
   }

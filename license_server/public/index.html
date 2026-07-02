@@ -14,7 +14,38 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="app-container">
+  <!-- Login Container -->
+  <div class="login-container" id="login-container">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-logo-icon">
+          <i data-lucide="key-round"></i>
+        </div>
+        <h2>ShopSync License Server</h2>
+        <p>Sign in to manage commercial licensing, status tracking, and database actions.</p>
+      </div>
+      <form id="form-login" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label for="login-username">Username</label>
+          <input type="text" id="login-username" placeholder="Enter administrative username" required>
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="Enter password" required>
+        </div>
+        <div class="error-banner" id="login-error" style="display: none; color: var(--danger); background: rgba(239, 68, 68, 0.1); padding: 12px; border-radius: 8px; font-size: 14px; margin-top: 15px; align-items: center; gap: 8px;">
+          <i data-lucide="alert-circle" style="width: 18px; height: 18px; flex-shrink: 0;"></i>
+          <span id="login-error-msg">Invalid username or password</span>
+        </div>
+        <button type="submit" class="btn btn-primary" style="margin-top: 20px; width: 100%; justify-content: center; height: 44px;">
+          <span>Sign In</span>
+          <i data-lucide="arrow-right" style="width: 16px; height: 16px; margin-left: 8px;"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="app-container" id="app-container" style="display: none;">
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="logo-area">
@@ -23,7 +54,7 @@
         </div>
         <span class="logo-text">SHOPSYNC ADMIN</span>
       </div>
-      <nav class="nav-menu">
+      <nav class="nav-menu" style="display: flex; flex-direction: column; height: calc(100% - 70px);">
         <a href="#" class="nav-item active">
           <i data-lucide="layout-dashboard"></i>
           <span>Licenses</span>
@@ -32,8 +63,12 @@
           <i data-lucide="refresh-cw"></i>
           <span>Reload DB</span>
         </a>
+        <a href="#" class="nav-item" id="btn-logout" style="margin-top: auto; color: var(--danger);">
+          <i data-lucide="log-out"></i>
+          <span>Logout</span>
+        </a>
       </nav>
-      <div class="sidebar-footer">
+      <div class="sidebar-footer" style="display: none;">
         <span>v1.0.0</span>
       </div>
     </aside>

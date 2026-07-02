@@ -17,6 +17,12 @@ function escapeHTML(str) {
 const licensesListEl = document.getElementById('licenses-list');
 const searchInput = document.getElementById('search-input');
 const btnRefresh = document.getElementById('btn-refresh');
+const loginContainer = document.getElementById('login-container');
+const appContainer = document.getElementById('app-container');
+const formLogin = document.getElementById('form-login');
+const loginError = document.getElementById('login-error');
+const loginErrorMsg = document.getElementById('login-error-msg');
+const btnLogout = document.getElementById('btn-logout');
 
 // Stats Counters
 const statTotal = document.getElementById('stat-total');
@@ -24,9 +30,77 @@ const statBound = document.getElementById('stat-bound');
 const statUnused = document.getElementById('stat-unused');
 const statDeactivated = document.getElementById('stat-deactivated');
 
+// Check authentication token status and toggle views
+function checkAuthStatus() {
+  const token = localStorage.getItem('admin_token');
+  if (token) {
+    loginContainer.style.display = 'none';
+    appContainer.style.display = 'flex';
+    fetchLicenses();
+  } else {
+    loginContainer.style.display = 'flex';
+    appContainer.style.display = 'none';
+  }
+}
+
+// Helper to get authenticated headers
+function getAuthHeaders() {
+  const token = localStorage.getItem('admin_token');
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  };
+}
+
+// Handle login failure or expired session
+function handleUnauthorized() {
+  localStorage.removeItem('admin_token');
+  checkAuthStatus();
+}
+
+// Handle authentication login
+async function handleLogin(event) {
+  event.preventDefault();
+  loginError.style.display = 'none';
+  
+  const usernameInput = document.getElementById('login-username');
+  const passwordInput = document.getElementById('login-password');
+  const username = usernameInput.value.trim();
+  const password = passwordInput.value;
+  
+  try {
+    const response = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    
+    const result = await response.json();
+    if (response.ok && result.success) {
+      localStorage.setItem('admin_token', result.token);
+      usernameInput.value = '';
+      passwordInput.value = '';
+      checkAuthStatus();
+    } else {
+      loginErrorMsg.textContent = result.message || 'Invalid username or password';
+      loginError.style.display = 'flex';
+    }
+  } catch (error) {
+    console.error('Login error:', error);
+    loginErrorMsg.textContent = 'Server communication error. Please try again.';
+    loginError.style.display = 'flex';
+  }
+}
+
+// Handle administrative logout
+function handleLogout() {
+  localStorage.removeItem('admin_token');
+  checkAuthStatus();
+}
+
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
-  fetchLicenses();
+  checkAuthStatus();
   
   // Search filter
   searchInput.addEventListener('input', () => {
@@ -39,6 +113,14 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchLicenses();
   });
 
+  // Logout button
+  if (btnLogout) {
+    btnLogout.addEventListener('click', (e) => {
+      e.preventDefault();
+      handleLogout();
+    });
+  }
+
   // Custom delete confirm button
   document.getElementById('btn-confirm-delete').addEventListener('click', submitDeleteLicense);
 });
@@ -47,7 +129,13 @@ document.addEventListener('DOMContentLoaded', () => {
 async function fetchLicenses() {
   setLoadingState();
   try {
-    const response = await fetch('/api/licenses');
+    const response = await fetch('/api/licenses', {
+      headers: getAuthHeaders()
+    });
+    if (response.status === 401) {
+      handleUnauthorized();
+      return;
+    }
     if (!response.ok) throw new Error('Failed to fetch licenses');
     allLicenses = await response.json();
     updateStats();
@@ -57,7 +145,7 @@ async function fetchLicenses() {
     licensesListEl.innerHTML = `
       <tr>
         <td colspan="7" class="table-loading font-danger">
-          <i data-lucide="alert-triangle"></i> Error loading licenses. Please make sure the server is running.
+          <i data-lucide="alert-triangle"></i> Error loading licenses. Please make sure you are signed in and the server is running.
         </td>
       </tr>
     `;
@@ -227,9 +315,13 @@ async function handleGenerate(e) {
   try {
     const response = await fetch('/api/licenses', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ generateCount: count, clientName })
     });
+    if (response.status === 401) {
+      handleUnauthorized();
+      return;
+    }
     const result = await response.json();
     if (result.success) {
       closeModal('modal-generate');
@@ -252,9 +344,13 @@ async function handleCreateCustom(e) {
   try {
     const response = await fetch('/api/licenses', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ customKey, clientName })
     });
+    if (response.status === 401) {
+      handleUnauthorized();
+      return;
+    }
     const result = await response.json();
     if (result.success) {
       closeModal('modal-custom');
@@ -318,9 +414,13 @@ async function handleSaveEdit(e) {
   try {
     const response = await fetch(`/api/licenses/${key}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ deviceId, expiryDate, isActive, clientName })
     });
+    if (response.status === 401) {
+      handleUnauthorized();
+      return;
+    }
     const result = await response.json();
     if (result.success) {
       closeModal('modal-edit');
@@ -347,8 +447,13 @@ async function submitDeleteLicense() {
 
   try {
     const response = await fetch(`/api/licenses/${keyToDelete}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: getAuthHeaders()
     });
+    if (response.status === 401) {
+      handleUnauthorized();
+      return;
+    }
     const result = await response.json();
     if (result.success) {
       closeModal('modal-delete');

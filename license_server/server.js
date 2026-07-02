@@ -66,6 +66,61 @@ if (process.argv.includes('--generate')) {
   process.exit(0);
 }
 
+const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
+const ADMIN_USER = process.env.ADMIN_USER || 'admin';
+const ADMIN_PASS = process.env.ADMIN_PASS || 'admin2026';
+
+// Generate a lightweight JWT
+function generateToken(username) {
+  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+  const payload = Buffer.from(JSON.stringify({
+    username,
+    exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // valid for 24 hours
+  })).toString('base64url');
+  const signature = crypto
+    .createHmac('sha256', JWT_SECRET)
+    .update(`${header}.${payload}`)
+    .digest('base64url');
+  return `${header}.${payload}.${signature}`;
+}
+
+// Verify JWT
+function verifyToken(token) {
+  if (!token) return null;
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  const [header, payload, signature] = parts;
+  const expectedSignature = crypto
+    .createHmac('sha256', JWT_SECRET)
+    .update(`${header}.${payload}`)
+    .digest('base64url');
+  if (signature !== expectedSignature) return null;
+  try {
+    const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    if (data.exp && Date.now() / 1000 > data.exp) {
+      return null; // Expired
+    }
+    return data;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Authentication middleware for administrative dashboard APIs
+function requireAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, message: 'Unauthorized. Token missing.' });
+  }
+  const token = authHeader.split(' ')[1];
+  const decoded = verifyToken(token);
+  if (!decoded) {
+    return res.status(401).json({ success: false, message: 'Unauthorized. Invalid or expired token.' });
+  }
+  req.user = decoded;
+  next();
+}
+
 // Create Express Server
 const app = express();
 app.use(cors());
@@ -187,10 +242,24 @@ app.get('/license/status', (req, res) => {
   });
 });
 
+// AUTHENTICATION ENDPOINT
+
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ success: false, message: 'Username and password are required' });
+  }
+  if (username === ADMIN_USER && password === ADMIN_PASS) {
+    const token = generateToken(username);
+    return res.json({ success: true, token });
+  }
+  return res.status(401).json({ success: false, message: 'Invalid username or password' });
+});
+
 // ADMIN API ENDPOINTS (CRUD)
 
 // 1. Get all licenses
-app.get('/api/licenses', (req, res) => {
+app.get('/api/licenses', requireAuth, (req, res) => {
   const db = loadDB();
   const licenses = Object.keys(db.keys).map(key => ({
     key,
@@ -202,7 +271,7 @@ app.get('/api/licenses', (req, res) => {
 });
 
 // 2. Create or generate license(s)
-app.post('/api/licenses', (req, res) => {
+app.post('/api/licenses', requireAuth, (req, res) => {
   const { customKey, generateCount, clientName } = req.body;
   const db = loadDB();
   const nameVal = clientName ? clientName.trim() : null;
@@ -241,7 +310,7 @@ app.post('/api/licenses', (req, res) => {
 });
 
 // 3. Update license details
-app.put('/api/licenses/:key', (req, res) => {
+app.put('/api/licenses/:key', requireAuth, (req, res) => {
   const key = req.params.key.toUpperCase();
   const { deviceId, expiryDate, isActive, clientName } = req.body;
   const db = loadDB();
@@ -274,7 +343,7 @@ app.put('/api/licenses/:key', (req, res) => {
 });
 
 // 4. Delete license
-app.delete('/api/licenses/:key', (req, res) => {
+app.delete('/api/licenses/:key', requireAuth, (req, res) => {
   const key = req.params.key.toUpperCase();
   const db = loadDB();
 
@@ -304,4 +373,5 @@ if (!db.keys[initialDemoKey]) {
 
 app.listen(PORT, () => {
   console.log(`🚀 ShopSync license server running on port ${PORT}`);
+  console.log(`🔒 Dashboard credentials: Username: ${ADMIN_USER} | Password: ${ADMIN_PASS}`);
 });
