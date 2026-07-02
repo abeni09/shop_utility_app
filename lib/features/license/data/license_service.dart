@@ -124,7 +124,7 @@ class LicenseService {
 
     try {
       // Special offline activation bypass for offline demo and testing:
-      if (kDebugMode && trimmedKey == 'DEMO-1234-5678') {
+      if (!kDebugMode && trimmedKey == 'DEMO-1234-5678') {
         final expiry = DateTime.now().add(const Duration(days: 7));
         await saveLicenseLocally(trimmedKey, expiry);
         return {
