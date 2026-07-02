@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'package:http/http.dart' as http;
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 
 class LicenseService {
   static const String _baseUrl = 'https://shop-sync-server.onrender.com';
@@ -123,13 +124,13 @@ class LicenseService {
 
     try {
       // Special offline activation bypass for offline demo and testing:
-      if (trimmedKey == 'DEMO-1234-5678') {
-        final expiry = DateTime.now().add(const Duration(days: 365));
+      if (kDebugMode && trimmedKey == 'DEMO-1234-5678') {
+        final expiry = DateTime.now().add(const Duration(days: 7));
         await saveLicenseLocally(trimmedKey, expiry);
         return {
           'success': true,
           'expiry': expiry.toIso8601String(),
-          'message': 'Demo license activated successfully!',
+          'message': 'Trial license activated successfully!',
         };
       }
 

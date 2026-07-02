@@ -15,6 +15,9 @@ import 'package:shopsync/features/dashboard/presentation/financial_report_screen
 import 'package:shopsync/features/dashboard/presentation/financial_chart_widget.dart';
 import 'package:shopsync/features/dashboard/presentation/low_stock_widget.dart';
 import 'package:shopsync/features/backup/presentation/sync_manager_dialog.dart';
+import 'package:shopsync/main.dart';
+import 'package:intl/intl.dart';
+import 'package:shopsync/features/license/presentation/license_provider.dart';
 import 'dart:ui';
 
 class DashboardScreen extends ConsumerWidget {
@@ -148,7 +151,9 @@ class DashboardScreen extends ConsumerWidget {
 
     return SliverAppBar(
       pinned: true,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.8),
+      backgroundColor: Theme.of(
+        context,
+      ).scaffoldBackgroundColor.withValues(alpha: 0.8),
       toolbarHeight: 80,
       title: Row(
         children: [
@@ -180,6 +185,8 @@ class DashboardScreen extends ConsumerWidget {
         ],
       ),
       actions: [
+        _buildLicenseStatusChip(context, ref),
+        const SizedBox(width: 12),
         Padding(
           padding: const EdgeInsets.only(right: 24),
           child: Container(
@@ -192,6 +199,437 @@ class DashboardScreen extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildLicenseStatusChip(BuildContext context, WidgetRef ref) {
+    final licenseState = ref.watch(licenseStateProvider);
+    final expiry = licenseState.expiryDate;
+    if (expiry == null) return const SizedBox.shrink();
+
+    final days = expiry.difference(DateTime.now()).inDays;
+
+    // Choose color depending on days remaining
+    final isCritical = days <= 7;
+    final themeColor = isCritical ? Colors.redAccent : const Color(0xFF10B981);
+
+    return Center(
+      child: GestureDetector(
+        onTap: () => _showLicenseDetailsSheet(context, ref),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: themeColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: themeColor.withValues(alpha: 0.25),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isCritical
+                    ? Icons.warning_amber_rounded
+                    : Icons.vpn_key_rounded,
+                color: themeColor,
+                size: 14,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '$days ${days == 1 ? "day" : "days"} left',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: themeColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showLicenseDetailsSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF0F172A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) {
+        return Consumer(
+          builder: (context, ref, child) {
+            final licenseState = ref.watch(licenseStateProvider);
+            final expiry = licenseState.expiryDate;
+            final key = licenseState.licenseKey ?? 'N/A';
+            final days = expiry != null
+                ? expiry.difference(DateTime.now()).inDays
+                : 0;
+
+            String maskedKey = key;
+            if (key.length > 8) {
+              maskedKey =
+                  '${key.substring(0, 4)}-****-${key.substring(key.length - 4)}';
+            }
+
+            final themeColor = days <= 7
+                ? Colors.redAccent
+                : const Color(0xFF818CF8);
+
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white24,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'LICENSE DETAILS',
+                      style: TextStyle(
+                        color: Colors.white30,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: themeColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Icon(
+                            days <= 7
+                                ? Icons.warning_amber_rounded
+                                : Icons.vpn_key_rounded,
+                            color: themeColor,
+                            size: 28,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '$days ${days == 1 ? "Day" : "Days"} Remaining',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 20,
+                              ),
+                            ),
+                            Text(
+                              days <= 7
+                                  ? 'Your trial/license is expiring soon!'
+                                  : 'Active subscription license',
+                              style: TextStyle(
+                                color: Colors.white54,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    const Divider(color: Colors.white10),
+                    const SizedBox(height: 16),
+                    _buildInfoRow('License Key', maskedKey),
+                    const SizedBox(height: 12),
+                    _buildInfoRow(
+                      'Expires On',
+                      expiry != null
+                          ? DateFormat('MMMM d, yyyy').format(expiry)
+                          : 'N/A',
+                    ),
+                    const SizedBox(height: 32),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  backgroundColor: const Color(0xFF0F172A),
+                                  title: const Text(
+                                    'Forget License Key?',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                  content: const Text(
+                                    'This will clear your local license key. You will need to re-activate the app.',
+                                    style: TextStyle(color: Colors.white70),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, false),
+                                      child: const Text(
+                                        'CANCEL',
+                                        style: TextStyle(color: Colors.white24),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, true),
+                                      child: const Text(
+                                        'CLEAR KEY',
+                                        style: TextStyle(
+                                          color: Colors.redAccent,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (confirm == true) {
+                                if (context.mounted) {
+                                  Navigator.pop(context);
+                                }
+                                await ref
+                                    .read(licenseStateProvider.notifier)
+                                    .deactivate();
+                              }
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.redAccent,
+                              side: BorderSide(
+                                color: Colors.redAccent.withValues(alpha: 0.5),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: const Text(
+                              'CLEAR KEY',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              Navigator.pop(context);
+                              _showChangeKeyDialog(context, ref);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF6366F1),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: const Text(
+                              'RENEW / CHANGE',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white30,
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            fontFamily: 'monospace',
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showChangeKeyDialog(BuildContext context, WidgetRef ref) {
+    final controller = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            bool isLoading = false;
+            String? errorMsg;
+
+            return AlertDialog(
+              backgroundColor: const Color(0xFF0F172A),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              title: Text(
+                'ENTER NEW LICENSE KEY',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 16,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              content: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextFormField(
+                      controller: controller,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontFamily: 'monospace',
+                        fontWeight: FontWeight.bold,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'XXXX-XXXX-XXXX-XXXX',
+                        hintStyle: const TextStyle(color: Colors.white24),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.03),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF6366F1),
+                          ),
+                        ),
+                      ),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return 'License key is required';
+                        }
+                        return null;
+                      },
+                    ),
+                    if (errorMsg != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        errorMsg!,
+                        style: const TextStyle(
+                          color: Colors.redAccent,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'CANCEL',
+                    style: TextStyle(color: Colors.white24),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                          if (formKey.currentState!.validate()) {
+                            setState(() {
+                              isLoading = true;
+                              errorMsg = null;
+                            });
+
+                            final success = await ref
+                                .read(licenseStateProvider.notifier)
+                                .activate(controller.text);
+
+                            if (success) {
+                              if (context.mounted) {
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'License renewed successfully!',
+                                    ),
+                                    backgroundColor: Color(0xFF10B981),
+                                  ),
+                                );
+                              }
+                            } else {
+                              setState(() {
+                                isLoading = false;
+                                errorMsg =
+                                    ref
+                                        .read(licenseStateProvider)
+                                        .errorMessage ??
+                                    'Activation failed';
+                              });
+                            }
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6366F1),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'ACTIVATE',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -513,17 +951,16 @@ class DashboardScreen extends ConsumerWidget {
           );
         }
         await ref.read(backupServiceProvider).restoreLatestBackup();
-        // Force app restart logic usually needed, but here we'll just invalidate everything
-        ref.invalidate(dailyLogProvider);
         if (context.mounted) {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Restore successful! Restarting data...'),
+              content: Text('Restore successful! Restarting app...'),
               backgroundColor: Color(0xFF10B981),
               behavior: SnackBarBehavior.floating,
             ),
           );
+          await restartAppWithNewDatabase(context);
         }
       } catch (e) {
         if (context.mounted) {

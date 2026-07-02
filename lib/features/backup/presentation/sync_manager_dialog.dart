@@ -164,18 +164,16 @@ class _SyncManagerDialogState extends ConsumerState<SyncManagerDialog> {
         result.files.single.path!,
       );
 
-      ref.invalidate(cloudSyncStatusProvider);
-      ref.invalidate(localAheadProvider);
-      await _loadStats();
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'Database restored successfully! Restart app if changes don\'t display immediately.',
-            ),
+            content: Text('Database restored successfully! Restarting app...'),
+            backgroundColor: Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
           ),
         );
+        Navigator.pop(context); // Close the SyncManagerDialog
+        await restartAppWithNewDatabase(context);
       }
     } catch (e) {
       if (mounted) {
@@ -291,18 +289,16 @@ class _SyncManagerDialogState extends ConsumerState<SyncManagerDialog> {
     });
     try {
       await ref.read(backupServiceProvider).restoreLatestBackup();
-      // Reset providers that cache DB streams or statistics
-      ref.invalidate(cloudSyncStatusProvider);
-      ref.invalidate(localAheadProvider);
-      await _loadStats();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'Database restored successfully! Restart app if changes don\'t display immediately.',
-            ),
+            content: Text('Database restored successfully! Restarting app...'),
+            backgroundColor: Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
           ),
         );
+        Navigator.pop(context); // Close the SyncManagerDialog
+        await restartAppWithNewDatabase(context);
       }
     } catch (e) {
       if (mounted) {

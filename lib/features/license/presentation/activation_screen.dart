@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shopsync/features/license/presentation/license_provider.dart';
 
 class ActivationScreen extends ConsumerStatefulWidget {
@@ -52,7 +53,10 @@ class _ActivationScreenState extends ConsumerState<ActivationScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 20.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 28.0,
+              vertical: 20.0,
+            ),
             child: Form(
               key: _formKey,
               child: Column(
@@ -78,7 +82,7 @@ class _ActivationScreenState extends ConsumerState<ActivationScreen> {
                     ),
                   ),
                   const SizedBox(height: 28),
-                  
+
                   // App Title
                   const Text(
                     'SHOPSYNC ACTIVATION',
@@ -128,10 +132,7 @@ class _ActivationScreenState extends ConsumerState<ActivationScreen> {
                         const SizedBox(height: 6),
                         const Text(
                           'Send this ID to support to get your license key.',
-                          style: TextStyle(
-                            color: Colors.white24,
-                            fontSize: 11,
-                          ),
+                          style: TextStyle(color: Colors.white24, fontSize: 11),
                         ),
                         const SizedBox(height: 16),
                         Row(
@@ -149,14 +150,22 @@ class _ActivationScreenState extends ConsumerState<ActivationScreen> {
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.copy_rounded, color: Colors.white54, size: 20),
+                              icon: const Icon(
+                                Icons.copy_rounded,
+                                color: Colors.white54,
+                                size: 20,
+                              ),
                               tooltip: 'Copy Device ID',
                               onPressed: () {
                                 if (state.deviceId != null) {
-                                  Clipboard.setData(ClipboardData(text: state.deviceId!));
+                                  Clipboard.setData(
+                                    ClipboardData(text: state.deviceId!),
+                                  );
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Device ID copied to clipboard!'),
+                                      content: Text(
+                                        'Device ID copied to clipboard!',
+                                      ),
                                       duration: Duration(seconds: 2),
                                     ),
                                   );
@@ -188,7 +197,10 @@ class _ActivationScreenState extends ConsumerState<ActivationScreen> {
                       ),
                       hintText: 'XXXX-XXXX-XXXX-XXXX',
                       hintStyle: const TextStyle(color: Colors.white10),
-                      prefixIcon: const Icon(Icons.lock_outline_rounded, color: Color(0xFF818CF8)),
+                      prefixIcon: const Icon(
+                        Icons.lock_outline_rounded,
+                        color: Color(0xFF818CF8),
+                      ),
                       filled: true,
                       fillColor: Colors.white.withValues(alpha: 0.02),
                       border: OutlineInputBorder(
@@ -230,18 +242,27 @@ class _ActivationScreenState extends ConsumerState<ActivationScreen> {
                   // Error Banner
                   if (state.errorMessage != null) ...[
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFEF4444).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: const Color(0xFFEF4444).withValues(alpha: 0.25),
+                          color: const Color(
+                            0xFFEF4444,
+                          ).withValues(alpha: 0.25),
                           width: 1.5,
                         ),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline_rounded, color: Color(0xFFEF4444), size: 20),
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            color: Color(0xFFEF4444),
+                            size: 20,
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
@@ -304,7 +325,7 @@ class _ActivationScreenState extends ConsumerState<ActivationScreen> {
                     style: TextStyle(color: Colors.white30, fontSize: 13),
                   ),
                   const SizedBox(height: 16),
-                  
+
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFF818CF8),
@@ -312,7 +333,10 @@ class _ActivationScreenState extends ConsumerState<ActivationScreen> {
                         color: const Color(0xFF818CF8).withValues(alpha: 0.5),
                         width: 1.5,
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 14,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -325,7 +349,10 @@ class _ActivationScreenState extends ConsumerState<ActivationScreen> {
                           backgroundColor: const Color(0xFF0F172A),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(28),
-                            side: const BorderSide(color: Color(0xFF6366F1), width: 1.5),
+                            side: const BorderSide(
+                              color: Color(0xFF6366F1),
+                              width: 1.5,
+                            ),
                           ),
                           title: const Text(
                             'GET A LICENSE',
@@ -342,42 +369,70 @@ class _ActivationScreenState extends ConsumerState<ActivationScreen> {
                             children: [
                               const Text(
                                 'To purchase your yearly ShopSync subscription license, please contact our support team. Mention your Device ID during payment.',
-                                style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 13,
+                                  height: 1.4,
+                                ),
                               ),
                               const SizedBox(height: 20),
                               const Text(
                                 'Phone / Telegram / WhatsApp:',
-                                style: TextStyle(color: Color(0xFF818CF8), fontWeight: FontWeight.w800, fontSize: 11),
+                                style: TextStyle(
+                                  color: Color(0xFF818CF8),
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 11,
+                                ),
                               ),
                               const SizedBox(height: 8),
                               const SelectableText(
-                                '+251 900 000 000\nsupport@shopsync.app',
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
-                              ),
-                              const SizedBox(height: 16),
-                              const Text(
-                                'Offline Test Bypass Key:',
-                                style: TextStyle(color: Colors.white30, fontWeight: FontWeight.bold, fontSize: 11),
-                              ),
-                              const SizedBox(height: 6),
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.02),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const SelectableText(
-                                  'DEMO-1234-5678',
-                                  style: TextStyle(color: Color(0xFF10B981), fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                                '+251 949 442 279\nabenij09@gmail.com',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
                                 ),
                               ),
+                              if (kDebugMode) ...[
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'Offline Test Bypass Key (7-Day Trial):',
+                                  style: TextStyle(
+                                    color: Colors.white30,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.02),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const SelectableText(
+                                    'DEMO-1234-5678',
+                                    style: TextStyle(
+                                      color: Color(0xFF10B981),
+                                      fontFamily: 'monospace',
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(context),
-                              child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF818CF8))),
-                            )
+                              child: const Text(
+                                'OK',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF818CF8),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       );
@@ -441,7 +496,11 @@ class _ActivationScreenState extends ConsumerState<ActivationScreen> {
               const Text(
                 'The system date on this device has been altered or rolled back. To protect subscription data integrity, the application has been locked.\n\nPlease restore your device settings to the correct current network date and time.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 13,
+                  height: 1.5,
+                ),
               ),
               const SizedBox(height: 36),
               SizedBox(
@@ -461,7 +520,10 @@ class _ActivationScreenState extends ConsumerState<ActivationScreen> {
                   icon: const Icon(Icons.refresh_rounded),
                   label: const Text(
                     'RETRY VERIFICATION',
-                    style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1,
+                    ),
                   ),
                 ),
               ),

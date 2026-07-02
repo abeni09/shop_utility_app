@@ -9,19 +9,40 @@ import 'package:shopsync/features/orders/presentation/order_screen.dart';
 import 'package:shopsync/features/suppliers/presentation/supplier_list_screen.dart';
 import 'package:shopsync/features/sales/presentation/sales_screen.dart';
 import 'package:shopsync/features/dashboard/presentation/dashboard_screen.dart';
+import 'package:isar/isar.dart';
 import 'package:shopsync/features/license/presentation/license_guard_shell.dart';
 
+DatabaseService? globalDbService;
+
 final databaseServiceProvider = Provider<DatabaseService>((ref) {
-  throw UnimplementedError('DatabaseService not initialized');
+  if (globalDbService == null) {
+    throw UnimplementedError('DatabaseService not initialized');
+  }
+  return globalDbService!;
 });
+
+Future<void> restartAppWithNewDatabase(BuildContext context) async {
+  final isarInstance = Isar.getInstance('shopsync_db');
+  if (isarInstance != null && isarInstance.isOpen) {
+    await isarInstance.close();
+  }
+  globalDbService = await DatabaseService.create();
+  if (context.mounted) {
+    RestartWidget.restartApp(context);
+  }
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final dbService = await DatabaseService.create();
+  globalDbService = await DatabaseService.create();
   runApp(
-    ProviderScope(
-      overrides: [databaseServiceProvider.overrideWithValue(dbService)],
-      child: const ShopSyncApp(),
+    RestartWidget(
+      child: ProviderScope(
+        overrides: [
+          databaseServiceProvider.overrideWith((ref) => globalDbService!),
+        ],
+        child: const ShopSyncApp(),
+      ),
     ),
   );
 }
@@ -293,6 +314,37 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       icon: Icon(icon, color: colorScheme.onSurface.withValues(alpha: 0.4)),
       selectedIcon: Icon(icon, color: colorScheme.primary),
       label: '',
+    );
+  }
+}
+
+class RestartWidget extends StatefulWidget {
+  const RestartWidget({super.key, required this.child});
+
+  final Widget child;
+
+  static void restartApp(BuildContext context) {
+    context.findAncestorStateOfType<_RestartWidgetState>()?.restartApp();
+  }
+
+  @override
+  State<RestartWidget> createState() => _RestartWidgetState();
+}
+
+class _RestartWidgetState extends State<RestartWidget> {
+  Key key = UniqueKey();
+
+  void restartApp() {
+    setState(() {
+      key = UniqueKey();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return KeyedSubtree(
+      key: key,
+      child: widget.child,
     );
   }
 }
