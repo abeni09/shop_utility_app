@@ -6,7 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:crypto/crypto.dart';
 
 class LicenseService {
-  static const String _apiEndpoint = 'https://api.yourdomain.com/license/activate';
+  static const String _baseUrl = 'http://localhost:3333';
+  static const String _apiActivate = '$_baseUrl/license/activate';
   static const String _salt = 'ShopSyncSecuritySalt2026';
 
   // Local storage keys
@@ -133,7 +134,7 @@ class LicenseService {
       }
 
       final response = await http.post(
-        Uri.parse(_apiEndpoint),
+        Uri.parse(_apiActivate),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'key': trimmedKey,
@@ -175,6 +176,40 @@ class LicenseService {
         'message': 'Error activating: $e'
       };
     }
+  }
+
+  // Check remote status of the license key
+  Future<Map<String, dynamic>> checkRemoteStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = prefs.getString(_keyLicenseKey);
+    final deviceId = await getDeviceId();
+
+    if (key == null) {
+      return {'status': 'notActivated'};
+    }
+
+    // Skip remote check for the offline demo key
+    if (key == 'DEMO-1234-5678') {
+      return {'status': 'active'};
+    }
+
+    try {
+      final uri = Uri.parse('$_baseUrl/license/status').replace(queryParameters: {
+        'key': key,
+        'device_id': deviceId,
+      });
+
+      final response = await http.get(uri).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data; // returns status, expiry_date, message
+      }
+    } catch (_) {
+      // Return offline/unknown state on error so we don't lock the user out when offline
+      return {'status': 'unknown'};
+    }
+    return {'status': 'unknown'};
   }
 
   // Save the license details locally

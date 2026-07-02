@@ -71,13 +71,15 @@ class LicenseNotifier extends StateNotifier<LicenseState> {
     final expiry = await _service.getExpiryDate();
     final key = await _service.getLicenseKey();
 
-    if (isValid) {
+    if (isValid && key != null) {
       state = LicenseState(
         status: LicenseStatus.active,
         deviceId: deviceId,
         licenseKey: key,
         expiryDate: expiry,
       );
+      // Run remote status sync in the background
+      _performBackgroundCheck(key);
     } else {
       if (expiry != null && DateTime.now().isAfter(expiry)) {
         state = LicenseState(
@@ -92,6 +94,46 @@ class LicenseNotifier extends StateNotifier<LicenseState> {
           status: LicenseStatus.notActivated,
           deviceId: deviceId,
         );
+      }
+    }
+  }
+
+  Future<void> _performBackgroundCheck(String key) async {
+    final result = await _service.checkRemoteStatus();
+    final status = result['status'];
+    
+    if (status == 'revoked' || status == 'invalid') {
+      // License key deactivated/revoked by admin
+      await _service.clearLicense();
+      final deviceId = await _service.getDeviceId();
+      state = LicenseState(
+        status: LicenseStatus.notActivated,
+        deviceId: deviceId,
+        errorMessage: result['message'] ?? 'This license key has been deactivated.',
+      );
+    } else if (status == 'expired') {
+      // Subscription expired
+      await _service.clearLicense();
+      final deviceId = await _service.getDeviceId();
+      final expiryStr = result['expiry_date'];
+      final expiry = expiryStr != null ? DateTime.tryParse(expiryStr) : null;
+      state = LicenseState(
+        status: LicenseStatus.expired,
+        deviceId: deviceId,
+        licenseKey: key,
+        expiryDate: expiry,
+        errorMessage: result['message'] ?? 'Your subscription has expired.',
+      );
+    } else if (status == 'active') {
+      // Key active, sync expiry date if changed on the server
+      final expiryStr = result['expiry_date'];
+      if (expiryStr != null) {
+        final remoteExpiry = DateTime.parse(expiryStr);
+        final localExpiry = await _service.getExpiryDate();
+        if (localExpiry == null || !localExpiry.isAtSameMomentAs(remoteExpiry)) {
+          await _service.saveLicenseLocally(key, remoteExpiry);
+          state = state.copyWith(expiryDate: remoteExpiry);
+        }
       }
     }
   }

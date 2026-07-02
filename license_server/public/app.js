@@ -1,5 +1,6 @@
 // Application State
 let allLicenses = [];
+let keyToDelete = '';
 
 // Helper to escape HTML to prevent XSS vulnerabilities
 function escapeHTML(str) {
@@ -37,6 +38,9 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     fetchLicenses();
   });
+
+  // Custom delete confirm button
+  document.getElementById('btn-confirm-delete').addEventListener('click', submitDeleteLicense);
 });
 
 // Fetch all keys from REST API
@@ -52,7 +56,7 @@ async function fetchLicenses() {
     console.error('Error fetching licenses:', error);
     licensesListEl.innerHTML = `
       <tr>
-        <td colspan="6" class="table-loading font-danger">
+        <td colspan="7" class="table-loading font-danger">
           <i data-lucide="alert-triangle"></i> Error loading licenses. Please make sure the server is running.
         </td>
       </tr>
@@ -90,7 +94,7 @@ function updateStats() {
 function setLoadingState() {
   licensesListEl.innerHTML = `
     <tr>
-      <td colspan="6" class="table-loading">
+      <td colspan="7" class="table-loading">
         <i data-lucide="loader" class="spinner"></i> Loading licenses...
       </td>
     </tr>
@@ -109,7 +113,8 @@ function filterAndRender() {
   const filtered = allLicenses.filter(lic => {
     const keyMatch = lic.key.toLowerCase().includes(query);
     const deviceMatch = (lic.deviceId || '').toLowerCase().includes(query);
-    return keyMatch || deviceMatch;
+    const clientMatch = (lic.clientName || '').toLowerCase().includes(query);
+    return keyMatch || deviceMatch || clientMatch;
   });
   
   renderLicenses(filtered);
@@ -120,7 +125,7 @@ function renderLicenses(licenses) {
   if (licenses.length === 0) {
     licensesListEl.innerHTML = `
       <tr>
-        <td colspan="6" class="table-loading">
+        <td colspan="7" class="table-loading">
           No licenses found.
         </td>
       </tr>
@@ -149,6 +154,10 @@ function renderLicenses(licenses) {
       }
     }
 
+    const clientName = lic.clientName 
+      ? `<span style="font-weight: 600;">${escapeHTML(lic.clientName)}</span>`
+      : `<span style="color: var(--text-dark); font-style: italic;">Unassigned</span>`;
+
     const boundDevice = lic.deviceId 
       ? `<span class="device-code">${escapeHTML(lic.deviceId)}</span>`
       : `<span style="color: var(--text-dark); font-style: italic;">None</span>`;
@@ -169,6 +178,7 @@ function renderLicenses(licenses) {
 
     return `
       <tr>
+        <td>${clientName}</td>
         <td>
           <span class="key-code" onclick="copyToClipboard('${escapeHTML(lic.key)}')" title="Click to Copy">
             ${escapeHTML(lic.key)} <i data-lucide="copy" style="width: 12px; height: 12px; opacity: 0.5;"></i>
@@ -213,15 +223,17 @@ function copyToClipboard(text) {
 async function handleGenerate(e) {
   e.preventDefault();
   const count = document.getElementById('generate-count').value;
+  const clientName = document.getElementById('generate-client-name').value;
   try {
     const response = await fetch('/api/licenses', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ generateCount: count })
+      body: JSON.stringify({ generateCount: count, clientName })
     });
     const result = await response.json();
     if (result.success) {
       closeModal('modal-generate');
+      document.getElementById('generate-client-name').value = '';
       fetchLicenses();
     } else {
       alert(result.message || 'Error generating keys');
@@ -236,16 +248,18 @@ async function handleGenerate(e) {
 async function handleCreateCustom(e) {
   e.preventDefault();
   const customKey = document.getElementById('custom-key').value;
+  const clientName = document.getElementById('custom-client-name').value;
   try {
     const response = await fetch('/api/licenses', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ customKey })
+      body: JSON.stringify({ customKey, clientName })
     });
     const result = await response.json();
     if (result.success) {
       closeModal('modal-custom');
       document.getElementById('custom-key').value = '';
+      document.getElementById('custom-client-name').value = '';
       fetchLicenses();
     } else {
       alert(result.message || 'Key already exists');
@@ -264,6 +278,7 @@ function openEditModal(keyName) {
   document.getElementById('edit-key-id').value = lic.key;
   document.getElementById('edit-key-display').value = lic.key;
   document.getElementById('edit-device-id').value = lic.deviceId || '';
+  document.getElementById('edit-client-name').value = lic.clientName || '';
   document.getElementById('edit-is-active').checked = lic.isActive;
 
   if (lic.expiryDate) {
@@ -290,6 +305,7 @@ async function handleSaveEdit(e) {
   e.preventDefault();
   const key = document.getElementById('edit-key-id').value;
   const deviceId = document.getElementById('edit-device-id').value;
+  const clientName = document.getElementById('edit-client-name').value;
   const expiryInput = document.getElementById('edit-expiry-date').value;
   const isActive = document.getElementById('edit-is-active').checked;
 
@@ -303,7 +319,7 @@ async function handleSaveEdit(e) {
     const response = await fetch(`/api/licenses/${key}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ deviceId, expiryDate, isActive })
+      body: JSON.stringify({ deviceId, expiryDate, isActive, clientName })
     });
     const result = await response.json();
     if (result.success) {
@@ -318,17 +334,25 @@ async function handleSaveEdit(e) {
   }
 }
 
-// Delete key
-async function handleDeleteLicense(key) {
-  const confirmDel = confirm(`Are you sure you want to permanently delete license key:\n${key}?`);
-  if (!confirmDel) return;
+// Open delete confirmation modal
+function handleDeleteLicense(key) {
+  keyToDelete = key;
+  document.getElementById('delete-key-display').textContent = key;
+  openModal('modal-delete');
+}
+
+// Perform license key deletion
+async function submitDeleteLicense() {
+  if (!keyToDelete) return;
 
   try {
-    const response = await fetch(`/api/licenses/${key}`, {
+    const response = await fetch(`/api/licenses/${keyToDelete}`, {
       method: 'DELETE'
     });
     const result = await response.json();
     if (result.success) {
+      closeModal('modal-delete');
+      keyToDelete = '';
       fetchLicenses();
     } else {
       alert(result.message || 'Error deleting key');

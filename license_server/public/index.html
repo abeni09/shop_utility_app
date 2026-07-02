@@ -113,6 +113,7 @@
         <table class="licenses-table">
           <thead>
             <tr>
+              <th>Client Name</th>
               <th>License Key</th>
               <th>Status</th>
               <th>Bound Device</th>
@@ -143,6 +144,10 @@
       </div>
       <form id="form-generate" onsubmit="handleGenerate(event)">
         <div class="form-group">
+          <label for="generate-client-name">Client Name (Optional)</label>
+          <input type="text" id="generate-client-name" placeholder="e.g. Acme Corp">
+        </div>
+        <div class="form-group">
           <label for="generate-count">Number of Keys to Generate</label>
           <input type="number" id="generate-count" min="1" max="100" value="5" required>
           <span class="form-hint">Generates secure keys in SYNC-XXXX-XXXX-XXXX-XXXX format.</span>
@@ -163,6 +168,10 @@
         <button class="close-btn" onclick="closeModal('modal-custom')"><i data-lucide="x"></i></button>
       </div>
       <form id="form-custom" onsubmit="handleCreateCustom(event)">
+        <div class="form-group">
+          <label for="custom-client-name">Client Name (Optional)</label>
+          <input type="text" id="custom-client-name" placeholder="e.g. Premium Client">
+        </div>
         <div class="form-group">
           <label for="custom-key">Custom License Key Name</label>
           <input type="text" id="custom-key" placeholder="e.g. SHOP-SPECIAL-2026" required>
@@ -185,6 +194,10 @@
       </div>
       <form id="form-edit" onsubmit="handleSaveEdit(event)">
         <input type="hidden" id="edit-key-id">
+        <div class="form-group">
+          <label for="edit-client-name">Client Name</label>
+          <input type="text" id="edit-client-name" placeholder="No client assigned">
+        </div>
         <div class="form-group">
           <label>License Key</label>
           <input type="text" id="edit-key-display" class="input-disabled" readonly>
@@ -211,6 +224,30 @@
           <button type="submit" class="btn btn-primary">Save Changes</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal: Custom Delete Confirmation -->
+  <div class="modal-backdrop" id="modal-delete">
+    <div class="modal-content" style="width: 420px;">
+      <div class="modal-header">
+        <h2 style="color: var(--danger);">Delete License Key</h2>
+        <button class="close-btn" onclick="closeModal('modal-delete')"><i data-lucide="x"></i></button>
+      </div>
+      <div style="text-align: center; padding: 10px 0 20px 0;">
+        <div style="font-size: 48px; color: var(--danger); margin-bottom: 12px; display: flex; justify-content: center;">
+          <i data-lucide="alert-triangle" style="width: 48px; height: 48px;"></i>
+        </div>
+        <p style="font-size: 15px; margin-bottom: 8px;">Are you sure you want to permanently delete license key:</p>
+        <p><span id="delete-key-display" class="key-code" style="font-size: 15px;">SYNC-XXXX-XXXX</span></p>
+        <p class="form-hint font-danger" style="margin-top: 14px; padding: 0 10px; line-height: 1.4;">
+          This action cannot be undone. Activated devices using this key will be revoked immediately.
+        </p>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-text" onclick="closeModal('modal-delete')">Cancel</button>
+        <button type="button" class="btn btn-primary" style="background-color: var(--danger);" id="btn-confirm-delete">Yes, Delete Key</button>
+      </div>
     </div>
   </div>
 

@@ -55,7 +55,8 @@ if (process.argv.includes('--generate')) {
       deviceId: null,
       expiryDate: null,
       createdAt: new Date().toISOString(),
-      isActive: true
+      isActive: true,
+      clientName: null
     };
     newKeys.push(newKey);
     console.log(`  - ${newKey}`);
@@ -202,8 +203,9 @@ app.get('/api/licenses', (req, res) => {
 
 // 2. Create or generate license(s)
 app.post('/api/licenses', (req, res) => {
-  const { customKey, generateCount } = req.body;
+  const { customKey, generateCount, clientName } = req.body;
   const db = loadDB();
+  const nameVal = clientName ? clientName.trim() : null;
 
   if (customKey && customKey.trim()) {
     const key = customKey.trim().toUpperCase();
@@ -214,7 +216,8 @@ app.post('/api/licenses', (req, res) => {
       deviceId: null,
       expiryDate: null,
       createdAt: new Date().toISOString(),
-      isActive: true
+      isActive: true,
+      clientName: nameVal
     };
     saveDB(db);
     return res.json({ success: true, message: `Custom key '${key}' created.` });
@@ -228,7 +231,8 @@ app.post('/api/licenses', (req, res) => {
       deviceId: null,
       expiryDate: null,
       createdAt: new Date().toISOString(),
-      isActive: true
+      isActive: true,
+      clientName: nameVal
     };
     newKeys.push(newKey);
   }
@@ -239,7 +243,7 @@ app.post('/api/licenses', (req, res) => {
 // 3. Update license details
 app.put('/api/licenses/:key', (req, res) => {
   const key = req.params.key.toUpperCase();
-  const { deviceId, expiryDate, isActive } = req.body;
+  const { deviceId, expiryDate, isActive, clientName } = req.body;
   const db = loadDB();
 
   if (!db.keys[key]) {
@@ -259,6 +263,10 @@ app.put('/api/licenses/:key', (req, res) => {
 
   if (isActive !== undefined) {
     db.keys[key].isActive = !!isActive;
+  }
+
+  if (clientName !== undefined) {
+    db.keys[key].clientName = clientName === '' ? null : clientName.trim();
   }
 
   saveDB(db);
@@ -287,7 +295,8 @@ if (!db.keys[initialDemoKey]) {
     deviceId: null,
     expiryDate: null,
     createdAt: new Date().toISOString(),
-    isActive: true
+    isActive: true,
+    clientName: "Demo Client"
   };
   saveDB(db);
   console.log(`\n🔑 Seeded initial demo key: ${initialDemoKey}`);
